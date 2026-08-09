@@ -1,112 +1,235 @@
 # Agent Plugin Compiler
 
-`@fam-tung-lam/ptlam-agent-plugin-compiler` validates and compiles compatible
-manifest-v1 agent-plugin repositories for Claude and Codex. It is a deep module
-behind two small interfaces:
+`@fam-tung-lam/ptlam-agent-plugin-compiler` helps authors build reliable agent
+skill plugins.
 
-- the `plugin-compiler` command-line interface; and
-- the package-root `AgentPluginCompiler` Node.js interface.
+## Why this package exists
 
-Parsing, validation, provider selection, output planning, filesystem safety, and
-recovery remain private implementation details. The compiler does not install or
-publish plugins, discover repositories, manage external versions, or write to a
-user's home directory.
+Most skill installers show users a flat list of skills. They do not show that
+one skill may need another skill to work.
 
-## Requirements
+Imagine a plugin with two skills:
 
-The first release supports:
+- `prepare-change-plan` creates a plan;
+- `inspect-repository` collects the repository facts needed by that plan; and
+- `prepare-change-plan` depends on `inspect-repository`.
 
-- Node.js `>=22.6.0`;
-- emitted ESM JavaScript, with no consumer TypeScript or `tsx` dependency;
-- a project with `package.json` and a local npm-compatible installation; and
-- npm as the supported package manager and release gate.
+Without a dependency tool, that simple relationship causes several problems.
 
-Install one exact version as a development dependency:
+### Issue 1: Users can install an incomplete skill
+
+The installer may show both skills, but not the dependency between them. A user
+can install `prepare-change-plan` by itself without knowing that
+`inspect-repository` is also required. The installed skill then misses part of
+the instructions it needs to work.
+
+### Issue 2: Authors can break dependencies without noticing
+
+Agent plugin authors often write the dependency directly into a skill's
+instructions: the other skill's name, why it is needed, and how to use it. That
+text can silently become wrong when the required skill is renamed, removed,
+drafted, archived, or replaced.
+
+Nothing in a plain folder of Markdown files tells the author that another skill
+still points to the old dependency. The plugin can be released before anyone
+notices the mistake.
+
+### Issue 3: Manual copies drift
+
+Agent plugin authors also have to keep skill metadata, visibility, lifecycle
+status, dependency instructions, public skill copies, catalogs, and host
+manifests in sync. A person or an AI agent may update all of them sometimes and
+miss one at other times. That is not a reliable maintenance process.
+
+### Solution: Agent Plugin Compiler
+
+Compiler replaces those repeated manual steps with one build-time source of
+truth:
+
+```mermaid
+flowchart LR
+  Manifest["plugin/plugin.yml<br/>Skill A requires skill B"]
+  Sources["plugin/skills/**<br/>Authored skill files"]
+  Compiler["Agent Plugin Compiler<br/>Validate and compile"]
+  Skill["Self-contained skill A<br/>skills/skill-a/SKILL.md<br/>skills/skill-a/skills/skill-b/**"]
+  Claude[".claude-plugin/**"]
+  Codex[".codex-plugin/plugin.json"]
+
+  Manifest --> Compiler
+  Sources --> Compiler
+  Compiler -->|"Self-contained skill A"| Skill
+  Compiler --> Claude
+  Compiler --> Codex
+```
+
+1. Declare skills in `plugin/skills/` and dependencies in `plugin/plugin.yml`.
+2. The compiler validates those relationships, puts each required skill inside
+   the skill that needs it
+3. Generate the public skill catalog for Claude and Codex from the same source.
+
+Can be used through CLI commands or the `AgentPluginCompiler` Node.js API.
+
+## Features
+
+- **Explicit dependency graph:** each dependency records the required skill, why
+  it is needed, and how the parent skill should use it.
+- **Early dependency validation:** missing, duplicate, self-referencing,
+  circular, and invalid lifecycle relationships fail before publication.
+- **Self-contained public skills:** required skills are copied recursively into
+  every public root skill that needs them.
+- **One source for plugin state:** metadata, visibility, lifecycle status,
+  replacements, the public catalog, and provider manifests stay aligned.
+- **Generated-state checking:** `check` reports when compiled skills or
+  manifests no longer match the authored source.
+
+## Installation
+
+Install the compiler locally in a npm project:
 
 ```bash
 npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0-alpha.1
+  @fam-tung-lam/ptlam-agent-plugin-compiler@next
 ```
 
-The first release does not promise pnpm, Yarn, Bun, Deno, global installation,
-or transient `npx` execution. Invoke the local binary through a package script
-or `npm exec`.
+## Quick start
 
-## Compatible repository
-
-Pass an existing real repository directory with this authored layout:
+### 1. Create the authored plugin source
 
 ```text
 plugin/
 ├── plugin.yml
 └── skills/
-    └── <skill-id>/
-        ├── SKILL.md
-        ├── agents/       # optional
-        ├── assets/       # optional
-        ├── references/   # optional
-        └── scripts/      # optional
+    ├── inspect-repository/
+    │   └── SKILL.md
+    └── prepare-change-plan/
+        └── SKILL.md
 ```
 
-`plugin/plugin.yml` is the canonical catalog. Schema version 1 is the only
-accepted manifest version. Each body-only `SKILL.md` contains exactly one
-`<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` marker. See the
-[architecture guide](docs/ARCHITECTURE.md) for the source model and ownership
-rules.
+Create `plugin/plugin.yml`:
 
-The repository accepts the compiler's exact output ownership. In particular,
-root `skills/` is a complete managed tree that compilation may replace. This is
-destructive ownership: unexpected files and directories inside `skills/` may be
-removed. Root `README.md` remains human-owned and is never read, planned,
-compared, or written by compiler operations.
+```yaml
+schema_version: 1
+
+name: planning-skills
+description: Skills for planning repository changes.
+version: "1.0.0"
+
+author:
+  name: Example Maintainer
+
+homepage: https://github.com/example/planning-skills
+repository: https://github.com/example/planning-skills
+license: MIT
+
+keywords:
+  - agent
+  - planning
+
+marketplace:
+  name: planning-skills
+  description: Skills for planning repository changes.
+  plugin_description: Inspect a repository and prepare change plans.
+  category: development
+  keywords:
+    - agent
+    - planning
+
+categories:
+  - id: engineering
+    name: Engineering
+    description: Skills for repository work.
+
+skills:
+  - id: inspect-repository
+    description: Inspect a repository and collect verified facts.
+    category_id: engineering
+    visibility: internal
+    status: active
+    required_skills: []
+
+  - id: prepare-change-plan
+    description: Prepare a change plan from verified repository facts.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills:
+      - skill_id: inspect-repository
+        reason: The plan must reflect the repository's actual structure.
+        instructions:
+          Inspect the repository and pass the verified facts forward.
+```
+
+Create `plugin/skills/inspect-repository/SKILL.md`:
+
+```markdown
+# Inspect a repository
+
+Inspect the repository and collect the facts needed to plan a change.
+
+<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
+
+1. Read the relevant source and configuration files.
+2. Report the current structure and constraints.
+```
+
+Create `plugin/skills/prepare-change-plan/SKILL.md`:
+
+```markdown
+# Prepare a change plan
+
+Create a focused implementation plan from verified repository facts.
+
+<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
+
+1. Describe the files and behavior that need to change.
+2. Keep the plan small and testable.
+```
+
+- `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` marker is required exactly once in
+  every authored `SKILL.md`. The compiler replaces it with the declared
+  dependency instructions.
+- Do not add YAML frontmatter here; the compiler generates it.
+
+### 2. Run the compiler
+
+`generate` replaces the compiler-owned root `skills/` tree and provider manifest
+files.
+
+```bash
+npm exec -- plugin-compiler validate
+npm exec -- plugin-compiler generate
+npm exec -- plugin-compiler check
+```
+
+The result is a public skill with its internal dependency included:
+
+```text
+skills/
+├── README.md
+└── prepare-change-plan/
+    ├── SKILL.md
+    └── skills/
+        └── inspect-repository/
+            └── SKILL.md
+.claude-plugin/
+├── marketplace.json
+└── plugin.json
+.codex-plugin/
+└── plugin.json
+```
 
 ## Command-line interface
 
-Add local scripts such as:
+| Command                                    | Purpose                                      |
+| ------------------------------------------ | -------------------------------------------- |
+| `plugin-compiler validate [--root <path>]` | Validate the manifest, skills, and graph     |
+| `plugin-compiler generate [--root <path>]` | Generate and verify all managed output files |
+| `plugin-compiler check [--root <path>]`    | Report output that does not match the source |
+| `plugin-compiler --help`                   | Show command usage                           |
 
-```json
-{
-  "scripts": {
-    "plugin:validate": "plugin-compiler validate",
-    "plugin:check": "plugin-compiler check",
-    "plugin:compile": "plugin-compiler generate",
-    "plugin:verify": "npm run plugin:validate && npm run plugin:check"
-  }
-}
-```
+Without `--root`, the compiler uses the current working directory.
 
-The first release exposes exactly:
-
-```text
-plugin-compiler validate [--root <path>]
-plugin-compiler check [--root <path>]
-plugin-compiler generate [--root <path>]
-plugin-compiler --help
-plugin-compiler -h
-```
-
-Without `--root`, the root is `process.cwd()`. A relative root resolves against
-that working directory; an absolute root is accepted directly. The compiler does
-not search upward for a manifest. Linked, missing, non-directory, escaping, or
-otherwise unsafe roots are rejected by the existing filesystem checks.
-
-Normal success and help text use stdout. Warnings use stderr even when an
-operation succeeds. Usage errors, validation or operational failures, detected
-drift, and failed post-write verification use stderr; a failed generation may
-also report completed writes on stdout.
-
-| Exit code | Meaning                                                          |
-| --------: | ---------------------------------------------------------------- |
-|       `0` | Help or operation succeeded; check is current                    |
-|       `1` | Validation, drift, generation, verification, or operation failed |
-|       `2` | Command-line usage is invalid                                    |
-
-There is no command-specific help, provider flag, JSON mode, interactive prompt,
-or upward root discovery in the first release.
-
-## Node.js interface
-
-Import only from the package root:
+## Node.js API
 
 ```ts
 import {
@@ -115,63 +238,29 @@ import {
 } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
 const compiler = new AgentPluginCompiler({
-  rootDir: "/absolute/path/to/example-plugin",
+  rootDir: process.cwd(),
   providers: [Provider.Claude, Provider.Codex],
 });
 
 await compiler.validate();
 await compiler.compile();
-await compiler.check();
+
+const result = await compiler.check();
+console.log(result.upToDate);
 ```
 
-The root exposes exactly two runtime values and four TypeScript types:
+Select Claude, Codex, both providers, or an empty list when only the shared
+`skills/` tree is needed.
 
-- `AgentPluginCompiler`;
-- `Provider` with `Provider.Claude` and `Provider.Codex`;
-- `CompilerOptionsInput`;
-- `ValidateResult`;
-- `CheckResult`; and
-- `CompileResult`.
+## Documentation and support
 
-There is no default export or public package subpath. Deep imports into `core`,
-`providers`, `filesystem`, `compiler`, `cli`, or `dist` are unsupported and
-rejected by the package export map.
+- [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)
+- [Complete example](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/tree/main/examples/simple-agent-plugin)
+- [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)
+- [Contributing](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CONTRIBUTING.md)
+- [GitHub Issues](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/issues)
+- [Security policy](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/SECURITY.md)
 
-Programmatic callers select providers with enum values, including both or an
-empty provider list. The CLI always selects `Provider.Claude` and
-`Provider.Codex` in that order. An empty programmatic list still compiles the
-shared `skills/` tree. Invalid runtime values and duplicate providers fail
-deterministically.
+## License
 
-Programmatic operation failures reject with `Error` instances. A stable public
-error-class taxonomy is not part of the first release.
-
-## Behavior and recovery
-
-`validate` and `check` are read-only. `check` and `compile` build identical
-planned bytes. Compilation validates and plans before its first write, uses
-recoverable replacement for the complete `skills/` tree, rereads every owned
-output, and succeeds only when post-write comparison is empty.
-
-Identical authored inputs, selected providers, and compiler version produce
-identical output paths and bytes. Provider order cannot change bytes or
-collision diagnostics. Diagnostics and differences have deterministic order.
-
-Compilation is not a cross-file transaction. If an operating-system failure
-occurs after an earlier standalone file changed, correct the filesystem problem
-and rerun compilation. The compiler does not claim protection from a hostile
-concurrent process racing its filesystem operations.
-
-## Project documentation
-
-- [Changelog](CHANGELOG.md)
-- [Contributing](CONTRIBUTING.md)
-- [Examples](examples/README.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Development](docs/DEVELOPMENT.md)
-- [Release](docs/RELEASE.md)
-- [Security policy](SECURITY.md)
-- [MIT license](LICENSE)
-
-This package compiles plugin artifacts. A host-specific installer or release
-system remains responsible for installing or publishing those artifacts.
+[MIT](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE)
