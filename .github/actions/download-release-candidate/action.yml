@@ -1,0 +1,25 @@
+name: Download release candidate
+description: Download the tested release candidate from its CI run.
+
+inputs:
+  run-id:
+    description: GitHub Actions run that produced the candidate.
+    required: true
+  destination:
+    description: Directory where the artifact is extracted.
+    required: true
+  token:
+    description: GitHub token with actions read access.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download the tested release candidate
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+      with:
+        name: release-candidate
+        path: ${{ inputs.destination }}
+        repository: ${{ github.repository }}
+        run-id: ${{ inputs.run-id }}
+        github-token: ${{ inputs.token }}

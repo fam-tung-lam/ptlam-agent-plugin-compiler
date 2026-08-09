@@ -1,0 +1,195 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    name: Read tested release candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      ci_run_id: ${{ steps.ci.outputs.run_id }}
+      should_release: ${{ steps.release.outputs.should_release }}
+      needs_publish: ${{ steps.release.outputs.needs_publish }}
+      release_sha: ${{ steps.release.outputs.release_sha }}
+      package_name: ${{ steps.release.outputs.package_name }}
+      package_version: ${{ steps.release.outputs.package_version }}
+      npm_tag: ${{ steps.release.outputs.npm_tag }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      tarball_name: ${{ steps.release.outputs.tarball_name }}
+      integrity: ${{ steps.release.outputs.integrity }}
+      shasum: ${{ steps.release.outputs.shasum }}
+    steps:
+      - name: Check out the release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up release validation
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: 24.19.0
+          npm-version: 11.19.0
+
+      - name: Wait for CI on the release commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/wait-for-ci.ts
+
+      - name: Download the tested release candidate
+        uses: ./.github/actions/download-release-candidate
+        with:
+          run-id: ${{ steps.ci.outputs.run_id }}
+          destination: ${{ runner.temp }}/release-candidate
+          token: ${{ github.token }}
+
+      - name: Validate release candidate
+        id: release
+        env:
+          CANDIDATE_DIR: ${{ runner.temp }}/release-candidate
+          EXPECTED_SHA: ${{ github.sha }}
+          SOURCE_CI_RUN_ID: ${{ steps.ci.outputs.run_id }}
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/validate-release-candidate.ts
+
+  publish:
+    name: Publish npm package
+    needs: detect
+    if: ${{ needs.detect.outputs.should_release == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: npm-release
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      NPM_TAG: ${{ needs.detect.outputs.npm_tag }}
+      TARBALL_NAME: ${{ needs.detect.outputs.tarball_name }}
+    steps:
+      - name: Download the tested release candidate
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: release-candidate
+          path: ${{ runner.temp }}/release-candidate
+          repository: ${{ github.repository }}
+          run-id: ${{ needs.detect.outputs.ci_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Set up npm trusted publishing
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.19.0
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.19.0 --ignore-scripts
+
+      - name: Publish the tested package
+        if: ${{ needs.detect.outputs.needs_publish == 'true' }}
+        env:
+          CANDIDATE_DIR: ${{ runner.temp }}/release-candidate
+        run: >-
+          npm publish "${CANDIDATE_DIR}/${TARBALL_NAME}"
+          --access public --tag "${NPM_TAG}" --ignore-scripts
+
+  verify:
+    name: Verify npm package
+    needs:
+      - detect
+      - publish
+    if: >-
+      always() && needs.detect.outputs.should_release == 'true' &&
+      needs.publish.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    env:
+      PACKAGE_NAME: ${{ needs.detect.outputs.package_name }}
+      PACKAGE_VERSION: ${{ needs.detect.outputs.package_version }}
+      NPM_TAG: ${{ needs.detect.outputs.npm_tag }}
+      TARBALL_NAME: ${{ needs.detect.outputs.tarball_name }}
+      TARBALL_INTEGRITY: ${{ needs.detect.outputs.integrity }}
+      TARBALL_SHASUM: ${{ needs.detect.outputs.shasum }}
+      PUBLISHED_NOW: ${{ needs.detect.outputs.needs_publish }}
+    steps:
+      - name: Check out the release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.detect.outputs.release_sha }}
+          persist-credentials: false
+
+      - name: Set up release verification
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: 24.19.0
+          npm-version: 11.19.0
+
+      - name: Download the tested release candidate
+        uses: ./.github/actions/download-release-candidate
+        with:
+          run-id: ${{ needs.detect.outputs.ci_run_id }}
+          destination: ${{ runner.temp }}/release-candidate
+          token: ${{ github.token }}
+
+      - name: Verify the npm release
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/verify-package-release.ts
+
+  github-release:
+    name: Create Git tag and GitHub Release
+    needs:
+      - detect
+      - publish
+      - verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      PACKAGE_NAME: ${{ needs.detect.outputs.package_name }}
+      PACKAGE_VERSION: ${{ needs.detect.outputs.package_version }}
+      NPM_TAG: ${{ needs.detect.outputs.npm_tag }}
+      PRERELEASE: ${{ needs.detect.outputs.prerelease }}
+      RELEASE_SHA: ${{ needs.detect.outputs.release_sha }}
+      PUBLISHED_NOW: ${{ needs.detect.outputs.needs_publish }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the release automation
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.detect.outputs.release_sha }}
+          persist-credentials: false
+
+      - name: Set up release metadata
+        uses: ./.github/actions/setup-node
+        with:
+          node-version: 24.19.0
+
+      - name: Create or verify GitHub release metadata
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/create-github-release.ts
