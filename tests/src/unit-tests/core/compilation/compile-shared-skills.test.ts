@@ -88,6 +88,86 @@ describe("compileSharedSkills", () => {
     );
   });
 
+  it("places required-skill guidance before instructions when the marker is omitted", async () => {
+    // GIVEN: An authored skill has a title, introductory prose, and an instruction list.
+    const plugin = makeValidatedPlugin();
+    const markerlessPlugin = createValidatedPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "public-skill"
+          ? {
+              ...skill,
+              source_body:
+                "# Public\n\nOverview of the public workflow.\n\n1. Follow the workflow.\n",
+            }
+          : skill.id === "old-skill"
+            ? { ...skill, source_body: "# Old\n" }
+            : skill,
+      ),
+    });
+
+    // WHEN: Core composes the shared skills tree.
+    const fragment = await compileSharedSkills(markerlessPlugin);
+    const files = new Map(
+      fragment.artifacts
+        .filter((artifact) => artifact.kind === OutputEntryKind.File)
+        .map((artifact) => [String(artifact.path), artifact.content]),
+    );
+    const publicSkill = files
+      .get("skills/public-skill/SKILL.md")
+      ?.toString("utf8");
+    const oldSkill = files.get("skills/old-skill/SKILL.md")?.toString("utf8");
+
+    // THEN: Guidance follows the introduction but precedes the instruction list.
+    assert.ok(publicSkill);
+    assert.ok(
+      publicSkill.indexOf("Overview of the public workflow.") <
+        publicSkill.indexOf("## Required skills"),
+    );
+    assert.ok(
+      publicSkill.indexOf("## Required skills") <
+        publicSkill.indexOf("1. Follow the workflow."),
+    );
+    assert.match(oldSkill ?? "", /# Old\n$/u);
+    assert.doesNotMatch(oldSkill ?? "", /## Required skills/u);
+  });
+
+  it("uses an explicit marker as the required-skill insertion point", async () => {
+    // GIVEN: An authored skill places the marker between its overview and workflow.
+    const plugin = makeValidatedPlugin();
+    const placedPlugin = createValidatedPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "public-skill"
+          ? {
+              ...skill,
+              source_body:
+                "# Public\n\nOverview.\n\n<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->\n\n## Workflow\n",
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: Core composes the shared skills tree.
+    const fragment = await compileSharedSkills(placedPlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/public-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === OutputEntryKind.File);
+    const content = artifact.content.toString("utf8");
+
+    // THEN: Generated guidance occupies the selected location and the marker disappears.
+    assert.ok(
+      content.indexOf("Overview.") < content.indexOf("## Required skills"),
+    );
+    assert.ok(
+      content.indexOf("## Required skills") < content.indexOf("## Workflow"),
+    );
+    assert.doesNotMatch(content, /PLUGIN-COMPILER:REQUIRED-SKILLS/u);
+  });
+
   it("rejects broken links in generated output before a plan can be written", async () => {
     // GIVEN: A defensive validated-looking model contains a broken generated Markdown link.
     const plugin = makeValidatedPlugin();

@@ -103,6 +103,17 @@ classDiagram
 | `SkillRequirement`                   | A directed dependency from one skill to another, with composition instructions    | The manifest declares `required_skills`                                          |
 | `SkillResource`                      | Bytes copied with a skill, such as an agent, asset, reference, or script          | The matching source entry passed validation                                      |
 
+Shared-skill compilation prepends generated frontmatter to each authored body.
+When a skill declares `required_skills`, the optional
+`<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` marker selects the exact insertion
+point for their generated guidance. Without the marker, the compiler uses parsed
+top-level Markdown blocks: it skips the first level-one heading and consecutive
+introductory paragraphs, then inserts guidance before the next block. Guidance
+is prepended when no level-one heading exists and appended when the body ends
+after its title or introduction. This keeps prerequisites ahead of operational
+instructions without interpreting authored prose. A marker on a skill without
+requirements is simply removed.
+
 ### Planned output
 
 ```mermaid

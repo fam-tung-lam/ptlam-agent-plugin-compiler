@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Made the `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` placement marker optional.
+  An explicit marker still selects the insertion point; without one, generated
+  required-skill guidance appears after the top-level title and introductory
+  paragraphs, before the next top-level block.
+
 ## [0.1.0-alpha.2] - 2026-08-09
 
 ### Changed

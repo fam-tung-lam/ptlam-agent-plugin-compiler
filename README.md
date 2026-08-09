@@ -185,9 +185,11 @@ Create a focused implementation plan from verified repository facts.
 2. Keep the plan small and testable.
 ```
 
-- `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` marker is required exactly once in
-  every authored `SKILL.md`. The compiler replaces it with the declared
-  dependency instructions.
+- `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` is an optional placement marker.
+  When present, the compiler replaces it with the declared dependency
+  instructions. When omitted, those instructions appear after the top-level
+  title and introductory paragraphs, before the next top-level block. Without a
+  top-level title, they appear at the beginning.
 - Do not add YAML frontmatter here; the compiler generates it.
 
 ### 2. Run the compiler
