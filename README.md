@@ -164,6 +164,7 @@ concurrent process racing its filesystem operations.
 
 ## Project documentation
 
+- [Changelog](CHANGELOG.md)
 - [Examples](examples/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Development](docs/DEVELOPMENT.md)
