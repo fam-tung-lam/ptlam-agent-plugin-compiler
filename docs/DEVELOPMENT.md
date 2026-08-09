@@ -13,20 +13,6 @@ npm ci
 Use npm for this repository. The lockfile is the source of truth for installed
 versions.
 
-## Daily workflow
-
-```mermaid
-flowchart LR
-  Change[Make a focused change] --> Focused[Run focused tests]
-  Focused --> Static[Run type and style checks]
-  Static --> Full[Run the full relevant gate]
-  Full --> Review[Review the diff]
-  Review --> PR[Open a pull request]
-```
-
-Keep source and tests in the same change. Do not edit `dist/`; it is build
-output.
-
 ## Project map
 
 | Path              | Contents                                                    |
@@ -39,6 +25,8 @@ output.
 | `scripts/`        | Small build and packed-package checks                       |
 | `.github/`        | CI and release automation                                   |
 | `tests/`          | Unit, integration, and provider conformance tests           |
+
+See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Commands
 
@@ -65,39 +53,14 @@ npm test -- tests/src/unit-tests/core
 | Unit        | One rule or pure module                               |
 | Integration | Real boundaries between compiler, disk, and CLI       |
 | Conformance | Claude and Codex output matches their owned contracts |
-| Package     | The packed tarball installs, imports, and runs        |
 
 Place a test at the lowest layer that can prove the behavior. Use real disk and
 process boundaries only when those boundaries matter.
 
-Mirror the production area first: keep compiler source tests under `tests/src/`
-and organize them by test layer. Add a separate `tests/scripts/` tree only when
-script-specific tests exist.
+Mirror the production area first: 
+- Keep compiler source tests under `tests/src/` and organize them by test layer.
+- Add a separate `tests/scripts/` tree only when script-specific tests exist.
 
-## Common change paths
+## Release
 
-| Change              | Update together                                                   |
-| ------------------- | ----------------------------------------------------------------- |
-| Manifest rule       | Schema, Core model, validation, fixtures, and tests               |
-| Generated skill     | Shared compiler, plan tests, and provider conformance tests       |
-| Provider file       | Provider, unit test, and provider conformance test                |
-| Filesystem behavior | Filesystem code and real-filesystem integration tests             |
-| Public API          | Package-root exports, declarations, integration tests, and README |
-| CI or release flow  | Keep the workflow readable and exercise its commands locally      |
-
-## Before review
-
-```bash
-npm run code:typecheck
-npm run code:check
-npm test
-npm run markdown:check
-git diff --check
-```
-
-Before publishing, pack once and exercise that exact tarball:
-
-```bash
-tarball="$(npm pack --ignore-scripts)"
-npm run test:package -- "${tarball}"
-```
+See [RELEASE.md](RELEASE.md).
