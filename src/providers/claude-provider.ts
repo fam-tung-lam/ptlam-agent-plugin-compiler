@@ -6,6 +6,7 @@ import {
   selectPublishedSkills,
 } from "../core/index.js";
 import type { ProviderContext } from "./models/provider.js";
+import { Provider } from "./provider.js";
 import { createCompilerProvider } from "./provider-contract.js";
 import { renderJson } from "./render-json.js";
 
@@ -48,7 +49,7 @@ function compileClaude({ plugin }: ProviderContext): OutputFragmentInput {
   });
 
   return {
-    ownerId: "claude",
+    ownerId: Provider.Claude,
     ownership: {
       kind: OutputOwnershipKind.ExactFiles,
       paths: ownedPaths,
@@ -70,7 +71,7 @@ function compileClaude({ plugin }: ProviderContext): OutputFragmentInput {
 
 /** Pure Claude adapter for the official plugin and marketplace manifests. */
 export const claudeProvider = createCompilerProvider({
-  id: "claude",
+  id: Provider.Claude,
   ownedPaths,
   compile: compileClaude,
 });

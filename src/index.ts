@@ -1,7 +1,8 @@
+export { AgentPluginCompiler } from "./compiler/agent-plugin-compiler.js";
 export type { CompilerOptionsInput } from "./compiler/models/compiler-options.js";
 export type {
   CheckResult,
-  GenerateResult,
+  CompileResult,
   ValidateResult,
 } from "./compiler/models/operation-results.js";
-export { PluginCompiler } from "./compiler/plugin-compiler.js";
+export { Provider } from "./providers/provider.js";

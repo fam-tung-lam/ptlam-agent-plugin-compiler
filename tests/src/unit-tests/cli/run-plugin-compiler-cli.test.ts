@@ -9,6 +9,7 @@ import {
 } from "../../../../src/cli/index.ts";
 import { createValidateResult } from "../../../../src/compiler/index.ts";
 import type { ValidatedPlugin } from "../../../../src/core/index.ts";
+import { Provider } from "../../../../src/providers/index.ts";
 
 const plugin = Object.freeze({
   name: "fixture-skills",
@@ -27,8 +28,8 @@ function operations({
     check: async () => {
       throw new Error("Unexpected check call");
     },
-    generate: async () => {
-      throw new Error("Unexpected generate call");
+    compile: async () => {
+      throw new Error("Unexpected compile call");
     },
   };
 }
@@ -58,7 +59,7 @@ describe("runPluginCompilerCli", () => {
     assert.equal(exitCode, CliExitCode.Success);
     assert.deepEqual(receivedScope, {
       rootDir: "/repository",
-      providerIds: ["claude", "codex"],
+      providers: [Provider.Claude, Provider.Codex],
     });
     assert.match(stdout.join("\n"), /Validated fixture-skills/u);
     assert.deepEqual(stderr, []);

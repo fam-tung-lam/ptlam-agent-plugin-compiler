@@ -20,7 +20,7 @@ versions.
 | `src/core/`       | Models, validation, shared compilation, and output planning |
 | `src/providers/`  | Claude and Codex output adapters                            |
 | `src/filesystem/` | Safe reads, output inspection, and recoverable writes       |
-| `src/compiler/`   | Public `PluginCompiler` orchestration                       |
+| `src/compiler/`   | Public `AgentPluginCompiler` orchestration                  |
 | `src/cli/`        | Command parsing and terminal output                         |
 | `scripts/`        | Small build and packed-package checks                       |
 | `.github/`        | CI and release automation                                   |

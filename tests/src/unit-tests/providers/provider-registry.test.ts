@@ -11,6 +11,7 @@ import {
   availableProviders,
   createCompilerProvider,
   createProviderContext,
+  Provider,
   ProviderContractError,
   ProviderSelectionError,
   ProviderSelectionErrorReason,
@@ -19,14 +20,14 @@ import {
 import { makeValidatedPluginFixture } from "./test-fixtures/validated-plugin-fixture.ts";
 
 describe("provider registry", () => {
-  it("resolves explicit subsets in stable provider-ID order", () => {
-    // GIVEN: Both provider IDs are requested in reverse order.
-    const requested = ["codex", "claude"];
+  it("resolves explicit subsets in stable provider order", () => {
+    // GIVEN: Both providers are requested in reverse order.
+    const requested = [Provider.Codex, Provider.Claude];
 
     // WHEN: The provider subset is resolved.
     const providers = resolveProviders(requested);
 
-    // THEN: The result is immutable and follows canonical provider-ID order.
+    // THEN: The result is immutable and follows canonical provider order.
     assert.deepEqual(
       providers.map((provider) => provider.id),
       ["claude", "codex"],
@@ -40,23 +41,23 @@ describe("provider registry", () => {
 
   it.each([
     {
-      providerIds: ["future"],
-      providerId: "future",
+      providers: ["future" as Provider],
+      provider: "future",
       reason: ProviderSelectionErrorReason.Unknown,
     },
     {
-      providerIds: ["claude", "claude"],
-      providerId: "claude",
+      providers: [Provider.Claude, Provider.Claude],
+      provider: Provider.Claude,
       reason: ProviderSelectionErrorReason.Duplicate,
     },
-  ])("reports $reason provider IDs deterministically", (expected) => {
+  ])("reports $reason providers deterministically", (expected) => {
     // GIVEN: An invalid explicit provider selection.
     // WHEN: The registry resolves the selection.
-    const resolution = () => resolveProviders(expected.providerIds);
+    const resolution = () => resolveProviders(expected.providers);
     // THEN: The shared stable error identifies the value and reason.
     assert.throws(resolution, (error: unknown) => {
       assert.ok(error instanceof ProviderSelectionError);
-      assert.equal(error.providerId, expected.providerId);
+      assert.equal(error.provider, expected.provider);
       assert.equal(error.reason, expected.reason);
       return true;
     });
@@ -67,10 +68,10 @@ describe("provider registry", () => {
     const declaredPath = createProjectPath(".claude-plugin/plugin.json");
     const unexpectedPath = createProjectPath(".claude-plugin/unexpected.json");
     const provider = createCompilerProvider({
-      id: "claude",
+      id: Provider.Claude,
       ownedPaths: [declaredPath],
       compile: () => ({
-        ownerId: "codex",
+        ownerId: Provider.Codex,
         ownership: {
           kind: OutputOwnershipKind.ExactFiles,
           paths: [unexpectedPath],

@@ -3,9 +3,12 @@ import type {
   ProjectPath,
   ValidatedPlugin,
 } from "../../core/index.js";
+import { Provider } from "../provider.js";
 
-export const PROVIDER_IDS = Object.freeze(["claude", "codex"] as const);
-export type ProviderId = (typeof PROVIDER_IDS)[number];
+export const PROVIDERS: readonly Provider[] = Object.freeze([
+  Provider.Claude,
+  Provider.Codex,
+]);
 
 export enum ProviderSelectionErrorReason {
   Duplicate = "duplicate",
@@ -16,10 +19,10 @@ export class ProviderSelectionError extends Error {
   override readonly name = "ProviderSelectionError";
 
   constructor(
-    readonly providerId: string,
+    readonly provider: string,
     readonly reason: ProviderSelectionErrorReason,
   ) {
-    super(`${reason} provider id ${JSON.stringify(providerId)}`);
+    super(`${reason} provider ${JSON.stringify(provider)}`);
     Object.freeze(this);
   }
 }
@@ -30,18 +33,18 @@ export interface ProviderContext {
 
 /** Pure provider seam. Owned paths are exact files, never directory prefixes. */
 export interface CompilerProvider {
-  readonly id: ProviderId;
+  readonly id: Provider;
   readonly ownedPaths: readonly ProjectPath[];
   compile(context: ProviderContext): OutputFragment;
 }
 
-export function createProviderIds(
-  values: Iterable<string>,
-): readonly ProviderId[] {
-  const selected: ProviderId[] = [];
+export function createProviders(
+  values: Iterable<Provider>,
+): readonly Provider[] {
+  const selected: Provider[] = [];
   const seen = new Set<string>();
   for (const value of values) {
-    if (!(PROVIDER_IDS as readonly string[]).includes(value)) {
+    if (!(PROVIDERS as readonly string[]).includes(value)) {
       throw new ProviderSelectionError(
         value,
         ProviderSelectionErrorReason.Unknown,
@@ -54,7 +57,7 @@ export function createProviderIds(
       );
     }
     seen.add(value);
-    selected.push(value as ProviderId);
+    selected.push(value);
   }
   return Object.freeze(selected);
 }

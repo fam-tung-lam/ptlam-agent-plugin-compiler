@@ -5,7 +5,7 @@ manifest-v1 agent-plugin repositories for Claude and Codex. It is a deep module
 behind two small interfaces:
 
 - the `plugin-compiler` command-line interface; and
-- the package-root `PluginCompiler` Node.js interface.
+- the package-root `AgentPluginCompiler` Node.js interface.
 
 Parsing, validation, provider selection, output planning, filesystem safety, and
 recovery remain private implementation details. The compiler does not install or
@@ -55,7 +55,7 @@ accepted manifest version. Each body-only `SKILL.md` contains exactly one
 rules.
 
 The repository accepts the compiler's exact output ownership. In particular,
-root `skills/` is a complete managed tree that generation may replace. This is
+root `skills/` is a complete managed tree that compilation may replace. This is
 destructive ownership: unexpected files and directories inside `skills/` may be
 removed. Root `README.md` remains human-owned and is never read, planned,
 compared, or written by compiler operations.
@@ -109,33 +109,38 @@ or upward root discovery in the first release.
 Import only from the package root:
 
 ```ts
-import { PluginCompiler } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
+import {
+  AgentPluginCompiler,
+  Provider,
+} from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
-const compiler = new PluginCompiler({
+const compiler = new AgentPluginCompiler({
   rootDir: "/absolute/path/to/example-plugin",
-  providerIds: ["claude", "codex"],
+  providers: [Provider.Claude, Provider.Codex],
 });
 
 await compiler.validate();
-await compiler.generate();
+await compiler.compile();
 await compiler.check();
 ```
 
-The root exposes exactly one runtime value and four TypeScript types:
+The root exposes exactly two runtime values and four TypeScript types:
 
-- `PluginCompiler`;
+- `AgentPluginCompiler`;
+- `Provider` with `Provider.Claude` and `Provider.Codex`;
 - `CompilerOptionsInput`;
 - `ValidateResult`;
 - `CheckResult`; and
-- `GenerateResult`.
+- `CompileResult`.
 
 There is no default export or public package subpath. Deep imports into `core`,
 `providers`, `filesystem`, `compiler`, `cli`, or `dist` are unsupported and
 rejected by the package export map.
 
-Programmatic callers select `claude`, `codex`, both, or an empty provider list.
-The CLI always selects both in that order. An empty programmatic list still
-compiles the shared `skills/` tree. Unknown and duplicate provider IDs fail
+Programmatic callers select providers with enum values, including both or an
+empty provider list. The CLI always selects `Provider.Claude` and
+`Provider.Codex` in that order. An empty programmatic list still compiles the
+shared `skills/` tree. Invalid runtime values and duplicate providers fail
 deterministically.
 
 Programmatic operation failures reject with `Error` instances. A stable public
@@ -143,8 +148,8 @@ error-class taxonomy is not part of the first release.
 
 ## Behavior and recovery
 
-`validate` and `check` are read-only. `check` and `generate` build identical
-planned bytes. Generation validates and plans before its first write, uses
+`validate` and `check` are read-only. `check` and `compile` build identical
+planned bytes. Compilation validates and plans before its first write, uses
 recoverable replacement for the complete `skills/` tree, rereads every owned
 output, and succeeds only when post-write comparison is empty.
 
@@ -152,9 +157,9 @@ Identical authored inputs, selected providers, and compiler version produce
 identical output paths and bytes. Provider order cannot change bytes or
 collision diagnostics. Diagnostics and differences have deterministic order.
 
-Generation is not a cross-file transaction. If an operating-system failure
+Compilation is not a cross-file transaction. If an operating-system failure
 occurs after an earlier standalone file changed, correct the filesystem problem
-and rerun generation. The compiler does not claim protection from a hostile
+and rerun compilation. The compiler does not claim protection from a hostile
 concurrent process racing its filesystem operations.
 
 ## Project documentation

@@ -3,7 +3,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { PluginCompiler } from "../compiler/index.js";
+import { AgentPluginCompiler } from "../compiler/index.js";
 import type { CliOutputAdapters } from "./cli-models.js";
 import { runPluginCompilerCli } from "./run-plugin-compiler-cli.js";
 
@@ -26,7 +26,7 @@ export function runPluginCompilerProcess(
   return runPluginCompilerCli({
     argv,
     currentWorkingDirectory,
-    createCompiler: (scope) => new PluginCompiler(scope),
+    createCompiler: (scope) => new AgentPluginCompiler(scope),
     output,
   });
 }

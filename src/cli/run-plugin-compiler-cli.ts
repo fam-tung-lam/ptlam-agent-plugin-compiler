@@ -5,7 +5,7 @@ import {
   type CompilerOperations,
   type CompilerScope,
   type CreateCompilerOperations,
-  DEFAULT_PROVIDER_IDS,
+  DEFAULT_PROVIDERS,
   type ExecutedCliCommand,
   type ParsedCliArguments,
 } from "./cli-models.js";
@@ -26,7 +26,7 @@ async function executeCommand(
     case CliCommand.Check:
       return { command, result: await compiler.check() };
     case CliCommand.Generate:
-      return { command, result: await compiler.generate() };
+      return { command, result: await compiler.compile() };
   }
 }
 
@@ -69,7 +69,7 @@ export async function runPluginCompilerCli({
 
   const scope: CompilerScope = Object.freeze({
     rootDir: parsed.rootDir,
-    providerIds: DEFAULT_PROVIDER_IDS,
+    providers: DEFAULT_PROVIDERS,
   });
   let report: CliReport;
   try {

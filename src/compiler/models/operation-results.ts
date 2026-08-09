@@ -103,7 +103,7 @@ export interface CheckResult extends ValidateResult {
   readonly differences: readonly DeclarationOutputDifference[];
 }
 
-export interface GenerateResult extends ValidateResult {
+export interface CompileResult extends ValidateResult {
   readonly writeResult: DeclarationWriteResult;
   readonly verified: boolean;
   readonly differences: readonly DeclarationOutputDifference[];
@@ -121,7 +121,7 @@ export interface CheckResultInput extends ValidateResultInput {
 }
 
 /** @internal */
-export interface GenerateResultInput extends ValidateResultInput {
+export interface CompileResultInput extends ValidateResultInput {
   readonly writeResult: WriteResultInput;
   readonly differences: readonly OutputDifference[];
 }
@@ -150,9 +150,7 @@ export function createCheckResult(input: CheckResultInput): CheckResult {
 }
 
 /** @internal */
-export function createGenerateResult(
-  input: GenerateResultInput,
-): GenerateResult {
+export function createCompileResult(input: CompileResultInput): CompileResult {
   const differences = Object.freeze(
     input.differences.map(createOutputDifference),
   );

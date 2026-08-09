@@ -1,8 +1,9 @@
-import { createProviderIds, type ProviderId } from "../../providers/index.js";
+import { createProviders } from "../../providers/models/provider.js";
+import type { Provider } from "../../providers/provider.js";
 
 export interface CompilerOptionsInput {
   readonly rootDir: string;
-  readonly providerIds: Iterable<string>;
+  readonly providers: readonly Provider[];
 }
 
 /**
@@ -11,14 +12,14 @@ export interface CompilerOptionsInput {
  */
 export class CompilerOptions {
   readonly rootDir: string;
-  readonly providerIds: readonly ProviderId[];
+  readonly providers: readonly Provider[];
 
   constructor(input: CompilerOptionsInput) {
     if (input.rootDir.length === 0) {
       throw new TypeError("Compiler rootDir must not be empty");
     }
     this.rootDir = input.rootDir;
-    this.providerIds = createProviderIds(input.providerIds);
+    this.providers = createProviders(input.providers);
     Object.freeze(this);
   }
 }

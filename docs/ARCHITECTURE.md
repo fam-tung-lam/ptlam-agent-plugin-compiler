@@ -19,27 +19,28 @@ flowchart LR
   Providers --> Plan
   Plan --> Check{Operation}
   Check -->|check| Current[Read current outputs]
-  Check -->|generate| Writer[Write managed outputs]
+  Check -->|generate CLI / compile Node.js| Writer[Write managed outputs]
   Writer --> Current
   Current --> Compare[Compare plan with disk]
   Compare --> Result[Operation result]
 ```
 
-The same output plan is used by `check` and `generate`. This keeps dry checks
-and written files aligned.
+The same output plan is used by `check` and the writing operation (`generate` in
+the CLI, `compile` in Node.js). This keeps dry checks and written files aligned.
 
 ## Main components
 
 | Component  | Main job                                                        | Depends on                  |
 | ---------- | --------------------------------------------------------------- | --------------------------- |
 | CLI        | Parse commands, choose both providers, and print results        | Compiler                    |
-| Compiler   | Run validation, planning, checking, and generation              | Core, Providers, Filesystem |
+| Compiler   | Run validation, planning, checking, and compilation             | Core, Providers, Filesystem |
 | Core       | Parse, validate, compile, plan, and compare without disk access | Nothing outside Core        |
 | Providers  | Turn a validated plugin into host-specific files                | Core                        |
 | Filesystem | Read safe snapshots and write managed files                     | Core models                 |
 
-The package root exports only `PluginCompiler` and its result types. The five
-components above are private and are not supported package subpaths.
+The package root exports only `AgentPluginCompiler`, `Provider`, compiler
+options, and operation result types. The five components above are private and
+are not supported package subpaths.
 
 ## Core models
 
@@ -77,11 +78,11 @@ each output skill can stand alone.
 
 ## Operations
 
-| Operation  | Reads generated files | Writes | Success result               |
-| ---------- | --------------------: | -----: | ---------------------------- |
-| `validate` |                    No |     No | Authored input is valid      |
-| `check`    |                   Yes |     No | Managed files match the plan |
-| `generate` |    Yes, after writing |    Yes | Written files match the plan |
+| Operation                     | Reads generated files | Writes | Success result               |
+| ----------------------------- | --------------------: | -----: | ---------------------------- |
+| `validate`                    |                    No |     No | Authored input is valid      |
+| `check`                       |                   Yes |     No | Managed files match the plan |
+| `compile` (`generate` in CLI) |    Yes, after writing |    Yes | Written files match the plan |
 
 All operations first read and validate the authored plugin. Validation covers
 the schema, skill graph, lifecycle rules, source layout, resources, and Markdown
@@ -97,6 +98,6 @@ links.
 - The `skills/` tree is staged, checked, backed up, swapped, and restored when a
   swap fails.
 
-A full generation is not one disk-wide transaction. If a later write fails, fix
-the disk problem and run `generate` again. Run only one compiler operation at a
-time for a repository.
+A full compilation is not one disk-wide transaction. If a later write fails, fix
+the disk problem and run `compile` again (or `generate` through the CLI). Run
+only one compiler operation at a time for a repository.

@@ -23,10 +23,10 @@ import {
 } from "./models/compiler-options.js";
 import {
   type CheckResult,
+  type CompileResult,
   createCheckResult,
-  createGenerateResult,
+  createCompileResult,
   createValidateResult,
-  type GenerateResult,
   type ValidateResult,
 } from "./models/operation-results.js";
 
@@ -79,18 +79,18 @@ async function buildPlan(
   });
 }
 
-/** Orchestrate validation, read-only checking, and verified generation. */
-export class PluginCompiler {
+/** Orchestrate validation, read-only checking, and verified compilation. */
+export class AgentPluginCompiler {
   private readonly options: CompilerOptions;
   private readonly providers: readonly CompilerProvider[];
 
   constructor(input: CompilerOptionsInput) {
     this.options = new CompilerOptions(input);
-    this.providers = resolveProviders(this.options.providerIds);
+    this.providers = resolveProviders(this.options.providers);
     Object.freeze(this);
   }
 
-  /** Read and validate authored sources without inspecting generated outputs. */
+  /** Read and validate authored sources without inspecting compiled outputs. */
   async validate(): Promise<ValidateResult> {
     return createValidateResult(
       await loadValidatedPlugin(this.options.rootDir),
@@ -107,13 +107,13 @@ export class PluginCompiler {
   }
 
   /** Write one validated plan, reread it, and report post-write verification. */
-  async generate(): Promise<GenerateResult> {
+  async compile(): Promise<CompileResult> {
     const validation = await loadValidatedPlugin(this.options.rootDir);
     const plan = await buildPlan(validation.plugin, this.providers);
     const writeResult = await writeOutputPlan(this.options.rootDir, plan);
     const state = await readOutputState(this.options.rootDir, plan);
     const differences = compareOutputPlan({ plan, state });
-    return createGenerateResult({
+    return createCompileResult({
       ...validation,
       writeResult,
       differences,

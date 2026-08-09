@@ -12,10 +12,11 @@ const runtimeDependencyNames = [
   "yaml",
 ];
 const expectedDeclarationNames = [
+  "AgentPluginCompiler",
   "CheckResult",
+  "CompileResult",
   "CompilerOptionsInput",
-  "GenerateResult",
-  "PluginCompiler",
+  "Provider",
   "ValidateResult",
 ];
 
@@ -106,7 +107,8 @@ const namespace = await import(
   pathToFileURL(path.join(distRoot, "index.js")).href
 );
 if (
-  JSON.stringify(Object.keys(namespace).toSorted()) !== '["PluginCompiler"]'
+  JSON.stringify(Object.keys(namespace).toSorted()) !==
+  '["AgentPluginCompiler","Provider"]'
 ) {
   throw new Error(
     `Root runtime exports differ: ${JSON.stringify(Object.keys(namespace).toSorted())}`,

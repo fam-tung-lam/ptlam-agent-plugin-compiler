@@ -159,13 +159,13 @@ async function main(): Promise<void> {
 
     await writeFile(
       path.join(consumerRoot, "consumer.ts"),
-      `import { PluginCompiler, type CheckResult, type CompilerOptionsInput, type GenerateResult, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
-        `const options = { rootDir: ".", providerIds: ["codex"] } satisfies CompilerOptionsInput;\n` +
-        `const compiler = new PluginCompiler(options);\n` +
+      `import { AgentPluginCompiler, Provider, type CheckResult, type CompileResult, type CompilerOptionsInput, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
+        `const options = { rootDir: ".", providers: [Provider.Codex] } satisfies CompilerOptionsInput;\n` +
+        `const compiler = new AgentPluginCompiler(options);\n` +
         `const validation: Promise<ValidateResult> = compiler.validate();\n` +
         `const check: Promise<CheckResult> = compiler.check();\n` +
-        `const generation: Promise<GenerateResult> = compiler.generate();\n` +
-        `void [validation, check, generation];\n`,
+        `const compilation: Promise<CompileResult> = compiler.compile();\n` +
+        `void [validation, check, compilation];\n`,
       "utf8",
     );
     await writeFile(
@@ -203,7 +203,8 @@ async function main(): Promise<void> {
         "--eval",
         `const namespace = await import(${JSON.stringify(sourceIdentity.name)});\n` +
           `const names = Object.keys(namespace).sort();\n` +
-          `if (JSON.stringify(names) !== '["PluginCompiler"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);`,
+          `if (JSON.stringify(names) !== '["AgentPluginCompiler","Provider"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
+          `if (namespace.Provider.Claude !== "claude" || namespace.Provider.Codex !== "codex") throw new Error("Unexpected Provider enum values");`,
       ],
       consumerRoot,
     );
