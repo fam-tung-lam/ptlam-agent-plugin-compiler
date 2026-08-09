@@ -6,11 +6,11 @@ import { describe, it } from "vitest";
 import {
   OutputEntryKind,
   OutputOwnershipKind,
-} from "../../../../src/core/index.ts";
+} from "../../../../../src/core/index.ts";
 import {
   codexProvider,
   createProviderContext,
-} from "../../../../src/providers/index.ts";
+} from "../../../../../src/providers/index.ts";
 import {
   CODEX_CONTRACT_VERIFIED_ON,
   CODEX_OFFICIAL_SOURCE,

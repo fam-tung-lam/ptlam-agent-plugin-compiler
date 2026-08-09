@@ -29,16 +29,16 @@ output.
 
 ## Project map
 
-| Path                     | Contents                                                    |
-| ------------------------ | ----------------------------------------------------------- |
-| `src/core/`              | Models, validation, shared compilation, and output planning |
-| `src/providers/`         | Claude and Codex output adapters                            |
-| `src/filesystem/`        | Safe reads, output inspection, and recoverable writes       |
-| `src/compiler/`          | Public `PluginCompiler` orchestration                       |
-| `src/cli/`               | Command parsing and terminal output                         |
-| `scripts/`               | Small build and packed-package checks                       |
-| `.github/`               | CI and release automation                                   |
-| `tests/plugin-compiler/` | Unit, integration, and provider conformance tests           |
+| Path              | Contents                                                    |
+| ----------------- | ----------------------------------------------------------- |
+| `src/core/`       | Models, validation, shared compilation, and output planning |
+| `src/providers/`  | Claude and Codex output adapters                            |
+| `src/filesystem/` | Safe reads, output inspection, and recoverable writes       |
+| `src/compiler/`   | Public `PluginCompiler` orchestration                       |
+| `src/cli/`        | Command parsing and terminal output                         |
+| `scripts/`        | Small build and packed-package checks                       |
+| `.github/`        | CI and release automation                                   |
+| `tests/`          | Unit, integration, and provider conformance tests           |
 
 ## Commands
 
@@ -55,7 +55,7 @@ output.
 Run one test area while editing:
 
 ```bash
-npm test -- tests/plugin-compiler/unit-tests/core
+npm test -- tests/unit-tests/src/core
 ```
 
 ## Test layers
@@ -69,6 +69,10 @@ npm test -- tests/plugin-compiler/unit-tests/core
 
 Place a test at the lowest layer that can prove the behavior. Use real disk and
 process boundaries only when those boundaries matter.
+
+Within each layer, mirror the production area being tested: use `src/` for
+compiler source tests and add `scripts/` only when that layer has
+script-specific tests.
 
 ## Common change paths
 
