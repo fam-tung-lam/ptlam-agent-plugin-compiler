@@ -94,7 +94,43 @@ describe("validateAuthoredPlugin", () => {
     });
   });
 
-  it("aggregates graph, source mapping, marker, reserved path, and link failures", () => {
+  it("accepts an omitted required-skills placement marker", () => {
+    // GIVEN: A skill declares a dependency but leaves placement to the compiler.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "alpha-skill",
+          required_skills: [
+            {
+              skill_id: "beta-skill",
+              reason: "Provides beta rules.",
+              instructions: "Read beta first.",
+            },
+          ],
+        }),
+        makeSkill({
+          id: "beta-skill",
+          visibility: SkillVisibility.Internal,
+        }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSources: {
+        "alpha-skill": "# Alpha\n\nFollow the alpha workflow.\n",
+        "beta-skill": "# Beta\n",
+      },
+    });
+
+    // WHEN: The authored plugin is validated.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: Marker placement remains optional for every skill.
+    assert.equal(result.plugin.skills[0]?.required_skills.length, 1);
+    assert.equal(result.plugin.skills[1]?.required_skills.length, 0);
+  });
+
+  it("aggregates graph, source mapping, reserved path, and link failures", () => {
     // GIVEN: Logical facts contain independent graph and authored-source violations.
     const manifest = makeManifest({
       skills: [
@@ -139,7 +175,6 @@ describe("validateAuthoredPlugin", () => {
         'unknown category "missing-category"',
         'skill "alpha-skill" cannot require itself',
         "source skill is not listed",
-        "expected exactly one",
         "skills/ is owned by the plugin compiler",
         "local link target does not exist",
       ]) {
@@ -429,7 +464,7 @@ ${REQUIRED_SKILLS_MARKER}
         "only skill directories are allowed directly",
         "unsupported service file",
         "must not contain YAML frontmatter",
-        "expected exactly one",
+        "expected at most one",
       ]) {
         assert.ok(error.message.includes(expected), expected);
       }

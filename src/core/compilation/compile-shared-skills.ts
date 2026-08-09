@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { fromMarkdown } from "mdast-util-from-markdown";
 import { format } from "prettier";
 import { stringify } from "yaml";
 
@@ -66,21 +67,59 @@ function renderRequiredSkills(skill: ValidatedSkill): string {
   return sections.join("\n\n");
 }
 
+function defaultRequiredSkillsOffset(sourceBody: string): number {
+  const blocks = fromMarkdown(sourceBody).children;
+  const titleIndex = blocks.findIndex(
+    (block) => block.type === "heading" && block.depth === 1,
+  );
+  if (titleIndex === -1) return 0;
+
+  let boundaryIndex = titleIndex + 1;
+  while (blocks[boundaryIndex]?.type === "paragraph") boundaryIndex += 1;
+  return blocks[boundaryIndex]?.position?.start.offset ?? sourceBody.length;
+}
+
+function insertMarkdownSection(
+  sourceBody: string,
+  offset: number,
+  section: string,
+): string {
+  const before = sourceBody.slice(0, offset);
+  const after = sourceBody.slice(offset);
+  const beforeSeparator =
+    before.length === 0 || before.endsWith("\n\n")
+      ? ""
+      : before.endsWith("\n")
+        ? "\n"
+        : "\n\n";
+  if (after.length === 0) {
+    return `${before}${beforeSeparator}${section}${before.endsWith("\n") ? "\n" : ""}`;
+  }
+  const afterSeparator = after.startsWith("\n\n")
+    ? ""
+    : after.startsWith("\n")
+      ? "\n"
+      : "\n\n";
+  return `${before}${beforeSeparator}${section}${afterSeparator}${after}`;
+}
+
 function renderSkillManifest(skill: ValidatedSkill): string {
   const sourceBody = normalizeNewlines(skill.source_body);
   const requiredSkills = renderRequiredSkills(skill);
   if (requiredSkills) {
-    return `${renderFrontmatter(skill)}\n\n${sourceBody.replace(
-      REQUIRED_SKILLS_MARKER,
-      requiredSkills,
-    )}`;
+    const composedBody = sourceBody.includes(REQUIRED_SKILLS_MARKER)
+      ? sourceBody.replace(REQUIRED_SKILLS_MARKER, requiredSkills)
+      : insertMarkdownSection(
+          sourceBody,
+          defaultRequiredSkillsOffset(sourceBody),
+          requiredSkills,
+        );
+    return `${renderFrontmatter(skill)}\n\n${composedBody}`;
   }
 
   const markerIndex = sourceBody.indexOf(REQUIRED_SKILLS_MARKER);
   if (markerIndex === -1) {
-    throw new SharedSkillsCompilationError([
-      `${String(skill.source_path)}/SKILL.md: required-skills marker is missing`,
-    ]);
+    return `${renderFrontmatter(skill)}\n\n${sourceBody}`;
   }
   const before = sourceBody.slice(0, markerIndex);
   let after = sourceBody.slice(markerIndex + REQUIRED_SKILLS_MARKER.length);

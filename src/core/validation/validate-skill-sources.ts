@@ -157,9 +157,9 @@ function inspectSkillSource(
     );
   }
   const markerCount = sourceBody.split(REQUIRED_SKILLS_MARKER).length - 1;
-  if (markerCount !== 1) {
+  if (markerCount > 1) {
     errors.push(
-      `${sourcePath}/SKILL.md: expected exactly one ${REQUIRED_SKILLS_MARKER} marker, found ${markerCount}`,
+      `${sourcePath}/SKILL.md: expected at most one ${REQUIRED_SKILLS_MARKER} marker, found ${markerCount}`,
     );
   }
 
