@@ -3,37 +3,34 @@
 Thank you for helping improve the Agent Plugin Compiler. Bug reports,
 documentation fixes, tests, and focused code changes are welcome.
 
-This project deliberately keeps a small public surface. Before contributing,
-read the [README](README.md), [architecture guide](docs/ARCHITECTURE.md), and
-[development guide](docs/DEVELOPMENT.md).
+Before contributing, use these documents as the sources of truth:
 
-## Community expectations
+- [Development](docs/DEVELOPMENT.md) covers local setup, the project map,
+  commands, test layers, and release documentation.
+- [Architecture](docs/ARCHITECTURE.md) defines component boundaries, dependency
+  rules, domain models, operation flows, and filesystem ownership.
+- [README](README.md) defines the supported public API, CLI, behavior, and
+  project scope.
 
-Be respectful, constructive, and specific. Assume good intent, discuss ideas
-rather than people, and help keep the project welcoming to contributors with
-different backgrounds and levels of experience.
+This guide covers only the contribution process.
 
-## Before you start
+## Before you contribute
 
 Search the [issues] and open pull requests before starting work. A direct pull
 request is fine for a typo, broken link, test improvement, or small obvious fix.
 
-Open an issue first when a change could affect any of these contracts:
+Open an issue before substantial work or a change to a public or generated
+contract, including:
 
-- the package-root API or TypeScript types;
-- CLI commands, output, diagnostics, or exit codes;
+- the package-root API or CLI;
 - the manifest schema or accepted source layout;
-- generated paths or provider-owned output;
-- determinism, path safety, or filesystem recovery;
+- provider output or generated paths;
 - supported runtimes or dependencies; or
 - CI, package contents, or the release process.
 
 Describe the problem and intended outcome before proposing an implementation.
 This lets maintainers confirm that the change fits the compiler's scope and
 avoids incompatible work.
-
-Do not report a vulnerability in a public issue or pull request. Follow the
-[security policy](SECURITY.md) instead.
 
 ## Report a bug
 
@@ -48,12 +45,12 @@ Open a [bug report][issues] with enough information to reproduce the problem:
 
 Remove tokens, credentials, personal data, and other secrets from all examples.
 
-## Propose a feature
+## Propose a change
 
 Open an [issue][issues] that explains:
 
 - the user problem and who encounters it;
-- why the current CLI or Node.js interface is insufficient;
+- why the current interface is insufficient;
 - the smallest useful behavior change;
 - compatibility or migration concerns; and
 - alternatives you considered.
@@ -62,93 +59,18 @@ The compiler validates and compiles agent-plugin artifacts. Installation,
 repository discovery, version management, and plugin publication remain outside
 its scope.
 
-## Set up the project
+## Prepare a pull request
 
-The project uses npm and requires Node.js `>=22.6.0`. The normal local version
-is pinned in `.nvmrc`.
+Create a focused branch from an up-to-date `main` branch. Follow the
+[development guide](docs/DEVELOPMENT.md) for setup, implementation commands,
+formatting, tests, and build checks. Follow the
+[architecture guide](docs/ARCHITECTURE.md) for module boundaries, public
+contracts, file ownership, determinism, and filesystem safety.
 
-Fork the repository, clone your fork, and install the locked dependencies:
-
-```bash
-git clone https://github.com/<your-account>/ptlam-agent-plugin-compiler.git
-cd ptlam-agent-plugin-compiler
-nvm install
-nvm use
-npm ci
-```
-
-Create a focused branch from an up-to-date `main` branch. Use npm for dependency
-changes and commit both `package.json` and `package-lock.json` when either must
-change.
-
-## Make a change
-
-Keep each pull request focused on one problem. Preserve these project
-invariants:
-
-- identical inputs, providers, and compiler version produce identical paths and
-  bytes;
-- diagnostics and differences have stable ordering;
-- all paths remain inside one real repository root;
-- unsafe symlinks and unsupported source entries are rejected;
-- `check` and the writing operation use the same output plan; and
-- only the documented package-root API and CLI are public contracts.
-
-Do not edit `dist/` or `coverage/`; they are generated and ignored. In the
-simple example, edit only `plugin/plugin.yml` and `plugin/skills/`, then use the
-compiler to regenerate its owned outputs. See the
-[example guide](examples/simple-agent-plugin/README.md).
-
-Update documentation when behavior or public contracts change.
-
-## Add tests
-
-Every behavior change should have a test. A bug fix should include a regression
-test when practical.
-
-Place the test at the lowest layer that proves the behavior:
-
-| Layer       | Use for                                                  |
-| ----------- | -------------------------------------------------------- |
-| Unit        | One rule or pure module                                  |
-| Integration | Real compiler, filesystem, or CLI boundaries             |
-| Conformance | Claude or Codex output against its owned public contract |
-
-Mirror the production area under `tests/src/`. Changes to conformance fixtures
-must include evidence that the provider-owned contract changed; do not update a
-golden file only to make a failing test pass.
-
-Run a focused test while developing:
-
-```bash
-npm test -- tests/src/unit-tests/core
-```
-
-## Run the checks
-
-Use the repository scripts so local checks match CI:
-
-```bash
-npm run code:typecheck
-npm run code:check
-npm run markdown:check
-npm test
-```
-
-`npm test` performs a clean build before running Vitest. CI also packs the exact
-npm artifact and exercises its CLI, ESM exports, and TypeScript declarations in
-a clean consumer.
-
-To apply the configured formatters locally, run:
-
-```bash
-npm run code:format
-npm run markdown:format
-```
-
-Review the resulting diff and keep only intentional changes.
-
-## Open a pull request
+Keep each pull request focused on one problem. Add or update tests when behavior
+changes, and update the relevant documentation when a public contract changes.
+Before requesting review, inspect the complete diff and remove unrelated
+formatting, lockfile churn, generated build files, secrets, and personal data.
 
 Open the pull request against `main`. Draft pull requests are welcome when you
 want early feedback on direction.
@@ -164,13 +86,16 @@ Use a short, meaningful title. The existing history generally follows
   and
 - include migration notes or before-and-after output when it helps review.
 
-Before requesting review, confirm that:
+Maintainers may request changes to preserve compatibility, determinism, safety,
+or the project's intentionally narrow scope. A contribution may be declined even
+when it is well implemented if it does not fit that scope.
 
-- the diff is focused and contains no unrelated formatting or lockfile churn;
-- new behavior and bug fixes are covered by tests;
-- documentation is current when required;
-- the local checks pass; and
-- the branch contains no generated build files, secrets, or personal data.
+## Security reports
+
+Do not report a vulnerability in a public issue or pull request. Follow the
+[security policy](SECURITY.md) instead.
+
+## Releases
 
 Do not change the package version in a normal contribution. Release preparation
 is a separate maintainer task described in the [release guide](docs/RELEASE.md).
@@ -178,9 +103,11 @@ Do not publish the package, create or move a Git tag, or create a GitHub Release
 manually; the protected CI/CD flow owns those actions after a release pull
 request is merged.
 
-Maintainers may request changes to preserve compatibility, determinism, safety,
-or the project's intentionally narrow scope. A contribution may be declined even
-when it is well implemented if it does not fit that scope.
+## Community expectations
+
+Be respectful, constructive, and specific. Assume good intent, discuss ideas
+rather than people, and help keep the project welcoming to contributors with
+different backgrounds and levels of experience.
 
 ## License
 
