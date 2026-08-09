@@ -1,81 +1,215 @@
 # Release
 
-This runbook publishes `@fam-tung-lam/ptlam-agent-plugin-compiler` through npm
-trusted publishing. npm versions are immutable; never reuse one.
+This guide lists only the actions a developer performs to release the package.
+CI/CD handles validation, publishing, verification, the Git tag, and the GitHub
+Release.
 
-## Release flow
+## Release at a glance
 
 ```mermaid
 flowchart LR
-  Version[Merge an unused version] --> Dispatch[Run Release from main]
-  Dispatch --> Approval[Approve the npm-release environment]
-  Approval --> Verify[Build and test one tarball]
-  Verify --> Publish[Publish that tarball through OIDC]
+  subgraph Developer["Developer"]
+    Change["Prepare release changes"]
+    PR["Open pull request"]
+    Fix["Fix reported errors"]
+    Merge["Merge when CI passes"]
+    Approval{"Approve release?"}
+  end
+
+  subgraph GitHubActions["GitHub Actions"]
+    PRCI["Validate pull request"]
+    PRResult{"Did pull request CI pass?"}
+    MainCI["Validate merged commit"]
+    VersionChanged{"Did the package version change?"}
+    Build["Use tested package"]
+    Publish["Publish package"]
+    Verify["Verify release"]
+  end
+
+  subgraph GitHub["GitHub"]
+    BranchGate["Protect main"]
+    ReleaseGate["Wait for approval"]
+    Cancelled["Cancel release"]
+    NoRelease["Finish without a release"]
+    Metadata["Store Git tag and GitHub Release"]
+  end
+
+  subgraph npm["npm"]
+    Registry["Store package and provenance"]
+  end
+
+  Change --> PR --> PRCI --> PRResult
+  PRResult -- "No" --> Fix --> PRCI
+  PRResult -- "Yes" --> BranchGate --> Merge --> MainCI --> VersionChanged
+  VersionChanged -- "No" --> NoRelease
+  VersionChanged -- "Yes" --> ReleaseGate
+  ReleaseGate --> Approval
+  Approval -- "No" --> Cancelled
+  Approval -- "Yes" --> Build --> Publish --> Registry --> Verify --> Metadata
 ```
 
-The release workflow builds, tests, packs, and publishes in one job. It does not
-move artifacts between workflows or create custom evidence files.
+The developer prepares, reviews, merges, and approves the release. Everything
+else is automatic.
 
-## One-time configuration
+## Developer steps
 
-| Gate                  | Required state                                         |
-| --------------------- | ------------------------------------------------------ |
-| GitHub environment    | `npm-release` requires maintainer approval             |
-| Deployment branch     | `npm-release` allows only `main`                       |
-| npm trusted publisher | Bind this repository, `release.yml`, and `npm-release` |
-| npm action            | Allow direct `npm publish`                             |
-| npm access            | Disallow long-lived write tokens after OIDC is working |
+### 1. Prepare the release changes
 
-The workflow needs `id-token: write`; it does not need an npm token.
+Create a branch from the latest `main`.
 
-## Version and channel
-
-| Version         | npm tag  |
-| --------------- | -------- |
-| `1.2.3`         | `latest` |
-| `1.2.3-alpha.1` | `next`   |
-
-## Publish a version
-
-1. Choose a version that does not exist on npm.
-2. Update `package.json` and `package-lock.json` in a pull request.
-3. Merge only after `CI Required` succeeds.
-4. Open the `Release` workflow, select `main`, and run it.
-5. Review and approve the `npm-release` environment.
+Make the required code or documentation changes. Set the new version in
+`package.json` and keep `package-lock.json` in sync. For example:
 
 ```bash
-version="1.2.3"
-
-npm view "@fam-tung-lam/ptlam-agent-plugin-compiler@${version}" version
-
-npm version "${version}" --no-git-tag-version
-npm run code:typecheck
-npm run code:check
-npm test
-npm run markdown:check
+npm version 0.1.0-alpha.2 --no-git-tag-version
 ```
 
-The npm lookup should report that the version is missing. The workflow accepts
-only a dispatch from `main`, then:
+Use:
 
-1. builds and runs the normal tests;
-2. creates one `.tgz` with `npm pack`;
-3. installs and exercises that exact tarball in a clean temporary consumer; and
-4. passes that same file to `npm publish` with an explicit `latest` or `next`
-   tag.
+| Release stage | Version example | npm tag  |
+| ------------- | --------------- | -------- |
+| Alpha         | `0.1.0-alpha.2` | `next`   |
+| Beta          | `0.1.0-beta.1`  | `next`   |
+| RC            | `0.1.0-rc.1`    | `next`   |
+| Stable        | `0.1.0`         | `latest` |
 
-A successful `npm publish` completes the release. npm trusted publishing adds
-provenance automatically for this public package.
+Do not check npm or Git tags manually. Do not run release validation locally. CI
+performs those checks.
 
-## Failures
+### 2. Open the release pull request
 
-- If validation fails before publication, fix `main`, wait for CI, and dispatch
-  the workflow again.
-- If authentication fails, fix the trusted-publisher or environment binding; do
-  not add a long-lived write token.
-- If publication times out or the job is interrupted, check
-  `npm view "@fam-tung-lam/ptlam-agent-plugin-compiler@<version>"` before
-  retrying.
-- If a version is already public, never publish different bytes under it.
-- If a released package is defective, publish a corrected version. Do not
-  overwrite the existing version.
+Commit the required changes, push the branch, and open a pull request against
+`main`. Use lower case after the commit type, for example
+`chore: prepare v0.1.0-alpha.2 release`.
+
+CI automatically checks:
+
+- package name and version metadata;
+- whether a changed version already exists on npm or in Git;
+- types, formatting, and documentation;
+- build and tests; and
+- the exact package artifact in a clean consumer.
+
+If a check fails, use its logs to find the problem. Push the fix to the same
+pull request. CI runs again.
+
+Do not repeat successful CI checks manually.
+
+### 3. Merge the pull request
+
+Review and merge the pull request after all required checks pass.
+
+No manual verification is needed after the merge. A package version change on
+`main` automatically starts the release flow after CI validates the merged
+commit. A change without a new version does not start a publication.
+
+### 4. Approve the release
+
+GitHub pauses the release at the protected `npm-release` environment. The
+approval request shows the commit that will be released.
+
+Approve the release when GitHub requests approval. The remaining work is
+automatic. A successful workflow completes the release; no extra developer
+action is required.
+
+### If CI/CD fails
+
+- For a temporary infrastructure error, rerun the entire CD workflow. This
+  refreshes npm state before deciding whether publication is still needed.
+- For a code, package, or configuration error after merge, prepare a new version
+  in a new pull request. Merging it starts a new release flow.
+
+Do not publish, verify npm, create a Git tag, or create a GitHub Release
+manually.
+
+## What happens under the hood
+
+After the release pull request is merged, CI/CD:
+
+1. validates the merged `main` commit and detects the version change;
+2. checks the version, npm state, Git tag, and safe-resume conditions;
+3. builds, tests, and stores the exact package tarball as a CI artifact;
+4. starts the release flow only after the merged commit passes CI;
+5. waits for protected environment approval;
+6. publishes or safely resumes that tested tarball through npm OIDC;
+7. verifies npm version, integrity, shasum, tag order, provenance, and
+   signatures;
+8. creates an annotated Git tag for the released commit; and
+9. creates the matching GitHub prerelease or stable Release.
+
+```mermaid
+flowchart TD
+  subgraph Developer["Developer"]
+    Merge["Merge release pull request"]
+    Approval{"Approve release?"}
+    Fix["Fix the reported error in a new pull request"]
+  end
+
+  subgraph GitHubActions["GitHub Actions"]
+    Validate["Validate commit and test tarball"]
+    CIPassed{"Did CI pass?"}
+    Detect["Detect version change"]
+    VersionChanged{"Did the package version change?"}
+    Load["Load the tested tarball"]
+    Published{"Does this version already exist?"}
+    SameTarball{"Does it contain the same tarball?"}
+    NeedsPublish{"Does npm need a new publication?"}
+    Publish["Publish tarball through OIDC"]
+    Verify["Verify package and provenance"]
+    Verified{"Did verification pass?"}
+  end
+
+  subgraph GitHub["GitHub"]
+    Gate["Wait for npm-release approval"]
+    Failure["Stop and show the error in workflow logs"]
+    NoRelease["Finish without a release"]
+    Cancelled["Cancel release"]
+    Metadata["Create Git tag and GitHub Release"]
+  end
+
+  subgraph npm["npm"]
+    Registry["Store package and provenance"]
+  end
+
+  Merge --> Validate --> CIPassed
+  CIPassed -- "No" --> Failure --> Fix
+  CIPassed -- "Yes" --> Detect --> VersionChanged
+  VersionChanged -- "No" --> NoRelease
+  VersionChanged -- "Yes" --> Load --> Published
+  Published -- "No" --> Gate
+  Published -- "Yes" --> SameTarball
+  SameTarball -- "No" --> Failure
+  SameTarball -- "Yes" --> Gate
+  Gate --> Approval
+  Approval -- "No" --> Cancelled
+  Approval -- "Yes" --> NeedsPublish
+  NeedsPublish -- "Yes" --> Publish --> Registry --> Verify
+  NeedsPublish -- "No" --> Verify
+  Verify --> Verified
+  Verified -- "No" --> Failure
+  Verified -- "Yes" --> Metadata
+```
+
+Prereleases use the npm tag `next` and create a GitHub prerelease. Stable
+versions use `latest` and create a normal GitHub Release.
+
+The workflow is safe to rerun. If npm already contains the same tarball, CI
+verifies its integrity and continues without publishing it again. If the bytes
+are different, the workflow stops.
+
+## Optional: update a consumer
+
+Consumer adoption is separate from this release. When needed, update the
+consumer to the exact released version and push a pull request. Consumer CI
+performs its validation. Fix only errors reported by CI, and merge when its
+required checks pass.
+
+Do not depend on the floating `next` tag in a maintained consumer.
+
+## Rules
+
+- Never publish the package locally.
+- Never check or verify npm manually as part of the release flow.
+- Never create or move a release Git tag manually.
+- Never create the GitHub Release manually.
+- Fix failures through a pull request and CI.
