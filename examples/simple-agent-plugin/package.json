@@ -10,6 +10,6 @@
     "plugin:verify": "npm run plugin:validate && npm run plugin:check"
   },
   "devDependencies": {
-    "@fam-tung-lam/ptlam-agent-plugin-compiler": "0.1.0-alpha.1"
+    "@fam-tung-lam/ptlam-agent-plugin-compiler": "file:../.."
   }
 }

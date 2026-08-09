@@ -15,10 +15,24 @@ the dependent skill stays self-contained.
 
 ## Run the example
 
-Install the exact compiler version declared in `package.json`:
+The compiler dependency is declared as `file:../..`. This is npm's equivalent of
+a Flutter `path` dependency: the example uses the package from the current
+repository checkout instead of downloading it from the registry. A standalone
+consumer should replace it with an exact published version, as shown in the
+[root requirements](../../README.md#requirements).
+
+Install and build the compiler from the repository root:
 
 ```bash
-npm install
+npm ci
+npm run build
+```
+
+Then install the example dependencies:
+
+```bash
+cd examples/simple-agent-plugin
+npm ci
 ```
 
 Generate the shared skills tree and both provider manifests:
