@@ -1,0 +1,3 @@
+# Detected text files before -> after: CRLF (\r\n) -> LF (\n); LF stays LF.
+# Git normalizes them when added and checks them out with LF on every platform.
+* text=auto eol=lf

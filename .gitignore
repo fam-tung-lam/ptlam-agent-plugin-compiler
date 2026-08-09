@@ -1,0 +1,20 @@
+# IDEs
+.idea/
+
+# Generated
+coverage/
+dist/
+node_modules/
+*.tgz
+
+# Local unrelated references
+local/
+
+# Secrets
+.env
+
+# Local dev setup
+justfile
+.codex/
+.agents
+skills-lock.json
