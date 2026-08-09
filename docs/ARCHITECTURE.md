@@ -72,8 +72,8 @@ skills, status, visibility, and required-skill links. Each skill has a matching
 | `README.md`                       | Human           | Never read or changed by the compiler             |
 
 Only public active or deprecated skills become roots under `skills/`. Their
-required skills are copied below `references/required-skills/` so each output
-skill can stand alone.
+required skills are copied to `skills/<root-skill>/skills/<required-skill>/` so
+each output skill can stand alone.
 
 ## Operations
 

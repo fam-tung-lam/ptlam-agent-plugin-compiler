@@ -123,9 +123,7 @@ describe("validateAuthoredPlugin", () => {
         },
         {
           kind: SourceEntryKind.File,
-          path: createProjectPath(
-            "plugin/skills/alpha-skill/references/required-skills/owned.md",
-          ),
+          path: createProjectPath("plugin/skills/alpha-skill/skills/owned.md"),
           content: Buffer.from("owned"),
         },
       ],
@@ -142,7 +140,7 @@ describe("validateAuthoredPlugin", () => {
         'skill "alpha-skill" cannot require itself',
         "source skill is not listed",
         "expected exactly one",
-        "is owned by the plugin compiler",
+        "skills/ is owned by the plugin compiler",
         "local link target does not exist",
       ]) {
         assert.ok(error.message.includes(expected), expected);

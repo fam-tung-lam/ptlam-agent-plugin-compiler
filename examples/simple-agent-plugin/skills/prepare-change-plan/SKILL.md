@@ -17,7 +17,7 @@ Create a focused implementation plan from verified repository facts.
 
 **Instructions:** Inspect the repository and pass the verified findings forward.
 
-Read [inspect-repository](references/required-skills/inspect-repository/SKILL.md).
+Read [inspect-repository](skills/inspect-repository/SKILL.md).
 
 1. State the intended outcome and constraints.
 2. List the files or modules that need to change.

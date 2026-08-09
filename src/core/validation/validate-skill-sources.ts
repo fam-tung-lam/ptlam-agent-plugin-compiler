@@ -14,7 +14,7 @@ import { SOURCE_MANIFEST_PATH } from "./parse-plugin-manifest.js";
 import { validateMarkdownLinks } from "./validate-markdown-links.js";
 
 const SOURCE_SKILLS_PATH = "plugin/skills";
-const RESERVED_REQUIRED_SKILLS_PATH = "references/required-skills";
+const RESERVED_NESTED_SKILLS_PATH = "skills";
 
 export interface SkillSourceValidationResult {
   readonly skills: readonly ValidatedSkillInput[];
@@ -129,11 +129,11 @@ function inspectSkillSource(
       continue;
     }
     if (
-      relativePath === RESERVED_REQUIRED_SKILLS_PATH ||
-      relativePath.startsWith(`${RESERVED_REQUIRED_SKILLS_PATH}/`)
+      relativePath === RESERVED_NESTED_SKILLS_PATH ||
+      relativePath.startsWith(`${RESERVED_NESTED_SKILLS_PATH}/`)
     ) {
       errors.push(
-        `${displayPath}: ${RESERVED_REQUIRED_SKILLS_PATH}/ is owned by the plugin compiler`,
+        `${displayPath}: ${RESERVED_NESTED_SKILLS_PATH}/ is owned by the plugin compiler`,
       );
       continue;
     }

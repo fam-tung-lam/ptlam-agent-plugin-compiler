@@ -60,7 +60,7 @@ function renderRequiredSkills(skill: ValidatedSkill): string {
       `### \`${requirement.skill_id}\``,
       `**Reason:** ${requirement.reason}`,
       `**Instructions:** ${requirement.instructions}`,
-      `Read [${requirement.skill_id}](references/required-skills/${requirement.skill_id}/SKILL.md).`,
+      `Read [${requirement.skill_id}](skills/${requirement.skill_id}/SKILL.md).`,
     );
   }
   return sections.join("\n\n");
@@ -147,7 +147,7 @@ function composeSkillTree({
     composeSkillTree({
       skill: requiredSkill,
       skillsById,
-      outputRoot: `${outputRoot}/references/required-skills/${requiredSkill.id}`,
+      outputRoot: `${outputRoot}/skills/${requiredSkill.id}`,
       files,
     });
   }

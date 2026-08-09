@@ -57,7 +57,8 @@ npm test -- tests/src/unit-tests/core
 Place a test at the lowest layer that can prove the behavior. Use real disk and
 process boundaries only when those boundaries matter.
 
-Mirror the production area first: 
+Mirror the production area first:
+
 - Keep compiler source tests under `tests/src/` and organize them by test layer.
 - Add a separate `tests/scripts/` tree only when script-specific tests exist.
 

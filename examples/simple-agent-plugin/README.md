@@ -10,8 +10,8 @@ The authored source contains three skills:
 - `write-commit-message` is public and standalone.
 
 The compiler publishes the two public skills at the root of `skills/`. It embeds
-`inspect-repository` under `prepare-change-plan/references/required-skills/`, so
-the dependent skill stays self-contained.
+`inspect-repository` under `prepare-change-plan/skills/`, so the dependent skill
+stays self-contained.
 
 ## Run the example
 
