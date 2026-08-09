@@ -38,14 +38,9 @@ describe("compileSharedSkills", () => {
     });
     assert.match(publicSkill ?? "", /name: public-skill/u);
     assert.match(publicSkill ?? "", /\*\*Reason:\*\* Provides base rules\./u);
-    assert.match(
-      publicSkill ?? "",
-      /references\/required-skills\/base-skill\/SKILL\.md/u,
-    );
+    assert.match(publicSkill ?? "", /skills\/base-skill\/SKILL\.md/u);
     assert.deepEqual(
-      files.get(
-        "skills/public-skill/references/required-skills/base-skill/references/rules.md",
-      ),
+      files.get("skills/public-skill/skills/base-skill/references/rules.md"),
       Buffer.from("# Rules\n"),
     );
     assert.match(catalog ?? "", /`public-skill`/u);
