@@ -55,7 +55,7 @@ output.
 Run one test area while editing:
 
 ```bash
-npm test -- tests/unit-tests/src/core
+npm test -- tests/src/unit-tests/core
 ```
 
 ## Test layers
@@ -70,9 +70,9 @@ npm test -- tests/unit-tests/src/core
 Place a test at the lowest layer that can prove the behavior. Use real disk and
 process boundaries only when those boundaries matter.
 
-Within each layer, mirror the production area being tested: use `src/` for
-compiler source tests and add `scripts/` only when that layer has
-script-specific tests.
+Mirror the production area first: keep compiler source tests under `tests/src/`
+and organize them by test layer. Add a separate `tests/scripts/` tree only when
+script-specific tests exist.
 
 ## Common change paths
 
