@@ -1,18 +1,23 @@
 schema_version: 1
+
 name: simple-agent-plugin
 description: A minimal plugin that demonstrates skill dependencies.
 version: "1.0.0"
+
 author:
   name: Example Maintainer
   email: maintainer@example.com
   url: https://example.com
+
 homepage: https://github.com/example/simple-agent-plugin
 repository: https://github.com/example/simple-agent-plugin
 license: MIT
+
 keywords:
   - agent
   - example
   - skills
+
 marketplace:
   name: simple-agent-plugins
   description: Minimal agent plugin examples.
@@ -22,10 +27,12 @@ marketplace:
     - agent
     - development
     - skills
+
 categories:
   - id: engineering
     name: Engineering
     description: Small helpers for everyday repository work.
+
 skills:
   - id: inspect-repository
     description: >-
@@ -35,6 +42,7 @@ skills:
     visibility: internal
     status: active
     required_skills: []
+
   - id: prepare-change-plan
     description: >-
       Create a focused implementation plan for a repository change. Use when
@@ -46,6 +54,7 @@ skills:
       - skill_id: inspect-repository
         reason: A plan should reflect the repository's actual structure.
         instructions: Inspect the repository and pass the verified findings forward.
+
   - id: write-commit-message
     description: >-
       Write a concise Conventional Commit message from a change summary or
