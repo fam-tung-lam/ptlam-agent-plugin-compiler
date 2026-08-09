@@ -6,11 +6,11 @@ import { describe, it } from "vitest";
 import {
   OutputEntryKind,
   OutputOwnershipKind,
-} from "../../../../src/core/index.ts";
+} from "../../../../../src/core/index.ts";
 import {
   claudeProvider,
   createProviderContext,
-} from "../../../../src/providers/index.ts";
+} from "../../../../../src/providers/index.ts";
 import {
   CLAUDE_CONTRACT_VERIFIED_ON,
   CLAUDE_MARKETPLACE_OFFICIAL_SOURCE,
