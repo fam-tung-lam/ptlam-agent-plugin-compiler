@@ -20,7 +20,7 @@ function countLabel(
 }
 
 function scopeLine(scope: CompilerScope): string {
-  return `Scope: ${scope.rootDir}; providers: ${scope.providerIds.join(", ")}.`;
+  return `Scope: ${scope.rootDir}; providers: ${scope.providers.join(", ")}.`;
 }
 
 function warningLines(warnings: readonly string[]): string[] {

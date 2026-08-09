@@ -10,13 +10,13 @@ import {
 } from "../core/index.js";
 import {
   type CompilerProvider,
-  createProviderIds,
+  createProviders,
   type ProviderContext,
-  type ProviderId,
 } from "./models/provider.js";
+import type { Provider } from "./provider.js";
 
 export interface CompilerProviderDefinition {
-  readonly id: string;
+  readonly id: Provider;
   readonly ownedPaths: Iterable<ProjectPath>;
   compile(context: ProviderContext): OutputFragmentInput;
 }
@@ -24,28 +24,28 @@ export interface CompilerProviderDefinition {
 /** A deterministic failure of the pure provider ownership contract. */
 export class ProviderContractError extends Error {
   override readonly name = "ProviderContractError";
-  readonly providerId: ProviderId;
+  readonly provider: Provider;
   readonly violations: readonly string[];
 
-  constructor(providerId: ProviderId, violations: Iterable<string>) {
+  constructor(provider: Provider, violations: Iterable<string>) {
     const normalized = Object.freeze(
       [...new Set(violations)].sort((left, right) =>
         left < right ? -1 : left > right ? 1 : 0,
       ),
     );
     super(
-      `Provider ${JSON.stringify(providerId)} violated its contract:\n${normalized
+      `Provider ${JSON.stringify(provider)} violated its contract:\n${normalized
         .map((violation) => `- ${violation}`)
         .join("\n")}`,
     );
-    this.providerId = providerId;
+    this.provider = provider;
     this.violations = normalized;
     Object.freeze(this);
   }
 }
 
 function snapshotOwnedPaths(
-  providerId: ProviderId,
+  provider: Provider,
   values: Iterable<ProjectPath>,
 ): readonly ProjectPath[] {
   const paths = [...values]
@@ -53,7 +53,7 @@ function snapshotOwnedPaths(
     .sort(compareProjectPaths);
   const duplicate = paths.find((path, index) => path === paths[index - 1]);
   if (duplicate !== undefined) {
-    throw new ProviderContractError(providerId, [
+    throw new ProviderContractError(provider, [
       `declares duplicate owned path ${JSON.stringify(String(duplicate))}`,
     ]);
   }
@@ -61,14 +61,14 @@ function snapshotOwnedPaths(
 }
 
 function validateFragment(
-  providerId: ProviderId,
+  provider: Provider,
   ownedPaths: readonly ProjectPath[],
   fragment: OutputFragment,
 ): void {
   const violations: string[] = [];
-  if (fragment.ownerId !== providerId) {
+  if (fragment.ownerId !== provider) {
     violations.push(
-      `returned owner ${JSON.stringify(fragment.ownerId)} instead of ${JSON.stringify(providerId)}`,
+      `returned owner ${JSON.stringify(fragment.ownerId)} instead of ${JSON.stringify(provider)}`,
     );
   }
 
@@ -116,7 +116,7 @@ function validateFragment(
   }
 
   if (violations.length > 0) {
-    throw new ProviderContractError(providerId, violations);
+    throw new ProviderContractError(provider, violations);
   }
 }
 
@@ -124,17 +124,17 @@ function validateFragment(
 export function createCompilerProvider(
   definition: CompilerProviderDefinition,
 ): CompilerProvider {
-  const providerId = createProviderIds([definition.id])[0];
-  if (providerId === undefined) {
-    throw new TypeError("Compiler provider must declare one ID");
+  const provider = createProviders([definition.id])[0];
+  if (provider === undefined) {
+    throw new TypeError("Compiler provider must declare one provider");
   }
-  const ownedPaths = snapshotOwnedPaths(providerId, definition.ownedPaths);
+  const ownedPaths = snapshotOwnedPaths(provider, definition.ownedPaths);
   return Object.freeze({
-    id: providerId,
+    id: provider,
     ownedPaths,
     compile(context: ProviderContext): OutputFragment {
       const fragment = createOutputFragment(definition.compile(context));
-      validateFragment(providerId, ownedPaths, fragment);
+      validateFragment(provider, ownedPaths, fragment);
       return fragment;
     },
   });

@@ -10,7 +10,7 @@ import {
 } from "../../../../src/cli/index.ts";
 import {
   createCheckResult,
-  createGenerateResult,
+  createCompileResult,
   createValidateResult,
 } from "../../../../src/compiler/index.ts";
 import {
@@ -18,6 +18,7 @@ import {
   OutputDifferenceReason,
   type ValidatedPlugin,
 } from "../../../../src/core/index.ts";
+import { Provider } from "../../../../src/providers/index.ts";
 
 const plugin = Object.freeze({
   name: "fixture-skills",
@@ -27,7 +28,7 @@ const plugin = Object.freeze({
 }) as unknown as ValidatedPlugin;
 const scope = Object.freeze({
   rootDir: "/repository",
-  providerIds: Object.freeze(["claude", "codex"]),
+  providers: Object.freeze([Provider.Claude, Provider.Codex]),
 });
 
 describe("formatCliResult", () => {
@@ -85,7 +86,7 @@ describe("formatCliResult", () => {
 
   it("formats verified generation with changed and unchanged paths", () => {
     // GIVEN: Generation changes the shared tree and leaves one provider current.
-    const result = createGenerateResult({
+    const result = createCompileResult({
       plugin,
       warnings: [],
       writeResult: {

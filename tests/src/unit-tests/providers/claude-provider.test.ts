@@ -9,6 +9,7 @@ import {
 import {
   claudeProvider,
   createProviderContext,
+  Provider,
 } from "../../../../src/providers/index.ts";
 import { makeValidatedPluginFixture } from "./test-fixtures/validated-plugin-fixture.ts";
 
@@ -21,7 +22,7 @@ describe("Claude provider", () => {
     const fragment = claudeProvider.compile(createProviderContext(plugin));
 
     // THEN: Ownership is exact and only publishable root skills enter the manifest.
-    assert.equal(fragment.ownerId, "claude");
+    assert.equal(fragment.ownerId, Provider.Claude);
     assert.equal(fragment.ownership.kind, OutputOwnershipKind.ExactFiles);
     assert.deepEqual(claudeProvider.ownedPaths, [
       ".claude-plugin/marketplace.json",

@@ -1,8 +1,9 @@
 import type {
   CheckResult,
-  GenerateResult,
+  CompileResult,
   ValidateResult,
 } from "../compiler/index.js";
+import { Provider } from "../providers/index.js";
 
 export enum CliCommand {
   Validate = "validate",
@@ -16,17 +17,20 @@ export enum CliExitCode {
   Usage = 2,
 }
 
-export const DEFAULT_PROVIDER_IDS = Object.freeze(["claude", "codex"]);
+export const DEFAULT_PROVIDERS: readonly Provider[] = Object.freeze([
+  Provider.Claude,
+  Provider.Codex,
+]);
 
 export interface CompilerScope {
   readonly rootDir: string;
-  readonly providerIds: readonly string[];
+  readonly providers: readonly Provider[];
 }
 
 export interface CompilerOperations {
   validate(): Promise<ValidateResult>;
   check(): Promise<CheckResult>;
-  generate(): Promise<GenerateResult>;
+  compile(): Promise<CompileResult>;
 }
 
 export type CreateCompilerOperations = (
@@ -44,7 +48,7 @@ export type ExecutedCliCommand =
     }
   | {
       readonly command: CliCommand.Generate;
-      readonly result: GenerateResult;
+      readonly result: CompileResult;
     };
 
 export type ParsedCliArguments =

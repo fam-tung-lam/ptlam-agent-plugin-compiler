@@ -5,6 +5,7 @@ import {
   OutputOwnershipKind,
 } from "../core/index.js";
 import type { ProviderContext } from "./models/provider.js";
+import { Provider } from "./provider.js";
 import { createCompilerProvider } from "./provider-contract.js";
 import { renderJson } from "./render-json.js";
 
@@ -25,7 +26,7 @@ function compileCodex({ plugin }: ProviderContext): OutputFragmentInput {
   });
 
   return {
-    ownerId: "codex",
+    ownerId: Provider.Codex,
     ownership: {
       kind: OutputOwnershipKind.ExactFiles,
       paths: ownedPaths,
@@ -42,7 +43,7 @@ function compileCodex({ plugin }: ProviderContext): OutputFragmentInput {
 
 /** Pure Codex adapter for the official plugin manifest. */
 export const codexProvider = createCompilerProvider({
-  id: "codex",
+  id: Provider.Codex,
   ownedPaths,
   compile: compileCodex,
 });
