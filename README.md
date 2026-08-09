@@ -48,18 +48,18 @@ truth:
 
 ```mermaid
 flowchart LR
-  Manifest["plugin/plugin.yml<br/>Skill A requires skill B"]
-  Sources["plugin/skills/**<br/>Authored skill files"]
-  Compiler["Agent Plugin Compiler<br/>Validate and compile"]
-  Skill["Self-contained skill A<br/>skills/skill-a/SKILL.md<br/>skills/skill-a/skills/skill-b/**"]
+  Manifest["plugin/plugin.yml"]
+  Sources["plugin/skills/**"]
+  Compiler["Agent Plugin Compiler"]
+  Skill["/skills"]
   Claude[".claude-plugin/**"]
   Codex[".codex-plugin/plugin.json"]
 
-  Manifest --> Compiler
-  Sources --> Compiler
-  Compiler -->|"Self-contained skill A"| Skill
-  Compiler --> Claude
-  Compiler --> Codex
+  Manifest -->|is passed to| Compiler
+  Sources -->|is passed to| Compiler
+  Compiler -->|"produces skills folder where each skill is self-contained"| Skill
+  Compiler -->|produces| Claude
+  Compiler -->|produces| Codex
 ```
 
 1. Declare skills in `plugin/skills/` and dependencies in `plugin/plugin.yml`.
