@@ -25,37 +25,66 @@ jobs:
       - name: Check out the source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 2
           persist-credentials: false
 
-      - name: Set up the minimum supported Node.js runtime
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - name: Set up the project
+        uses: ./.github/actions/setup-node
         with:
           node-version: 22.6.0
-          package-manager-cache: false
+
+      - name: Validate package metadata
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/validate-package-metadata.ts
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run static checks
-        run: |
-          npm run code:typecheck
-          npm run code:check
-          npm run markdown:check
+      - name: Validate a changed release version
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/validate-release-version.ts
+
+      - name: Run TypeScript checks
+        run: npm run code:typecheck
+
+      - name: Run code checks
+        run: npm run code:check
+
+      - name: Run documentation checks
+        run: npm run markdown:check
 
       - name: Run tests
         run: npm test
 
       - name: Pack and exercise the exact artifact
+        id: package
         env:
-          PACKAGE_DIR: ${{ runner.temp }}/package
-        run: |
-          mkdir -p "${PACKAGE_DIR}"
-          npm pack --ignore-scripts --pack-destination "${PACKAGE_DIR}"
+          PACKAGE_DIR: ${{ runner.temp }}/release-candidate
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/pack-release-candidate.ts
 
-          tarballs=("${PACKAGE_DIR}"/*.tgz)
-          if [[ ${#tarballs[@]} -ne 1 || ! -f "${tarballs[0]}" ]]; then
-            echo "Expected exactly one package tarball in ${PACKAGE_DIR}" >&2
-            exit 1
-          fi
+      - name: Prepare release candidate metadata
+        if: ${{ github.event_name == 'push' }}
+        env:
+          PREVIOUS_SHA: ${{ github.event.before }}
+          TARBALL_NAME: ${{ steps.package.outputs.name }}
+          TARBALL_INTEGRITY: ${{ steps.package.outputs.integrity }}
+          TARBALL_SHASUM: ${{ steps.package.outputs.shasum }}
+        run: >-
+          node --experimental-strip-types
+          .github/scripts/prepare-release-candidate.ts
 
-          npm run test:package -- "${tarballs[0]}"
+      - name: Upload the tested release candidate
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-candidate
+          path: ${{ runner.temp }}/release-candidate
+          if-no-files-found: error
+          retention-days: 90
