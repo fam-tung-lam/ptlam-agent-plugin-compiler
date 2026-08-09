@@ -1,0 +1,15 @@
+{
+  "name": "simple-agent-plugin-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal agent plugin compiled for Claude and Codex.",
+  "scripts": {
+    "plugin:validate": "plugin-compiler validate",
+    "plugin:check": "plugin-compiler check",
+    "plugin:compile": "plugin-compiler generate",
+    "plugin:verify": "npm run plugin:validate && npm run plugin:check"
+  },
+  "devDependencies": {
+    "@fam-tung-lam/ptlam-agent-plugin-compiler": "0.1.0-alpha.1"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "simple-agent-plugins",
+  "owner": {
+    "name": "Example Maintainer",
+    "email": "maintainer@example.com",
+    "url": "https://example.com"
+  },
+  "description": "Minimal agent plugin examples.",
+  "plugins": [
+    {
+      "name": "simple-agent-plugin",
+      "source": "./",
+      "description": "Plan repository changes and write commit messages.",
+      "category": "development",
+      "keywords": [
+        "agent",
+        "development",
+        "skills"
+      ]
+    }
+  ]
+}

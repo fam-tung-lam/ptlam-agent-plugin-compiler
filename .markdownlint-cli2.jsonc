@@ -6,7 +6,8 @@
     ".codex/**",
     "coverage/**",
     "dist/**",
-    "node_modules/**",
+    "**/node_modules/**",
+    "examples/**/skills/**",
   ],
   "config": {
     "default": true,

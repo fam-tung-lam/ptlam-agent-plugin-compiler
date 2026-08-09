@@ -2,4 +2,5 @@
 .codex/
 coverage/
 dist/
+examples/**/skills/
 node_modules/
