@@ -1,0 +1,56 @@
+schema_version: 1
+name: simple-agent-plugin
+description: A minimal plugin that demonstrates skill dependencies.
+version: "1.0.0"
+author:
+  name: Example Maintainer
+  email: maintainer@example.com
+  url: https://example.com
+homepage: https://github.com/example/simple-agent-plugin
+repository: https://github.com/example/simple-agent-plugin
+license: MIT
+keywords:
+  - agent
+  - example
+  - skills
+marketplace:
+  name: simple-agent-plugins
+  description: Minimal agent plugin examples.
+  plugin_description: Plan repository changes and write commit messages.
+  category: development
+  keywords:
+    - agent
+    - development
+    - skills
+categories:
+  - id: engineering
+    name: Engineering
+    description: Small helpers for everyday repository work.
+skills:
+  - id: inspect-repository
+    description: >-
+      Inspect a repository before another skill plans a change. Use when a
+      dependent skill needs verified file and convention context.
+    category_id: engineering
+    visibility: internal
+    status: active
+    required_skills: []
+  - id: prepare-change-plan
+    description: >-
+      Create a focused implementation plan for a repository change. Use when
+      the user asks how to implement a scoped codebase change.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills:
+      - skill_id: inspect-repository
+        reason: A plan should reflect the repository's actual structure.
+        instructions: Inspect the repository and pass the verified findings forward.
+  - id: write-commit-message
+    description: >-
+      Write a concise Conventional Commit message from a change summary or
+      diff. Use when the user asks for a commit message.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills: []

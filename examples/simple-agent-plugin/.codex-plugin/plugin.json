@@ -1,0 +1,19 @@
+{
+  "name": "simple-agent-plugin",
+  "version": "1.0.0",
+  "description": "A minimal plugin that demonstrates skill dependencies.",
+  "author": {
+    "name": "Example Maintainer",
+    "email": "maintainer@example.com",
+    "url": "https://example.com"
+  },
+  "homepage": "https://github.com/example/simple-agent-plugin",
+  "repository": "https://github.com/example/simple-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "agent",
+    "example",
+    "skills"
+  ],
+  "skills": "./skills/"
+}

@@ -159,6 +159,7 @@ concurrent process racing its filesystem operations.
 
 ## Project documentation
 
+- [Examples](examples/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Development](docs/DEVELOPMENT.md)
 - [Release](docs/RELEASE.md)
