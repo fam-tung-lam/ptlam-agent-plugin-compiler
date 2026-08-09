@@ -1,0 +1,192 @@
+import { randomUUID } from "node:crypto";
+import type { Dirent } from "node:fs";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import path from "node:path";
+
+import {
+  compareProjectPaths,
+  OutputEntryKind,
+  type PlannedArtifact,
+  type ProjectPath,
+} from "../../core/index.js";
+import { assertSafePath } from "../safety/assert-safe-path.js";
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function relativeArtifactPath(
+  root: ProjectPath,
+  artifact: ProjectPath,
+): string {
+  if (artifact === root) return "";
+  const prefix = `${root}/`;
+  if (!artifact.startsWith(prefix)) {
+    throw new Error(`${artifact}: output is outside owned tree ${root}`);
+  }
+  return artifact.slice(prefix.length);
+}
+
+function compareDirents(left: Dirent, right: Dirent): number {
+  return left.name < right.name ? -1 : left.name > right.name ? 1 : 0;
+}
+
+async function snapshotStagedTree(
+  directory: string,
+  root: ProjectPath,
+): Promise<PlannedArtifact[]> {
+  const artifacts: PlannedArtifact[] = [
+    Object.freeze({ kind: OutputEntryKind.Directory, path: root }),
+  ];
+  async function visit(absoluteDirectory: string, relativeDirectory: string) {
+    const children = await readdir(absoluteDirectory, { withFileTypes: true });
+    for (const child of children.sort(compareDirents)) {
+      const relativePath = relativeDirectory
+        ? `${relativeDirectory}/${child.name}`
+        : child.name;
+      const projectPath = `${root}/${relativePath}` as ProjectPath;
+      const absolutePath = path.join(absoluteDirectory, child.name);
+      if (child.isDirectory()) {
+        artifacts.push(
+          Object.freeze({ kind: OutputEntryKind.Directory, path: projectPath }),
+        );
+        await visit(absolutePath, relativePath);
+      } else if (child.isFile()) {
+        const bytes = await readFile(absolutePath);
+        artifacts.push(
+          Object.freeze({
+            kind: OutputEntryKind.File,
+            path: projectPath,
+            get content(): Buffer {
+              return Buffer.from(bytes);
+            },
+          }),
+        );
+      } else {
+        throw new Error(
+          `${projectPath}: staged output has an unsupported kind`,
+        );
+      }
+    }
+  }
+  await visit(directory, "");
+  return artifacts.sort((left, right) =>
+    compareProjectPaths(left.path, right.path),
+  );
+}
+
+function artifactsMatch(
+  expected: readonly PlannedArtifact[],
+  actual: readonly PlannedArtifact[],
+): boolean {
+  if (expected.length !== actual.length) return false;
+  return expected.every((entry, index) => {
+    const candidate = actual[index];
+    if (
+      candidate === undefined ||
+      entry.path !== candidate.path ||
+      entry.kind !== candidate.kind
+    ) {
+      return false;
+    }
+    return entry.kind === OutputEntryKind.Directory
+      ? true
+      : candidate.kind === OutputEntryKind.File &&
+          entry.content.equals(candidate.content);
+  });
+}
+
+/** Build and byte-verify a complete replacement tree before any committed write. */
+export async function stageOutputTree(
+  repositoryRoot: string,
+  root: ProjectPath,
+  artifacts: readonly PlannedArtifact[],
+): Promise<string> {
+  const stagedPath = path.join(
+    repositoryRoot,
+    `.plugin-compiler-${path.basename(root)}-${randomUUID()}.tmp`,
+  );
+  try {
+    await mkdir(stagedPath, { recursive: false });
+    for (const artifact of artifacts) {
+      const relativePath = relativeArtifactPath(root, artifact.path);
+      if (relativePath === "") continue;
+      const outputPath = path.join(stagedPath, ...relativePath.split("/"));
+      if (artifact.kind === OutputEntryKind.Directory) {
+        await mkdir(outputPath, { recursive: true });
+      } else {
+        await mkdir(path.dirname(outputPath), { recursive: true });
+        await writeFile(outputPath, artifact.content, { flag: "wx" });
+      }
+    }
+    const expected = [...artifacts].sort((left, right) =>
+      compareProjectPaths(left.path, right.path),
+    );
+    const actual = await snapshotStagedTree(stagedPath, root);
+    if (!artifactsMatch(expected, actual)) {
+      throw new Error(`${root}: staged bytes differ from the output plan`);
+    }
+    return stagedPath;
+  } catch (error) {
+    await rm(stagedPath, { force: true, recursive: true });
+    throw error;
+  }
+}
+
+/** Swap one staged complete tree and restore its predecessor on install failure. */
+export async function installStagedTree(
+  repositoryRoot: string,
+  root: ProjectPath,
+  stagedPath: string,
+): Promise<void> {
+  const target = await assertSafePath(repositoryRoot, root, "directory");
+  const backupPath = path.join(
+    repositoryRoot,
+    `.plugin-compiler-${path.basename(root)}-${randomUUID()}.bak`,
+  );
+  let targetMoved = false;
+
+  try {
+    if (target.stats !== null) {
+      await rename(target.absolutePath, backupPath);
+      targetMoved = true;
+    }
+    await rename(stagedPath, target.absolutePath);
+  } catch (installError) {
+    const recoveryErrors: unknown[] = [];
+    await rm(stagedPath, { force: true, recursive: true }).catch((error) =>
+      recoveryErrors.push(error),
+    );
+    if (targetMoved) {
+      await rename(backupPath, target.absolutePath).catch((error) =>
+        recoveryErrors.push(error),
+      );
+    }
+    if (recoveryErrors.length > 0) {
+      throw new AggregateError(
+        [installError, ...recoveryErrors],
+        `Failed to install ${root} and fully restore the prior managed tree`,
+        { cause: installError },
+      );
+    }
+    throw installError;
+  }
+
+  if (targetMoved) {
+    try {
+      await rm(backupPath, { force: true, recursive: true });
+    } catch (error) {
+      throw new Error(
+        `Installed ${root} but failed to remove preserved backup ${path.basename(backupPath)}: ${errorMessage(error)}`,
+        { cause: error },
+      );
+    }
+  }
+}

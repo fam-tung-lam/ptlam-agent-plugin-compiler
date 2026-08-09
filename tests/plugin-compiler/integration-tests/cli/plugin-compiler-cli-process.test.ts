@@ -1,0 +1,194 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { describe, it, onTestFinished } from "vitest";
+
+import { CliExitCode } from "../../../../src/cli/index.ts";
+
+const repositoryRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../../",
+);
+const cliPath = path.join(repositoryRoot, "dist/bin.js");
+
+interface ProcessResult {
+  readonly exitCode: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}
+
+function runCli(argv: readonly string[]): Promise<ProcessResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [cliPath, ...argv], {
+      cwd: repositoryRoot,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk: string) => {
+      stderr += chunk;
+    });
+    child.once("error", reject);
+    child.once("close", (exitCode) => resolve({ exitCode, stdout, stderr }));
+  });
+}
+
+async function createFixtureRepository({
+  invalidManifest = false,
+}: {
+  readonly invalidManifest?: boolean;
+} = {}): Promise<string> {
+  const rootDir = await mkdtemp(
+    path.join(tmpdir(), "ptlam-plugin-cli-process-"),
+  );
+  onTestFinished(() => rm(rootDir, { recursive: true, force: true }));
+  const skillDirectory = path.join(
+    rootDir,
+    "plugin",
+    "skills",
+    "fixture-skill",
+  );
+  await mkdir(skillDirectory, { recursive: true });
+  await writeFile(
+    path.join(rootDir, "plugin", "plugin.yml"),
+    `schema_version: 1
+name: fixture-skills
+description: Fixture plugin.
+version: "0.1.0"
+author:
+  name: Fixture Owner
+homepage: https://example.test/readme
+repository: https://example.test/repository
+license: MIT
+keywords: [agent-skills]
+marketplace:
+  name: fixture
+  description: Fixture marketplace.
+  plugin_description: Fixture listing.
+  category: development
+  keywords: [agent-skills]
+categories:
+  - id: engineering
+    name: Engineering
+    description: Engineering skills.
+skills:
+  - id: fixture-skill
+    description: Exercise the compiler process.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills: []
+${invalidManifest ? "unexpected: true\n" : ""}`,
+    "utf8",
+  );
+  await writeFile(
+    path.join(skillDirectory, "SKILL.md"),
+    "# Fixture skill\n\n<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->\n",
+    "utf8",
+  );
+  await writeFile(
+    path.join(rootDir, "README.md"),
+    "# Human-owned project documentation\n",
+    "utf8",
+  );
+  return rootDir;
+}
+
+describe("plugin compiler CLI process", () => {
+  it("validates a real fixture through the executable entrypoint", async () => {
+    // GIVEN: A valid authored plugin repository and the real compiler composition.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: A child Node process runs validate through the emitted executable entrypoint.
+    const result = await runCli(["validate", "--root", rootDir]);
+
+    // THEN: The process succeeds and communicates both provider scope and plugin result.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
+    assert.equal(result.stderr, "");
+  });
+
+  it("returns failure when a real read-only check observes drift", async () => {
+    // GIVEN: A valid source repository has no generated skills or provider outputs.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: A child process checks the selected output plan.
+    const result = await runCli(["check", "--root", rootDir]);
+
+    // THEN: Drift is a process failure and identifies compiler-owned output paths.
+    assert.equal(result.exitCode, CliExitCode.Failure);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Output check found \d+ differences/u);
+    assert.match(result.stderr, /skills\/README\.md/u);
+    assert.match(result.stderr, /\.codex-plugin\/plugin\.json/u);
+  });
+
+  it("generates the shared catalog and both provider surfaces without changing root README", async () => {
+    // GIVEN: A valid authored repository contains ordinary human-owned project documentation.
+    const rootDir = await createFixtureRepository();
+    const readmePath = path.join(rootDir, "README.md");
+    const readmeBefore = await readFile(readmePath);
+
+    // WHEN: The repository-default generate command runs without provider flags.
+    const result = await runCli(["generate", "--root", rootDir]);
+
+    // THEN: Shared skills and every default provider artifact coexist after one run.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.equal(result.stderr, "");
+    const [catalog, claudePlugin, claudeMarketplace, codexPlugin, readmeAfter] =
+      await Promise.all([
+        readFile(path.join(rootDir, "skills", "README.md"), "utf8"),
+        readFile(path.join(rootDir, ".claude-plugin", "plugin.json"), "utf8"),
+        readFile(
+          path.join(rootDir, ".claude-plugin", "marketplace.json"),
+          "utf8",
+        ),
+        readFile(path.join(rootDir, ".codex-plugin", "plugin.json"), "utf8"),
+        readFile(readmePath),
+      ]);
+    assert.match(catalog, /`fixture-skill`/u);
+    assert.deepEqual(JSON.parse(claudePlugin).skills, [
+      "./skills/fixture-skill",
+    ]);
+    assert.equal(JSON.parse(claudeMarketplace).plugins[0]?.source, "./");
+    assert.equal(JSON.parse(codexPlugin).skills, "./skills/");
+    assert.deepEqual(readmeAfter, readmeBefore);
+  });
+
+  it("returns failure for invalid authored manifest data", async () => {
+    // GIVEN: A fixture repository violates the closed manifest schema.
+    const rootDir = await createFixtureRepository({ invalidManifest: true });
+
+    // WHEN: The executable validates the repository.
+    const result = await runCli(["validate", "--root", rootDir]);
+
+    // THEN: Validation fails with an aggregated compiler diagnostic.
+    assert.equal(result.exitCode, CliExitCode.Failure);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Plugin validation failed/u);
+    assert.match(result.stderr, /unexpected/u);
+  });
+
+  it("returns usage exit semantics without constructing the compiler", async () => {
+    // GIVEN: The executable receives no command.
+
+    // WHEN: A child process runs the CLI entrypoint without arguments.
+    const result = await runCli([]);
+
+    // THEN: Usage is printed to stderr with process exit code two.
+    assert.equal(result.exitCode, CliExitCode.Usage);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Usage: plugin-compiler/u);
+  });
+});

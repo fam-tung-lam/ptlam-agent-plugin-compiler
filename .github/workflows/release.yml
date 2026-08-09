@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    name: Publish package to npm
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: npm-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out the selected main commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up the release Node.js runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.19.0 --ignore-scripts
+
+      - name: Select the npm tag
+        id: release
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
+          if [[ "${PACKAGE_VERSION}" == *-* ]]; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
+
+          echo "npm-tag=${NPM_TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build and test
+        run: npm test
+
+      - name: Pack once and verify the exact tarball
+        id: package
+        run: |
+          PACKAGE_DIR="${RUNNER_TEMP}/package"
+          mkdir -p "${PACKAGE_DIR}"
+          TARBALL_NAME="$(npm pack --ignore-scripts --pack-destination "${PACKAGE_DIR}")"
+          TARBALL_PATH="${PACKAGE_DIR}/${TARBALL_NAME}"
+          test -f "${TARBALL_PATH}"
+          npm run test:package -- "${TARBALL_PATH}"
+          echo "path=${TARBALL_PATH}" >> "${GITHUB_OUTPUT}"
+
+      - name: Publish the exact tarball
+        run: >-
+          npm publish "${{ steps.package.outputs.path }}" --access public --tag
+          "${{ steps.release.outputs.npm-tag }}"

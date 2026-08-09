@@ -1,0 +1,20 @@
+{
+  "name": "fixture-skills",
+  "version": "1.2.3",
+  "description": "Fixture plugin description.",
+  "author": {
+    "name": "Fixture Owner",
+    "email": "owner@example.test",
+    "url": "https://example.test/owner"
+  },
+  "homepage": "https://example.test/plugin",
+  "repository": "https://example.test/repository",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "fixtures"
+  ],
+  "skills": [
+    "./skills/active-skill"
+  ]
+}
