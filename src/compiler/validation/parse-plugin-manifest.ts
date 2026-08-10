@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 import { Ajv2020, type ErrorObject } from "ajv/dist/2020.js";
 import {
   isAlias,
@@ -20,9 +22,9 @@ import {
   type SkillManifest,
   type SkillRequirement,
 } from "../../core/index.js";
-import pluginManifestSchema from "../../schemas/v1/plugin-manifest.schema.json" with {
-  type: "json",
-};
+
+const require = createRequire(import.meta.url);
+const pluginManifestSchema = require("../../schemas/v1/plugin-manifest.schema.json");
 
 export const SOURCE_MANIFEST_PATH = "plugin/plugin.yml";
 

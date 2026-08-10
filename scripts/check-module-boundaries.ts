@@ -64,7 +64,7 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
 function findRelativeSpecifiers(source: string): string[] {
   return [
     ...source.matchAll(
-      /(?:from\s+|import\s*(?:\(\s*)?)(["'])(?<specifier>[^"']+)\1/gu,
+      /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)(["'])(?<specifier>[^"']+)\1/gu,
     ),
   ]
     .flatMap((match) => {

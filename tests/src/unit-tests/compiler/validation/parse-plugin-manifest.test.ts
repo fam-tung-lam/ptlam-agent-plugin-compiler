@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
+import { createRequire } from "node:module";
 
 import { describe, it } from "vitest";
 
 import { parsePluginManifest } from "../../../../../src/compiler/validation/index.ts";
-import pluginManifestSchema from "../../../../../src/schemas/v1/plugin-manifest.schema.json" with {
-  type: "json",
-};
 import { makeManifest } from "../test-fixtures/plugin-fixture.ts";
+
+const require = createRequire(import.meta.url);
+const pluginManifestSchema = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
 
 describe("parsePluginManifest", () => {
   it("uses the versioned JSON schema as the manifest contract", () => {
