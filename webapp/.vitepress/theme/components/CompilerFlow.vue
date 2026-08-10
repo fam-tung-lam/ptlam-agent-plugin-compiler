@@ -56,10 +56,8 @@
             <path d="M0 0 8 4 0 8Z" />
           </marker>
         </defs>
-        <path d="M180 0C180 30 90 25 90 77" marker-end="url(#apc-output-tip)" />
-        <path d="M180 0C180 30 270 25 270 77" marker-end="url(#apc-output-tip)" />
-        <text x="41" y="41">compile skills</text>
-        <text x="252" y="41">render hosts</text>
+        <path d="M180 0v77" marker-end="url(#apc-output-tip)" />
+        <text x="192" y="43">compile output</text>
       </svg>
 
       <div class="apc-flow-node apc-flow-output">

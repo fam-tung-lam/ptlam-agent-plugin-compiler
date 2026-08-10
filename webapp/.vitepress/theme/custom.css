@@ -676,6 +676,7 @@ body {
   }
 
   .apc-compiler-flow {
+    left: calc(50% + clamp(0px, 50vw - 611px, 29px));
     top: 58%;
   }
 
@@ -690,7 +691,7 @@ body {
 
 @media (max-width: 959px) {
   .VPHomeHero .image {
-    margin-top: 40px;
+    margin-top: 20px;
     margin-bottom: 72px;
   }
 
