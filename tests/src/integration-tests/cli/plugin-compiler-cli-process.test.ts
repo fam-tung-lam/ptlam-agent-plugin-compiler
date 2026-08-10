@@ -121,15 +121,30 @@ describe("plugin compiler CLI process", () => {
     );
     onTestFinished(() => rm(rootDir, { recursive: true, force: true }));
 
-    // WHEN: The real init command runs, the manifest gains user content, and init runs again.
+    // WHEN: The real init command runs through validation and generation before running again.
     const first = await runCli(["init"], rootDir);
     const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+    const initialManifest = await readFile(manifestPath, "utf8");
+    const validation = await runCli(["validate"], rootDir);
+    const generation = await runCli(["generate"], rootDir);
     await writeFile(manifestPath, "user-owned: true\n", "utf8");
     const second = await runCli(["init"], rootDir);
 
-    // THEN: Missing paths are created once and existing content remains unchanged.
+    // THEN: The starter is documented, immediately usable, and never replaces user content.
     assert.equal(first.exitCode, CliExitCode.Success);
     assert.match(first.stdout, /Plugin source initialized/u);
+    assert.match(initialManifest, /# TODO: Replace this example identifier/u);
+    assert.match(
+      initialManifest,
+      /visibility: public # Possible values: internal, public\./u,
+    );
+    assert.match(
+      initialManifest,
+      /status: active # Possible values: draft, active, deprecated, archived\./u,
+    );
+    assert.match(initialManifest, /# Standalone public skill example/u);
+    assert.match(initialManifest, /# Required\/internal skill example/u);
+    assert.match(initialManifest, /skill_id: inspect-repository/u);
     assert.equal(
       (await lstat(path.join(rootDir, "plugin"))).isDirectory(),
       true,
@@ -138,10 +153,31 @@ describe("plugin compiler CLI process", () => {
       (await lstat(path.join(rootDir, "plugin", "skills"))).isDirectory(),
       true,
     );
+    assert.equal(validation.exitCode, CliExitCode.Success);
+    assert.match(validation.stdout, /Validated example-agent-plugin@0\.1\.0/u);
+    assert.match(validation.stdout, /3 skills in 2 categories/u);
+    assert.equal(generation.exitCode, CliExitCode.Success);
+    assert.equal(
+      (
+        await lstat(
+          path.join(
+            rootDir,
+            "skills",
+            "prepare-change-plan",
+            "skills",
+            "inspect-repository",
+            "SKILL.md",
+          ),
+        )
+      ).isFile(),
+      true,
+    );
     assert.equal(second.exitCode, CliExitCode.Success);
     assert.match(second.stdout, /already initialized/u);
     assert.equal(await readFile(manifestPath, "utf8"), "user-owned: true\n");
     assert.equal(first.stderr, "");
+    assert.equal(validation.stderr, "");
+    assert.equal(generation.stderr, "");
     assert.equal(second.stderr, "");
   });
 

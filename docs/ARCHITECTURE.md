@@ -308,16 +308,26 @@ flowchart LR
         filesystem
         (ensure plugin/ and plugin/skills/)
     `"]
-    EnsureManifest["`
+    InspectManifest["`
         filesystem
-        (ensure plugin/plugin.yml)
+        (inspect plugin/plugin.yml)
+    `"]
+    EnsureExampleSkills["`
+        filesystem
+        (ensure matching example skill sources)
+    `"]
+    WriteManifest["`
+        filesystem
+        (create commented plugin/plugin.yml)
     `"]
     InitResult["`
         InitResult
         (created and unchanged paths)
     `"]
 
-    InitCommand ------> EnsureDirectories ------> EnsureManifest ------> InitResult
+    InitCommand ------> EnsureDirectories ------> InspectManifest
+    InspectManifest ------>|"`missing`"| EnsureExampleSkills ------> WriteManifest ------> InitResult
+    InspectManifest ------>|"`already exists`"| InitResult
 ```
 
 ### validate
@@ -471,7 +481,7 @@ flowchart LR
 
 | Operation                       | Repository writes                | Result                                                                | Success condition                                         |
 | ------------------------------- | -------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- |
-| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                         | All three authored source paths exist                     |
+| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                         | Base paths exist; a new manifest has matching examples    |
 | `validate`                      | None                             | `ValidateResult` with `Plugin` and warnings                           | Authored source satisfies schema and domain rules         |
 | `check`                         | None                             | `CheckResult` with `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
 | `compile` (`generate` in `cli`) | Applies the complete `WritePlan` | `CompileResult` with `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |

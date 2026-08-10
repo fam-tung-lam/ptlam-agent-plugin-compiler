@@ -108,11 +108,13 @@ Run `init` from the plugin repository root:
 npm exec -- plugin-compiler init
 ```
 
-The command creates an empty `plugin/plugin.yml` and the `plugin/skills/`
-directory. It is safe to run repeatedly: existing paths and manifest content
-remain unchanged.
+For a new plugin, the command creates a schema-valid, fully commented
+`plugin/plugin.yml` with two example categories and three matching example
+skills: an internal dependency, a standalone public skill, and a public skill
+that uses the dependency. It is safe to run repeatedly: existing paths and
+manifest content remain unchanged.
 
-### 2. Describe the authored plugin source
+### 2. Customize the authored plugin source
 
 ```text
 plugin/
@@ -120,11 +122,16 @@ plugin/
 └── skills/
     ├── inspect-repository/
     │   └── SKILL.md
-    └── prepare-change-plan/
+    ├── prepare-change-plan/
+    │   └── SKILL.md
+    └── write-commit-message/
         └── SKILL.md
 ```
 
-Create `plugin/plugin.yml`:
+The generated manifest explains every section, marks values to replace with
+`TODO` comments, documents the allowed visibility and lifecycle values, and
+includes complete standalone and required-skill examples. A customized version
+can look like this:
 
 ```yaml
 schema_version: 1
@@ -176,9 +183,16 @@ skills:
         reason: The plan must reflect the repository's actual structure.
         instructions:
           Inspect the repository and pass the verified facts forward.
+
+  - id: write-commit-message
+    description: Write a concise conventional commit message.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills: []
 ```
 
-Create `plugin/skills/inspect-repository/SKILL.md`:
+Customize `plugin/skills/inspect-repository/SKILL.md`:
 
 ```markdown
 # Inspect a repository
@@ -191,7 +205,7 @@ Inspect the repository and collect the facts needed to plan a change.
 2. Report the current structure and constraints.
 ```
 
-Create `plugin/skills/prepare-change-plan/SKILL.md`:
+Customize `plugin/skills/prepare-change-plan/SKILL.md`:
 
 ```markdown
 # Prepare a change plan
@@ -202,6 +216,14 @@ Create a focused implementation plan from verified repository facts.
 
 1. Describe the files and behavior that need to change.
 2. Keep the plan small and testable.
+```
+
+Customize `plugin/skills/write-commit-message/SKILL.md`:
+
+```markdown
+# Write a commit message
+
+Write a concise conventional commit message for a completed change.
 ```
 
 - `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` is an optional placement marker.

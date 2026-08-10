@@ -5,6 +5,10 @@ import {
   assertRealRepository,
   assertSafePath,
 } from "../safety/assert-safe-path.js";
+import {
+  INITIAL_PLUGIN_MANIFEST,
+  INITIAL_SKILL_SOURCES,
+} from "../templates/initial-plugin-source.js";
 
 const PLUGIN_DIRECTORY = createProjectPath("plugin");
 const SKILLS_DIRECTORY = createProjectPath("plugin/skills");
@@ -39,10 +43,11 @@ async function ensureDirectory(
 async function ensureFile(
   repositoryRoot: string,
   projectPath: ProjectPath,
+  content: string,
 ): Promise<boolean> {
   const inspection = await assertSafePath(repositoryRoot, projectPath, "file");
   if (inspection.stats !== null) return false;
-  await writeFile(inspection.absolutePath, "", { flag: "wx" });
+  await writeFile(inspection.absolutePath, content, { flag: "wx" });
   return true;
 }
 
@@ -68,10 +73,29 @@ export async function initializePluginSource(
     ).push(directory);
   }
 
-  ((await ensureFile(repositoryRoot, MANIFEST_PATH))
-    ? createdPaths
-    : existingPaths
-  ).push(MANIFEST_PATH);
+  const manifestInspection = await assertSafePath(
+    repositoryRoot,
+    MANIFEST_PATH,
+    "file",
+  );
+  if (manifestInspection.stats === null) {
+    for (const source of INITIAL_SKILL_SOURCES) {
+      ((await ensureDirectory(repositoryRoot, source.directoryPath))
+        ? createdPaths
+        : existingPaths
+      ).push(source.directoryPath);
+      ((await ensureFile(repositoryRoot, source.filePath, source.content))
+        ? createdPaths
+        : existingPaths
+      ).push(source.filePath);
+    }
+    await writeFile(manifestInspection.absolutePath, INITIAL_PLUGIN_MANIFEST, {
+      flag: "wx",
+    });
+    createdPaths.push(MANIFEST_PATH);
+  } else {
+    existingPaths.push(MANIFEST_PATH);
+  }
 
   return Object.freeze({
     createdPaths: Object.freeze(createdPaths),

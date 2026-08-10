@@ -11,8 +11,9 @@ and this project adheres to
 ### Added
 
 - Added the argument-free `plugin-compiler init` command to create missing
-  `plugin/`, `plugin/skills/`, and empty `plugin/plugin.yml` paths without
-  changing existing content.
+  authored paths without changing existing content. A new manifest is a
+  schema-valid commented template with matching standalone, dependency, and
+  dependent example skill sources.
 
 ## [0.1.0-alpha.3] - 2026-08-10
 
