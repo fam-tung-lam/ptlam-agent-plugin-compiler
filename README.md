@@ -1,408 +1,329 @@
-# Agent Plugin Compiler
+<!-- markdownlint-disable MD013 MD033 MD041 -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/webapp/public/logo.svg" alt="" height="96" />
+</p>
 
-`@fam-tung-lam/ptlam-agent-plugin-compiler` helps authors build reliable agent
-skill plugins.
+<h1 align="center">Agent Plugin Compiler</h1>
 
-## Why this package exists
+<p align="center">
+  <strong>Author once. Validate the graph. Compile every host manifest.</strong>
+</p>
 
-Most skill installers show users a flat list of skills. They do not show that
-one skill may need another skill to work.
+<p align="center">
+  <a href="https://www.npmjs.com/package/@fam-tung-lam/ptlam-agent-plugin-compiler"><img alt="npm@next version" src="https://img.shields.io/npm/v/@fam-tung-lam/ptlam-agent-plugin-compiler/next?style=flat-square" /></a>
+  <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/fam-tung-lam/ptlam-agent-plugin-compiler/ci.yml?branch=main&style=flat-square&label=ci" /></a>
+  <a href="https://nodejs.org"><img alt="Required Node.js version" src="https://img.shields.io/node/v/@fam-tung-lam/ptlam-agent-plugin-compiler/next?style=flat-square" /></a>
+  <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
+</p>
 
-Imagine a plugin with two skills:
+<p align="center">
+  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/introduction">Guide</a> ·
+  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/quick-start">Quick Start</a> ·
+  <a href="https://agent-plugin-compiler.phamtunglam.com/reference/">Reference</a>
+</p>
+<!-- markdownlint-enable MD013 MD033 MD041 -->
 
-- `prepare-change-plan` creates a plan;
-- `inspect-repository` collects the repository facts needed by that plan; and
-- `prepare-change-plan` depends on `inspect-repository`.
+Markdown-based agent skills have no build step. Agent Plugin Compiler adds one:
+declare your skills and their dependencies in a single manifest, and compile
+self-contained public skills plus the plugin manifests for Claude, Codex,
+Copilot, Gemini, and Kimi.
 
-Without a dependency tool, that simple relationship causes several problems.
+Full docs at
+[agent-plugin-compiler.phamtunglam.com](https://agent-plugin-compiler.phamtunglam.com).
 
-### Issue 1: Users can install an incomplete skill
+## The problem
 
-The installer may show both skills, but not the dependency between them. A user
-can install `prepare-change-plan` by itself without knowing that
-`inspect-repository` is also required. The installed skill then misses part of
-the instructions it needs to work.
+Suppose a plugin publishes two skills, and `skill_a` cannot do its job without
+`skill_b`:
 
-### Issue 2: Authors can break dependencies without noticing
+```text
+skills/
+├── skill_a/   ← depends on skill_b
+└── skill_b/
+```
 
-Agent plugin authors often write the dependency directly into a skill's
-instructions: the other skill's name, why it is needed, and how to use it. That
-text can silently become wrong when the required skill is renamed, removed,
-drafted, archived, or replaced.
+Nothing in that folder records the dependency, which causes two failures.
 
-Nothing in a plain folder of Markdown files tells the author that another skill
-still points to the old dependency. The plugin can be released before anyone
-notices the mistake.
+1. **Users install incomplete skills.** Installers show a flat list. Someone may
+   install `skill_a` without `skill_b`, and get broken `skill_a`.
+2. **Authors break dependencies silently.** The dependency usually lives inside
+   `skill_a/SKILL.md` as prose: the name of `skill_b`, why it is needed, how to
+   use it. Rename, archive, or delete `skill_b` and that prose becomes wrong.
+   Nothing fails. The plugin ships.
 
-### Issue 3: Manual copies drift
+In a programming language none of this survives to release: the module system
+resolves the import, the compiler rejects the missing symbol, the linter flags
+the dead reference. A folder of Markdown files has none of those guarantees, and
+neither a human nor an AI agent reliably keeps every hand-written
+cross-reference synchronized.
 
-Agent plugin authors also have to keep skill metadata, visibility, lifecycle
-status, dependency instructions, public skill copies, catalogs, and host
-manifests in sync. A person or an AI agent may update all of them sometimes and
-miss one at other times. That is not a reliable maintenance process.
+This package supplies the missing guarantees.
 
-### Solution: Agent Plugin Compiler
-
-Compiler replaces those repeated manual steps with one build-time source of
-truth:
+## The build step
 
 ```mermaid
 ---
 config:
   htmlLabels: false
 ---
-flowchart LR
-    PluginManifest["`plugin/plugin.yml`"]
-    SkillSources["`plugin/skills/**`"]
-    AgentPluginCompiler["`Agent Plugin Compiler`"]
-    SharedSkills["`
-        skills/**
-        (self-contained public skills)
-    `"]
-    ClaudePlugin["`.claude-plugin/**`"]
-    CodexPlugin["`.codex-plugin/plugin.json`"]
-    CopilotPlugin["`plugin.json`"]
-    GeminiExtension["`gemini-extension.json`"]
-    KimiPlugin["`kimi.plugin.json`"]
+flowchart TD
+    subgraph Authored["You author"]
+        PluginManifest["plugin/plugin.yml"]
+        SkillSources["plugin/skills/**"]
+    end
 
-    PluginManifest ------>|"`is passed to`"| AgentPluginCompiler
-    SkillSources ------>|"`is passed to`"| AgentPluginCompiler
-    AgentPluginCompiler ------>|"`produces`"| SharedSkills
-    AgentPluginCompiler ------>|"`produces`"| ClaudePlugin
-    AgentPluginCompiler ------>|"`produces`"| CodexPlugin
-    AgentPluginCompiler ------>|"`produces`"| CopilotPlugin
-    AgentPluginCompiler ------>|"`produces`"| GeminiExtension
-    AgentPluginCompiler ------>|"`produces`"| KimiPlugin
+    AgentPluginCompiler{{"plugin-compiler"}}
+
+    subgraph Generated["The compiler owns"]
+        SharedSkills["skills/**"]
+        ClaudePlugin[".claude-plugin/**"]
+        CodexPlugin[".codex-plugin/plugin.json"]
+        CopilotPlugin["plugin.json"]
+        GeminiExtension["gemini-extension.json"]
+        KimiPlugin["kimi.plugin.json"]
+    end
+
+    PluginManifest --> AgentPluginCompiler
+    SkillSources --> AgentPluginCompiler
+    AgentPluginCompiler --> SharedSkills
+    AgentPluginCompiler --> ClaudePlugin
+    AgentPluginCompiler --> CodexPlugin
+    AgentPluginCompiler --> CopilotPlugin
+    AgentPluginCompiler --> GeminiExtension
+    AgentPluginCompiler --> KimiPlugin
 ```
 
-1. Declare providers, skills, and dependencies in `plugin/plugin.yml`, with
-   skill sources under `plugin/skills/`.
-2. The compiler validates those relationships, puts each required skill inside
-   the skill that needs it
-3. Compile the shared skill catalog and only the provider manifests you select.
+`plugin/plugin.yml` declares every skill, its visibility, its lifecycle status,
+and its dependency edges:
 
-Can be used through CLI commands or the `AgentPluginCompiler` Node.js API.
+```yaml
+skills:
+  - id: skill_b
+    description: The reusable building block.
+    category_id: example
+    visibility: internal
+    status: active
+    required_skills: []
 
-## Features
+  - id: skill_a
+    description: The skill users install.
+    category_id: example
+    visibility: public
+    status: active
+    required_skills:
+      - skill_id: skill_b
+        reason: skill_a cannot produce a correct result without it.
+        instructions: Run skill_b first and pass its output forward.
 
-- **Explicit dependency graph:** each dependency records the required skill, why
-  it is needed, and how the parent skill should use it.
-- **Early dependency validation:** missing, duplicate, self-referencing,
-  circular, and invalid lifecycle relationships fail before publication.
-- **Self-contained public skills:** required skills are copied recursively into
-  every public root skill that needs them.
-- **One source for plugin state:** metadata, visibility, lifecycle status,
-  replacements, the public catalog, and provider manifests stay aligned.
-- **Generated-state checking:** `check` reports when compiled skills or
-  manifests no longer match the authored source.
+  - id: skill_c
+    description: A standalone skill with no dependencies.
+    category_id: example
+    visibility: public
+    status: active
+    required_skills: []
+```
 
-## Installation
+Everything under `plugin/` is source you edit. Everything the compiler owns is a
+build result — never patch a generated skill or manifest by hand, change the
+source and compile again.
 
-Install the compiler locally in a npm project:
+## Dependency instructions are generated
+
+You write `plugin/skills/skill_a/SKILL.md` without mentioning `skill_b` at all:
+
+```markdown
+# Skill A
+
+What skill_a does.
+
+<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
+
+1. First step.
+2. Second step.
+```
+
+`compile` produces `skills/skill_a/SKILL.md`:
+
+```markdown
+---
+name: skill_a
+description: The skill users install.
+---
+
+# Skill A
+
+What skill_a does.
+
+## Required skills
+
+### `skill_b`
+
+**Reason:** skill_a cannot produce a correct result without it.
+
+**Instructions:** Run skill_b first and pass its output forward.
+
+Read [skill_b](skills/skill_b/SKILL.md).
+
+1. First step.
+2. Second step.
+```
+
+Frontmatter, the dependency section, and the link are all derived from the
+manifest. Rename `skill_b` and every dependent skill is rewritten on the next
+compile. Remove it and `validate` fails instead of publishing a dangling
+reference. The `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` marker is optional and
+only chooses where the section lands.
+
+## Public and internal dependencies
+
+Required skills are copied recursively into every public skill that needs them,
+so an installed skill is always complete. Visibility decides whether the
+dependency is _also_ published on its own.
+
+`skill_b` as `internal` — a building block, never installed separately:
+
+```text
+skills/
+├── README.md
+├── skill_a/
+│   ├── SKILL.md
+│   └── skills/
+│       └── skill_b/
+│           └── SKILL.md
+└── skill_c/
+    └── SKILL.md
+```
+
+`skill_b` as `public` — embedded in `skill_a` _and_ independently installable:
+
+```text
+skills/
+├── README.md
+├── skill_a/
+│   ├── SKILL.md
+│   └── skills/
+│       └── skill_b/
+│           └── SKILL.md
+├── skill_b/
+│   └── SKILL.md
+└── skill_c/
+    └── SKILL.md
+```
+
+Either way, installing `skill_a` alone gets everything it needs.
+`skills/README.md` is the generated catalog of published skills, and `status`
+controls publication over time: `active` and `deprecated` skills are published
+as root skills, while `draft` and `archived` ones are not.
+
+## Install
 
 ```bash
 npm install --save-dev --save-exact \
   @fam-tung-lam/ptlam-agent-plugin-compiler@next
 ```
 
+Requires Node.js 22.6 or newer. The package is a beta prerelease: pin it exactly
+and recompile after every upgrade.
+
 ## Quick start
 
-### 1. Initialize the authored plugin source
-
-Run `init` from the plugin repository root:
-
 ```bash
-npm exec -- plugin-compiler init
+npm exec -- plugin-compiler init      # scaffold plugin/plugin.yml + example skills
+# edit plugin/plugin.yml and plugin/skills/**
+npm exec -- plugin-compiler validate  # check the manifest, sources, and graph
+npm exec -- plugin-compiler compile   # write skills/** and host manifests
+npm exec -- plugin-compiler check     # confirm output matches the source
 ```
 
-For a new plugin, the command creates a schema-valid, fully commented
-`plugin/plugin.yml` with two example categories and three matching example
-skills: an internal dependency, a standalone public skill, and a public skill
-that uses the dependency. It is safe to run repeatedly: existing paths and
-manifest content remain unchanged.
+`init` writes a fully commented, schema-valid starter manifest with the three
+skills used above — an internal dependency, a public skill that requires it, and
+a standalone public skill. It only creates missing paths, so it is safe to run
+again.
 
-### 2. Customize the authored plugin source
+`validate` rejects missing, duplicate, self-referencing, and circular
+dependencies, plus invalid lifecycle edges: an active skill cannot require a
+draft or archived one, and requiring a deprecated skill raises a warning.
+`check` writes nothing and reports every managed path that drifted, which makes
+it the command to run in CI.
 
-```text
-plugin/
-├── plugin.yml
-└── skills/
-    ├── inspect-repository/
-    │   └── SKILL.md
-    ├── prepare-change-plan/
-    │   └── SKILL.md
-    └── write-commit-message/
-        └── SKILL.md
-```
+Full walkthrough →
+[Quick Start](https://agent-plugin-compiler.phamtunglam.com/guide/quick-start).
 
-The generated manifest explains every section, marks values to replace with
-`TODO` comments, documents the allowed visibility and lifecycle values, and
-includes complete standalone and required-skill examples. A customized version
-can look like this:
+## Commands
 
-```yaml
-schema_version: 1
+| Command    | Purpose                                                        |
+| ---------- | -------------------------------------------------------------- |
+| `init`     | Create missing authored source paths, never overwriting        |
+| `validate` | Check the manifest, skill sources, links, and dependency graph |
+| `compile`  | Write the shared skill tree and the selected host manifests    |
+| `check`    | Report output that no longer matches the source                |
 
-providers:
-  - claude
-  - codex
+`validate`, `compile`, and `check` share
+`[--root <path>] [--provider <id>[,<id>...] | --no-providers]`. Without a
+provider option the compiler uses the `providers` list in `plugin/plugin.yml`;
+`--provider` replaces that list for one run, and `--no-providers` compiles
+shared skills only.
 
-name: planning-skills
-description: Skills for planning repository changes.
-version: "1.0.0"
+Every flag, precedence rule, and exit code →
+[CLI reference](https://agent-plugin-compiler.phamtunglam.com/reference/cli).
 
-author:
-  name: Example Maintainer
+## Supported hosts
 
-homepage: https://github.com/example/planning-skills
-repository: https://github.com/example/planning-skills
-license: MIT
+| ID        | Host                 | Generated manifests                                             |
+| --------- | -------------------- | --------------------------------------------------------------- |
+| `claude`  | Claude plugin        | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
+| `codex`   | Codex plugin         | `.codex-plugin/plugin.json`                                     |
+| `copilot` | GitHub Copilot CLI   | `plugin.json`                                                   |
+| `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
+| `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
 
-keywords:
-  - agent
-  - planning
-
-categories:
-  - id: engineering
-    name: Engineering
-    description: Skills for repository work.
-
-skills:
-  - id: inspect-repository
-    description: Inspect a repository and collect verified facts.
-    category_id: engineering
-    visibility: internal
-    status: active
-    required_skills: []
-
-  - id: prepare-change-plan
-    description: Prepare a change plan from verified repository facts.
-    category_id: engineering
-    visibility: public
-    status: active
-    required_skills:
-      - skill_id: inspect-repository
-        reason: The plan must reflect the repository's actual structure.
-        instructions:
-          Inspect the repository and pass the verified facts forward.
-
-  - id: write-commit-message
-    description: Write a concise conventional commit message.
-    category_id: engineering
-    visibility: public
-    status: active
-    required_skills: []
-```
-
-Customize `plugin/skills/inspect-repository/SKILL.md`:
-
-```markdown
-# Inspect a repository
-
-Inspect the repository and collect the facts needed to plan a change.
-
-<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
-
-1. Read the relevant source and configuration files.
-2. Report the current structure and constraints.
-```
-
-Customize `plugin/skills/prepare-change-plan/SKILL.md`:
-
-```markdown
-# Prepare a change plan
-
-Create a focused implementation plan from verified repository facts.
-
-<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
-
-1. Describe the files and behavior that need to change.
-2. Keep the plan small and testable.
-```
-
-Customize `plugin/skills/write-commit-message/SKILL.md`:
-
-```markdown
-# Write a commit message
-
-Write a concise conventional commit message for a completed change.
-```
-
-- `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` is an optional placement marker.
-  When present, the compiler replaces it with the declared dependency
-  instructions. When omitted, those instructions appear after the top-level
-  title and introductory paragraphs, before the next top-level block. Without a
-  top-level title, they appear at the beginning.
-- Do not add YAML frontmatter here; the compiler generates it.
-
-### 3. Run the compiler
-
-`compile` replaces the compiler-owned root `skills/` tree and reconciles every
-registered provider manifest with the effective provider selection. With no
-provider option, the compiler uses `plugin/plugin.yml`:
-
-```bash
-npm exec -- plugin-compiler validate
-npm exec -- plugin-compiler compile
-npm exec -- plugin-compiler check
-```
-
-The result is a public skill with its internal dependency included:
-
-```text
-skills/
-├── README.md
-└── prepare-change-plan/
-    ├── SKILL.md
-    └── skills/
-        └── inspect-repository/
-            └── SKILL.md
-.claude-plugin/
-├── marketplace.json
-└── plugin.json
-.codex-plugin/
-└── plugin.json
-```
-
-## Command-line interface
-
-| Command                                          | Purpose                                      |
-| ------------------------------------------------ | -------------------------------------------- |
-| `plugin-compiler init [--root <path>]`           | Create missing authored source paths         |
-| `plugin-compiler validate [options]`             | Validate the manifest, skills, and graph     |
-| `plugin-compiler compile [options]`              | Compile and verify all managed output files  |
-| `plugin-compiler check [options]`                | Report output that does not match the source |
-| `plugin-compiler -h` or `plugin-compiler --help` | Show the command overview and global options |
-| `plugin-compiler <command> -h` or `--help`       | Show usage and options for one command       |
-
-`validate`, `compile`, and `check` accept:
-
-```text
-[--root <path>] [--provider <id>[,<id>...] | --no-providers]
-```
-
-Without `--root`, every command uses the current working directory. `init`
-accepts only this shared option. For other commands, provider selection follows
-one precedence rule:
-
-| CLI input                   | Effective provider selection                   |
-| --------------------------- | ---------------------------------------------- |
-| Neither provider option     | `plugin/plugin.yml` `providers`                |
-| `--provider <id>[,<id>...]` | Explicit list replaces the manifest selection  |
-| `--no-providers`            | Explicit empty replacement; shared skills only |
-
-Specify `--provider` once and separate multiple provider IDs with commas:
-
-```bash
-plugin-compiler compile --provider claude,codex
-```
-
-Possible built-in values are `claude`, `codex`, `copilot`, `gemini`, and `kimi`.
-`--provider` and `--no-providers` are mutually exclusive. The compiler reports
-the effective provider list and whether it came from the manifest or an
-override.
-
-Root help lists the available commands. Help after `init`, `validate`, `check`,
-or `compile` stays focused on that command and its options. Both `-h` and
-`--help` show every possible provider ID, the manifest default, replacement
-semantics, and the explicit shared-only option. The `init` help lists only
-`--root` because initialization does not select providers.
+Adapter behavior and custom providers →
+[Providers](https://agent-plugin-compiler.phamtunglam.com/reference/providers).
 
 ## Node.js API
 
+The same pipeline is available programmatically:
+
 ```ts
-import {
-  AgentPluginCompiler,
-  CLAUDE,
-  CODEX,
-  COPILOT,
-  GEMINI,
-  KIMI,
-} from "@fam-tung-lam/ptlam-agent-plugin-compiler";
+import { AgentPluginCompiler } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
 const compiler = new AgentPluginCompiler({ rootDir: process.cwd() });
 
-const validation = await compiler.validate();
+await compiler.validate();
 await compiler.compile();
 
-const result = await compiler.check();
-console.log(result.upToDate);
-console.log(validation.providers, validation.providerSelectionSource);
+const { upToDate } = await compiler.check();
 ```
 
-Omitting `providers` uses `plugin/plugin.yml`. Pass any combination of the five
-built-ins to replace the manifest selection, or pass an empty list for an
-explicit shared-only override:
+Pass `providers` to override the manifest selection, or register your own
+`ProviderAdapter` to emit a host the compiler does not ship.
 
-```ts
-const explicit = new AgentPluginCompiler({
-  rootDir: process.cwd(),
-  providers: [CLAUDE, CODEX, COPILOT, GEMINI, KIMI],
-});
-const sharedOnly = new AgentPluginCompiler({
-  rootDir: process.cwd(),
-  providers: [],
-});
-```
+Types, options, and a custom adapter example →
+[Node.js interface](https://agent-plugin-compiler.phamtunglam.com/reference/node-interface).
 
-Advanced integrations can supply a per-instance `ProviderAdapterRegistry` to
-extend the compiler with another provider adapter. Each registry is immutable
-and isolated from other compiler instances; `register` returns a new registry.
-Provider adapters must declare stable exact-file paths that do not depend on
-mutable plugin metadata; complete-tree ownership is rejected.
+## Documentation
 
-```ts
-import {
-  AgentPluginCompiler,
-  ArtifactKind,
-  OwnershipKind,
-  ProviderAdapterRegistry,
-  createPlanFragment,
-  createProjectPath,
-  createProviderId,
-  type ProviderAdapter,
-} from "@fam-tung-lam/ptlam-agent-plugin-compiler";
-
-const EXTERNAL = createProviderId("external");
-const manifestPath = createProjectPath(".external-plugin/plugin.json");
-const externalAdapter = {
-  id: EXTERNAL,
-  compile: ({ plugin }) =>
-    createPlanFragment({
-      ownerId: EXTERNAL,
-      ownership: {
-        kind: OwnershipKind.ExactFiles,
-        paths: [manifestPath],
-      },
-      artifacts: [
-        {
-          kind: ArtifactKind.File,
-          path: manifestPath,
-          content: new TextEncoder().encode(
-            `${JSON.stringify({ name: plugin.name })}\n`,
-          ),
-        },
-      ],
-    }),
-} satisfies ProviderAdapter;
-
-const registry = new ProviderAdapterRegistry().register(externalAdapter);
-const externalCompiler = new AgentPluginCompiler(
-  { rootDir: process.cwd(), providers: [EXTERNAL] },
-  registry,
-);
-```
-
-## Documentation and support
-
-- [Documentation](https://agent-plugin-compiler.phamtunglam.com)
-- [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)
-- [Complete example](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/tree/main/examples/simple-agent-plugin)
+- [Manifest](https://agent-plugin-compiler.phamtunglam.com/reference/manifest) —
+  every field of `plugin/plugin.yml`
+- [Authored source](https://agent-plugin-compiler.phamtunglam.com/guide/authored-source)
+  — how skills, dependencies, and lifecycle values are declared
+- [Generated output](https://agent-plugin-compiler.phamtunglam.com/guide/generated-output)
+  — what the compiler owns and how ownership is enforced
 - [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)
-- [Contributing](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CONTRIBUTING.md)
-- [GitHub Issues](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/issues)
-- [Security policy](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/SECURITY.md)
+  — internal design, for contributors
+- [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)
+  — release notes and breaking changes
+
+## Contributing
+
+Issues and pull requests are welcome. Start with
+[CONTRIBUTING.md](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CONTRIBUTING.md),
+and report vulnerabilities through the
+[security policy](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/SECURITY.md).
+
+---
 
 ## License
 
-[MIT](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE)
+This project is licensed under the MIT license - see [LICENSE](LICENSE) for
+details.
