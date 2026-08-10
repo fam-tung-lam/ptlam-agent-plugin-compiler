@@ -17,3 +17,4 @@ local/
 
 # Local dev setup
 .codex/
+.vercel/
