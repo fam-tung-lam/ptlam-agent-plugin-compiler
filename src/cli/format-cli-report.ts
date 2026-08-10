@@ -1,11 +1,74 @@
-import { CliCommand, type ExecutedCliCommand } from "./commands.js";
+import {
+  CliCommand,
+  DEFAULT_PROVIDERS,
+  type ExecutedCliCommand,
+} from "./commands.js";
 import type { CompilerScope } from "./ports.js";
 import { CliExitCode, type CliReport } from "./report.js";
 
-const USAGE_LINES = Object.freeze([
-  "Usage: plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>[,<id>...]]",
-  "Specify --provider once; separate multiple providers with commas. Defaults to: claude, codex.",
-]);
+const COMMAND_HELP: Readonly<
+  Record<
+    CliCommand,
+    {
+      readonly summary: string;
+      readonly introduction: string;
+    }
+  >
+> = Object.freeze({
+  [CliCommand.Validate]: {
+    summary: "Validate the authored plugin manifest, skills, and graph",
+    introduction:
+      "Validate the authored plugin manifest, skills, and dependency graph.",
+  },
+  [CliCommand.Check]: {
+    summary: "Check compiler-managed output against the authored sources",
+    introduction:
+      "Check compiler-managed output against the authored plugin sources.",
+  },
+  [CliCommand.Generate]: {
+    summary: "Generate and verify all compiler-managed output",
+    introduction: "Generate and verify all compiler-managed output files.",
+  },
+});
+
+function rootHelpLines(): readonly string[] {
+  return Object.freeze([
+    "A deterministic compiler for PTLam-compatible agent plugin projects.",
+    "",
+    "Usage: plugin-compiler [OPTIONS] <COMMAND>",
+    "",
+    "Commands:",
+    ...Object.values(CliCommand).map(
+      (command) => `  ${command.padEnd(8)}  ${COMMAND_HELP[command].summary}`,
+    ),
+    "",
+    "Options:",
+    "  -h, --help  Display help for this command",
+    "",
+    "Use `plugin-compiler <command> --help` for more information on a command.",
+  ]);
+}
+
+function commandHelpLines(command: CliCommand): readonly string[] {
+  const defaultProviders = DEFAULT_PROVIDERS.join(", ");
+  return Object.freeze([
+    COMMAND_HELP[command].introduction,
+    "",
+    `Usage: plugin-compiler ${command} [OPTIONS]`,
+    "",
+    "Options:",
+    "      --root <path>              Plugin repository root",
+    "                                 [default: current working directory]",
+    "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
+    `                                 [possible values: ${defaultProviders}]`,
+    `                                 [default: ${defaultProviders}]`,
+    "  -h, --help                     Display help for this command",
+  ]);
+}
+
+function helpLines(command?: CliCommand): readonly string[] {
+  return command === undefined ? rootHelpLines() : commandHelpLines(command);
+}
 
 function countLabel(
   count: number,
@@ -55,16 +118,23 @@ function createReport({
 /**
  * Format help or a usage error.
  *
- * @param error - Usage error text; omit it for successful help output.
+ * @param options - Optional focused command and usage error text.
  * @returns An immutable terminal report.
  * @internal
  */
-export function formatUsageReport(error?: string): CliReport {
+export function formatUsageReport({
+  command,
+  error,
+}: {
+  readonly command?: CliCommand;
+  readonly error?: string;
+} = {}): CliReport {
+  const usage = helpLines(command);
   return createReport({
     exitCode: error === undefined ? CliExitCode.Success : CliExitCode.Usage,
     ...(error === undefined
-      ? { stdout: USAGE_LINES }
-      : { stderr: [error, ...USAGE_LINES] }),
+      ? { stdout: usage }
+      : { stderr: [error, "", ...usage] }),
   });
 }
 
