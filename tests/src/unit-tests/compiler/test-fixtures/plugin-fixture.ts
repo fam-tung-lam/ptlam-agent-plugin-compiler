@@ -3,6 +3,7 @@ import {
   createPlugin,
   createPluginSource,
   createProjectPath,
+  createProviderId,
   createSkillId,
   type Plugin,
   type PluginCategory,
@@ -113,6 +114,7 @@ export function makeManifest(
   const { categories, skills, ...values } = overrides;
   return {
     schema_version: PluginSchemaVersion.V1,
+    providers: [createProviderId("claude"), createProviderId("codex")],
     name: "fixture-skills",
     description: "Fixture plugin.",
     version: "1.2.3+1",
@@ -125,13 +127,6 @@ export function makeManifest(
     repository: "https://example.test/repository",
     license: "MIT",
     keywords: ["agent-skills"],
-    marketplace: {
-      name: "fixture",
-      description: "Fixture marketplace.",
-      plugin_description: "Fixture listing.",
-      category: "development",
-      keywords: ["agent-skills"],
-    },
     ...values,
     categories: (
       categories ?? [

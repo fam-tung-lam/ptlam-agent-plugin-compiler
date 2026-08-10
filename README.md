@@ -75,7 +75,8 @@ flowchart LR
     AgentPluginCompiler ------>|"`produces`"| KimiPlugin
 ```
 
-1. Declare skills in `plugin/skills/` and dependencies in `plugin/plugin.yml`.
+1. Declare providers, skills, and dependencies in `plugin/plugin.yml`, with
+   skill sources under `plugin/skills/`.
 2. The compiler validates those relationships, puts each required skill inside
    the skill that needs it
 3. Generate the shared skill catalog and only the provider manifests you select.
@@ -142,6 +143,10 @@ can look like this:
 ```yaml
 schema_version: 1
 
+providers:
+  - claude
+  - codex
+
 name: planning-skills
 description: Skills for planning repository changes.
 version: "1.0.0"
@@ -156,15 +161,6 @@ license: MIT
 keywords:
   - agent
   - planning
-
-marketplace:
-  name: planning-skills
-  description: Skills for planning repository changes.
-  plugin_description: Inspect a repository and prepare change plans.
-  category: development
-  keywords:
-    - agent
-    - planning
 
 categories:
   - id: engineering
@@ -241,13 +237,14 @@ Write a concise conventional commit message for a completed change.
 
 ### 3. Run the compiler
 
-`generate` replaces the compiler-owned root `skills/` tree and provider manifest
-files.
+`generate` replaces the compiler-owned root `skills/` tree and reconciles every
+registered provider manifest with the effective provider selection. With no
+provider option, the compiler uses `plugin/plugin.yml`:
 
 ```bash
 npm exec -- plugin-compiler validate
-npm exec -- plugin-compiler generate --provider claude,codex,copilot,gemini,kimi
-npm exec -- plugin-compiler check --provider claude,codex,copilot,gemini,kimi
+npm exec -- plugin-compiler generate
+npm exec -- plugin-compiler check
 ```
 
 The result is a public skill with its internal dependency included:
@@ -265,38 +262,51 @@ skills/
 └── plugin.json
 .codex-plugin/
 └── plugin.json
-plugin.json
-gemini-extension.json
-kimi.plugin.json
 ```
 
 ## Command-line interface
 
-| Command                                                                | Purpose                                      |
-| ---------------------------------------------------------------------- | -------------------------------------------- |
-| `plugin-compiler init [--root <path>]`                                 | Create missing authored source paths         |
-| `plugin-compiler validate [--root <path>] [--provider <id>[,<id>...]]` | Validate the manifest, skills, and graph     |
-| `plugin-compiler generate [--root <path>] [--provider <id>[,<id>...]]` | Generate and verify all managed output files |
-| `plugin-compiler check [--root <path>] [--provider <id>[,<id>...]]`    | Report output that does not match the source |
-| `plugin-compiler -h` or `plugin-compiler --help`                       | Show the command overview and global options |
-| `plugin-compiler <command> -h` or `--help`                             | Show usage and options for one command       |
+| Command                                          | Purpose                                      |
+| ------------------------------------------------ | -------------------------------------------- |
+| `plugin-compiler init [--root <path>]`           | Create missing authored source paths         |
+| `plugin-compiler validate [options]`             | Validate the manifest, skills, and graph     |
+| `plugin-compiler generate [options]`             | Generate and verify all managed output files |
+| `plugin-compiler check [options]`                | Report output that does not match the source |
+| `plugin-compiler -h` or `plugin-compiler --help` | Show the command overview and global options |
+| `plugin-compiler <command> -h` or `--help`       | Show usage and options for one command       |
+
+`validate`, `generate`, and `check` accept:
+
+```text
+[--root <path>] [--provider <id>[,<id>...] | --no-providers]
+```
 
 Without `--root`, every command uses the current working directory. `init`
-accepts only this shared option. For other commands, specify `--provider` once
-and separate multiple provider IDs with commas:
+accepts only this shared option. For other commands, provider selection follows
+one precedence rule:
+
+| CLI input                   | Effective provider selection                   |
+| --------------------------- | ---------------------------------------------- |
+| Neither provider option     | `plugin/plugin.yml` `providers`                |
+| `--provider <id>[,<id>...]` | Explicit list replaces the manifest selection  |
+| `--no-providers`            | Explicit empty replacement; shared skills only |
+
+Specify `--provider` once and separate multiple provider IDs with commas:
 
 ```bash
 plugin-compiler generate --provider claude,codex
 ```
 
-Possible values are `claude`, `codex`, `copilot`, `gemini`, and `kimi`. Without
-`--provider`, the compiler generates only the shared `skills/` tree and no
-provider manifest.
+Possible built-in values are `claude`, `codex`, `copilot`, `gemini`, and `kimi`.
+`--provider` and `--no-providers` are mutually exclusive. The compiler reports
+the effective provider list and whether it came from the manifest or an
+override.
 
 Root help lists the available commands. Help after `init`, `validate`, `check`,
 or `generate` stays focused on that command and its options. Both `-h` and
-`--help` show every possible provider ID and the shared-only default. The `init`
-help lists only `--root` because initialization does not select providers.
+`--help` show every possible provider ID, the manifest default, replacement
+semantics, and the explicit shared-only option. The `init` help lists only
+`--root` because initialization does not select providers.
 
 ## Node.js API
 
@@ -310,24 +320,36 @@ import {
   KIMI,
 } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
-const compiler = new AgentPluginCompiler({
-  rootDir: process.cwd(),
-  providers: [CLAUDE, CODEX, COPILOT, GEMINI, KIMI],
-});
+const compiler = new AgentPluginCompiler({ rootDir: process.cwd() });
 
-await compiler.validate();
+const validation = await compiler.validate();
 await compiler.compile();
 
 const result = await compiler.check();
 console.log(result.upToDate);
+console.log(validation.providers, validation.providerSelectionSource);
 ```
 
-Select any combination of the five built-ins, or pass an empty list when only
-the shared `skills/` tree is needed.
+Omitting `providers` uses `plugin/plugin.yml`. Pass any combination of the five
+built-ins to replace the manifest selection, or pass an empty list for an
+explicit shared-only override:
+
+```ts
+const explicit = new AgentPluginCompiler({
+  rootDir: process.cwd(),
+  providers: [CLAUDE, CODEX, COPILOT, GEMINI, KIMI],
+});
+const sharedOnly = new AgentPluginCompiler({
+  rootDir: process.cwd(),
+  providers: [],
+});
+```
 
 Advanced integrations can supply a per-instance `ProviderAdapterRegistry` to
 extend the compiler with another provider adapter. Each registry is immutable
 and isolated from other compiler instances; `register` returns a new registry.
+Provider adapters must declare stable exact-file paths that do not depend on
+mutable plugin metadata; complete-tree ownership is rejected.
 
 ```ts
 import {

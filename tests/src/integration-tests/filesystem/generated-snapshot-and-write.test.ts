@@ -23,6 +23,7 @@ const skillsRoot = createProjectPath("skills");
 const skillDirectory = createProjectPath("skills/alpha-skill");
 const skillFile = createProjectPath("skills/alpha-skill/SKILL.md");
 const codexManifest = createProjectPath(".codex-plugin/plugin.json");
+const claudeManifest = createProjectPath(".claude-plugin/plugin.json");
 
 function createPlan(options: { longTreePath?: boolean } = {}): WritePlan {
   const treeFile = options.longTreePath
@@ -60,13 +61,21 @@ function createPlan(options: { longTreePath?: boolean } = {}): WritePlan {
           },
         ],
       },
+      {
+        ownerId: "claude",
+        ownership: {
+          kind: OwnershipKind.ExactFiles,
+          paths: [claudeManifest],
+        },
+        artifacts: [],
+      },
     ],
   });
 }
 
 describe("filesystem generated snapshots and writes", () => {
-  it("reads only plan-owned state including unexpected empty tree directories", async () => {
-    // GIVEN: Enabled Codex and shared outputs coexist with disabled Claude and root README artifacts.
+  it("reads only plan-owned state including desired-absent exact files", async () => {
+    // GIVEN: Selected, desired-absent, and shared outputs coexist with unowned and root artifacts.
     const rootDir = await createFilesystemRepository();
     await mkdir(path.join(rootDir, "skills", "unexpected", "empty"), {
       recursive: true,
@@ -79,7 +88,12 @@ describe("filesystem generated snapshots and writes", () => {
     await mkdir(path.join(rootDir, ".claude-plugin"), { recursive: true });
     await writeFile(
       path.join(rootDir, ".claude-plugin", "plugin.json"),
-      "disabled-provider",
+      "desired-absent-provider",
+    );
+    await mkdir(path.join(rootDir, ".unowned-plugin"), { recursive: true });
+    await writeFile(
+      path.join(rootDir, ".unowned-plugin", "plugin.json"),
+      "unowned-provider",
     );
     await symlink(
       path.join(rootDir, "missing-readme-target"),
@@ -90,10 +104,11 @@ describe("filesystem generated snapshots and writes", () => {
     // WHEN: Factual output state is read for the subset plan.
     const snapshot = await readGeneratedSnapshot(rootDir, createPlan());
 
-    // THEN: Exact Codex and the complete skills tree are visible, but disabled/root paths are absent.
+    // THEN: Both exact-owned files and the complete tree are visible, but unowned/root paths are absent.
     assert.deepEqual(
       snapshot.entries.map((entry) => entry.path),
       [
+        ".claude-plugin/plugin.json",
         ".codex-plugin/plugin.json",
         "skills",
         "skills/unexpected",
@@ -120,8 +135,8 @@ describe("filesystem generated snapshots and writes", () => {
     ]);
   });
 
-  it("atomically writes exact files and recoverably replaces the complete tree", async () => {
-    // GIVEN: Stale owned outputs coexist with disabled-provider bytes and an unreadable root README link.
+  it("writes, deletes, and idempotently reconciles exact files while preserving unowned paths", async () => {
+    // GIVEN: Stale selected and desired-absent outputs coexist with unowned sibling and root paths.
     const rootDir = await createFilesystemRepository();
     await mkdir(path.join(rootDir, "skills"), { recursive: true });
     await writeFile(path.join(rootDir, "skills", "stale.txt"), "stale");
@@ -129,7 +144,9 @@ describe("filesystem generated snapshots and writes", () => {
     await writeFile(path.join(rootDir, ".codex-plugin", "plugin.json"), "old");
     await mkdir(path.join(rootDir, ".claude-plugin"), { recursive: true });
     const claudePath = path.join(rootDir, ".claude-plugin", "plugin.json");
-    await writeFile(claudePath, "disabled-provider");
+    const unownedSibling = path.join(rootDir, ".claude-plugin", "notes.txt");
+    await writeFile(claudePath, "stale-provider");
+    await writeFile(unownedSibling, "preserve sibling");
     await symlink(
       path.join(rootDir, "missing-readme-target"),
       path.join(rootDir, "README.md"),
@@ -141,15 +158,24 @@ describe("filesystem generated snapshots and writes", () => {
     const first = await writePlan(rootDir, plan);
     const second = await writePlan(rootDir, plan);
 
-    // THEN: Only enabled exact paths and the complete shared tree change, then become current.
-    assert.deepEqual(first.changedPaths, [codexManifest, skillsRoot]);
+    // THEN: Selected writes, desired-absent deletion, and the shared tree converge without touching siblings.
+    assert.deepEqual(first.changedPaths, [
+      claudeManifest,
+      codexManifest,
+      skillsRoot,
+    ]);
     assert.deepEqual(second.changedPaths, []);
-    assert.deepEqual(second.unchangedPaths, [codexManifest, skillsRoot]);
+    assert.deepEqual(second.unchangedPaths, [
+      claudeManifest,
+      codexManifest,
+      skillsRoot,
+    ]);
     assert.equal(
       await readFile(path.join(rootDir, skillFile), "utf8"),
       "# Generated alpha\n",
     );
-    assert.equal(await readFile(claudePath, "utf8"), "disabled-provider");
+    await assert.rejects(readFile(claudePath, "utf8"), /ENOENT/u);
+    assert.equal(await readFile(unownedSibling, "utf8"), "preserve sibling");
     assert.deepEqual(
       (await readdir(rootDir)).filter((name) =>
         name.startsWith(".plugin-compiler-"),
@@ -158,17 +184,20 @@ describe("filesystem generated snapshots and writes", () => {
     );
   });
 
-  it("finishes tree staging before changing an exact provider file", async () => {
-    // GIVEN: A valid exact output is paired with a tree artifact that cannot be staged.
+  it("finishes tree staging before changing exact provider files", async () => {
+    // GIVEN: Exact write and deletion changes are paired with a tree artifact that cannot be staged.
     const rootDir = await createFilesystemRepository();
     await mkdir(path.join(rootDir, ".codex-plugin"), { recursive: true });
     const codexPath = path.join(rootDir, ".codex-plugin", "plugin.json");
     await writeFile(codexPath, "preserved");
+    await mkdir(path.join(rootDir, ".claude-plugin"), { recursive: true });
+    const claudePath = path.join(rootDir, ".claude-plugin", "plugin.json");
+    await writeFile(claudePath, "also-preserved");
 
     // WHEN: Writing the plan fails during tree staging.
     const write = writePlan(rootDir, createPlan({ longTreePath: true }));
 
-    // THEN: No standalone output changes and no staging residue remains.
+    // THEN: Neither exact write nor deletion occurs and no staging residue remains.
     await assert.rejects(write, (error: unknown) => {
       assert.ok(error instanceof Error);
       assert.match(
@@ -180,6 +209,7 @@ describe("filesystem generated snapshots and writes", () => {
       return true;
     });
     assert.equal(await readFile(codexPath, "utf8"), "preserved");
+    assert.equal(await readFile(claudePath, "utf8"), "also-preserved");
     assert.deepEqual(
       (await readdir(rootDir)).filter((name) =>
         name.startsWith(".plugin-compiler-"),
@@ -200,5 +230,28 @@ describe("filesystem generated snapshots and writes", () => {
     // THEN: Physical path safety rejects the plan before an external write.
     await assert.rejects(write, /contains symbolic link/u);
     assert.equal((await readdir(externalRoot)).includes("plugin.json"), false);
+  });
+
+  it("preflights an unsafe exact deletion before mutating another exact file", async () => {
+    // GIVEN: A desired-absent parent points outside while a selected file needs replacement.
+    const rootDir = await createFilesystemRepository();
+    const externalRoot = await createFilesystemRepository();
+    const externalManifest = path.join(externalRoot, "plugin.json");
+    await writeFile(externalManifest, "must remain");
+    await symlink(externalRoot, path.join(rootDir, ".claude-plugin"), "dir");
+    await mkdir(path.join(rootDir, ".codex-plugin"), { recursive: true });
+    const codexPath = path.join(rootDir, ".codex-plugin", "plugin.json");
+    await writeFile(codexPath, "preserved before preflight failure");
+
+    // WHEN: The mixed exact-file plan is written.
+    const write = writePlan(rootDir, createPlan());
+
+    // THEN: Symlink safety rejects deletion before either exact target changes.
+    await assert.rejects(write, /contains symbolic link/u);
+    assert.equal(await readFile(externalManifest, "utf8"), "must remain");
+    assert.equal(
+      await readFile(codexPath, "utf8"),
+      "preserved before preflight failure",
+    );
   });
 });

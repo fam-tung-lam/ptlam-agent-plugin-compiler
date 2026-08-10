@@ -39,15 +39,6 @@ export const AVAILABLE_PROVIDERS: readonly ProviderId[] = Object.freeze([
 ]);
 
 /**
- * Built-in providers selected when no `--provider` flag is present.
- *
- * An empty selection still compiles the shared `skills/` tree.
- *
- * @internal
- */
-export const DEFAULT_PROVIDERS: readonly ProviderId[] = Object.freeze([]);
-
-/**
  * One completed compiler operation paired with its command.
  *
  * @internal
@@ -97,6 +88,6 @@ export type ParsedCliArguments =
       readonly command: CliCommand;
       /** Absolute repository root. */
       readonly rootDir: string;
-      /** Ordered provider identifiers selected for the operation. */
-      readonly providers: readonly ProviderId[];
+      /** Explicit provider override; omit to use the authored manifest. */
+      readonly providers?: readonly ProviderId[];
     };

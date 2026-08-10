@@ -6,6 +6,7 @@ import {
   CliCommand,
   CliExitCode,
   formatCliResult,
+  formatOperationError,
   formatUsageReport,
 } from "../../../../src/cli/index.ts";
 import {
@@ -27,9 +28,10 @@ const plugin = Object.freeze({
   skills: Object.freeze([{}, {}]),
   categories: Object.freeze([{}]),
 }) as unknown as Plugin;
-const scope = Object.freeze({
+const manifestScope = Object.freeze({ rootDir: "/repository" });
+const overrideScope = Object.freeze({
   rootDir: "/repository",
-  providers: Object.freeze([CLAUDE, CODEX]),
+  providers: Object.freeze([CODEX]),
 });
 
 describe("formatCliResult", () => {
@@ -45,7 +47,10 @@ describe("formatCliResult", () => {
     });
 
     // WHEN: The init result is formatted for the terminal.
-    const report = formatCliResult({ command: CliCommand.Init, result }, scope);
+    const report = formatCliResult(
+      { command: CliCommand.Init, result },
+      manifestScope,
+    );
 
     // THEN: Output reports filesystem facts without irrelevant providers.
     assert.equal(report.exitCode, CliExitCode.Success);
@@ -63,19 +68,21 @@ describe("formatCliResult", () => {
     // GIVEN: Validation succeeds with one warning for both repository providers.
     const result = createValidateResult({
       plugin,
+      providers: [CLAUDE, CODEX],
+      providerSelectionSource: "manifest",
       warnings: ["legacy dependency"],
     });
 
     // WHEN: The validate result is formatted independently from terminal output.
     const report = formatCliResult(
       { command: CliCommand.Validate, result },
-      scope,
+      manifestScope,
     );
 
     // THEN: Scope and result go to stdout while warnings remain on stderr.
     assert.equal(report.exitCode, CliExitCode.Success);
     assert.deepEqual(report.stdout, [
-      "Scope: /repository; providers: claude, codex.",
+      "Scope: /repository; providers: claude, codex; provider source: manifest.",
       "Validated fixture-skills@1.2.3: 2 skills in 1 category.",
     ]);
     assert.deepEqual(report.stderr, ["Warnings:", "- legacy dependency"]);
@@ -86,6 +93,8 @@ describe("formatCliResult", () => {
     // GIVEN: Check observes one stale provider artifact.
     const result = createCheckResult({
       plugin,
+      providers: [CODEX],
+      providerSelectionSource: "override",
       warnings: [],
       drift: [
         {
@@ -98,14 +107,14 @@ describe("formatCliResult", () => {
     // WHEN: The stale check is formatted.
     const report = formatCliResult(
       { command: CliCommand.Check, result },
-      scope,
+      overrideScope,
     );
 
     // THEN: Drift uses failure exit semantics and an explicit owned path.
     assert.equal(report.exitCode, CliExitCode.Failure);
     assert.deepEqual(report.stdout, []);
     assert.deepEqual(report.stderr, [
-      "Scope: /repository; providers: claude, codex.",
+      "Scope: /repository; providers: codex; provider source: override.",
       "Output check found 1 drift entry:",
       "- .codex-plugin/plugin.json: content-differs",
     ]);
@@ -115,6 +124,8 @@ describe("formatCliResult", () => {
     // GIVEN: Generation changes the shared tree and leaves one provider current.
     const result = createCompileResult({
       plugin,
+      providers: [],
+      providerSelectionSource: "override",
       warnings: [],
       writeResult: {
         changedPaths: [createProjectPath("skills")],
@@ -126,13 +137,13 @@ describe("formatCliResult", () => {
     // WHEN: The verified generation result is formatted.
     const report = formatCliResult(
       { command: CliCommand.Generate, result },
-      scope,
+      overrideScope,
     );
 
     // THEN: Success communicates post-write verification and factual writes.
     assert.equal(report.exitCode, CliExitCode.Success);
     assert.deepEqual(report.stdout, [
-      "Scope: /repository; providers: claude, codex.",
+      "Scope: /repository; providers: none; provider source: override.",
       "Generation completed and post-write verification passed.",
       "- skills: changed",
       "- .claude-plugin/plugin.json: unchanged",
@@ -163,8 +174,10 @@ describe("formatCliResult", () => {
       "",
       "Provider selection for validate, check, and generate:",
       "  --provider <id>[,<id>...]",
+      "  --no-providers",
       "  Possible values: claude, codex, copilot, gemini, kimi",
-      "  Omit the option to compile only the shared skills/ tree.",
+      "  Omit both options to use plugin/plugin.yml providers.",
+      "  --provider replaces the manifest selection; --no-providers selects none.",
       "",
       "Use `plugin-compiler <command> --help` for more information on a command.",
     ]);
@@ -217,7 +230,9 @@ describe("formatCliResult", () => {
           ? [
               "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
               "                                 [possible values: claude, codex, copilot, gemini, kimi]",
-              "                                 [default: none; shared skills/ only]",
+              "                                 [replaces plugin/plugin.yml providers]",
+              "      --no-providers             Select no providers; shared skills/ only",
+              "                                 [default: plugin/plugin.yml providers]",
             ]
           : []),
         "  -h, --help                     Display help for this command",
@@ -246,4 +261,35 @@ describe("formatCliResult", () => {
     );
     assert.doesNotMatch(invalid.stderr.join("\n"), /Commands:/u);
   });
+
+  it.each([
+    {
+      scope: manifestScope,
+      expected: "requested provider source: manifest",
+    },
+    {
+      scope: overrideScope,
+      expected: "requested providers: codex; provider source: override",
+    },
+    {
+      scope: Object.freeze({ rootDir: "/repository", providers: [] }),
+      expected: "requested providers: none; provider source: override",
+    },
+  ])(
+    "formats pre-result failure scope honestly: $expected",
+    ({ scope, expected }) => {
+      // GIVEN: A compiler fails before it can return an effective selection.
+
+      // WHEN: The operation error is formatted from only the requested scope.
+      const report = formatOperationError(
+        new Error("manifest is invalid"),
+        scope,
+      );
+
+      // THEN: The report names the requested source without claiming an effective selection.
+      assert.equal(report.exitCode, CliExitCode.Failure);
+      assert.match(report.stderr.join("\n"), new RegExp(expected, "u"));
+      assert.doesNotMatch(report.stderr.join("\n"), /providers: claude/u);
+    },
+  );
 });

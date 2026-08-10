@@ -29,7 +29,7 @@ export type Ownership =
   | {
       /** Discriminates exact-file ownership. */
       readonly kind: OwnershipKind.ExactFiles;
-      /** Complete set of individually owned generated file paths. */
+      /** Exact file paths that must each have zero or one desired artifact. */
       readonly paths: readonly ProjectPath[];
     };
 

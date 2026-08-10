@@ -52,9 +52,32 @@ Run one test area while editing:
 
 ```bash
 npm test -- tests/src/unit-tests/compiler
+npm test -- tests/src/unit-tests/cli
+npm test -- tests/src/integration-tests/cli/plugin-compiler-cli-process.test.ts
 npm test -- tests/src/conformance-tests/providers
 npm test -- tests/scripts/unit-tests/check-module-boundaries.test.ts
 ```
+
+## Provider selection while developing
+
+`plugin/plugin.yml` owns the repository-default `providers` list. The CLI and
+`AgentPluginCompiler` accept optional overrides:
+
+```bash
+plugin-compiler generate                 # manifest providers
+plugin-compiler generate --provider kimi # explicit replacement
+plugin-compiler generate --no-providers  # explicit empty replacement
+```
+
+The two CLI provider options are mutually exclusive. Do not make CLI parsing
+read YAML or merge a CLI list with the manifest; the compiler facade validates
+the manifest, resolves precedence through its instance registry, and returns the
+effective providers plus `manifest` or `override` as the selection source.
+
+Check and compile reconcile exact files owned by every registered adapter.
+Selected provider files must contain the desired bytes, while unselected
+registered provider files must be absent. Unknown unregistered paths and the
+root `README.md` stay outside compiler ownership.
 
 ## Test layers
 

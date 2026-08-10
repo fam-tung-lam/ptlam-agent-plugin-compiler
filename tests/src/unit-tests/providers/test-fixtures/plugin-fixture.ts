@@ -1,4 +1,5 @@
 import {
+  CLAUDE,
   createCategoryId,
   createPlugin,
   createProjectPath,
@@ -24,6 +25,7 @@ export function makePluginFixture(
   const active = createSkillId("active-skill");
   return createPlugin({
     schema_version: PluginSchemaVersion.V1,
+    providers: [CLAUDE],
     name: "fixture-skills",
     description: "Fixture plugin description.",
     version: "1.2.3",
@@ -32,13 +34,6 @@ export function makePluginFixture(
     repository: "https://example.test/repository",
     license: "MIT",
     keywords: ["agent-skills", "fixtures"],
-    marketplace: {
-      name: "fixture-marketplace",
-      description: "Fixture marketplace.",
-      plugin_description: "Installable fixture skills.",
-      category: "development",
-      keywords: ["agent-skills", "testing"],
-    },
     categories: [
       {
         id: engineering,

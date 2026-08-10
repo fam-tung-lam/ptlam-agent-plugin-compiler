@@ -100,6 +100,34 @@ describe("buildWritePlan", () => {
     });
   });
 
+  it("accepts desired absence for an exact owned file", () => {
+    // GIVEN: A provider owns one exact file but contributes no artifact for it.
+    const providerPath = createProjectPath(".custom/plugin.json");
+    const desiredAbsent: PlanFragmentInput = {
+      ownerId: "custom-owner",
+      ownership: {
+        kind: OwnershipKind.ExactFiles,
+        paths: [providerPath],
+      },
+      artifacts: [],
+    };
+
+    // WHEN: The desired-absence fragment is planned with the shared tree.
+    const plan = buildWritePlan({
+      fragments: [sharedFragment(), desiredAbsent],
+    });
+
+    // THEN: The owned path remains in the plan without a generated artifact.
+    const fragment = plan.fragments.find(
+      (candidate) => candidate.ownerId === "custom-owner",
+    );
+    assert.deepEqual(fragment?.ownership, {
+      kind: OwnershipKind.ExactFiles,
+      paths: [providerPath],
+    });
+    assert.deepEqual(fragment?.artifacts, []);
+  });
+
   it("rejects root README ownership and logical path escapes", () => {
     // GIVEN: One fragment claims root README and another bypasses the branded path factory.
     const readme = providerFragment("readme-owner", "README.md");
@@ -158,14 +186,14 @@ describe("buildWritePlan", () => {
   });
 
   it("applies exact-fragment invariants to every owner", () => {
+    // GIVEN: Exact ownership and artifacts contain duplicates, a directory, and an undeclared path.
     const declared = createProjectPath(".custom/plugin.json");
-    const missing = createProjectPath(".custom/missing.json");
     const undeclared = createProjectPath(".custom/extra.json");
     const invalid: PlanFragmentInput = {
       ownerId: "custom-owner",
       ownership: {
         kind: OwnershipKind.ExactFiles,
-        paths: [declared, missing],
+        paths: [declared, declared],
       },
       artifacts: [
         { kind: ArtifactKind.Directory, path: declared },
@@ -174,30 +202,42 @@ describe("buildWritePlan", () => {
           path: undeclared,
           content: Buffer.from("extra"),
         },
+        {
+          kind: ArtifactKind.File,
+          path: undeclared,
+          content: Buffer.from("duplicate"),
+        },
       ],
     };
 
-    assert.throws(
-      () => buildWritePlan({ fragments: [sharedFragment(), invalid] }),
-      (error: unknown) => {
-        assert.ok(error instanceof WritePlanValidationError);
-        assert.ok(
-          error.errors.some((message) =>
-            message.includes("exact ownership may emit only files"),
-          ),
-        );
-        assert.ok(
-          error.errors.some((message) =>
-            message.includes("emits undeclared exact path"),
-          ),
-        );
-        assert.ok(
-          error.errors.some((message) =>
-            message.includes("does not emit owned exact path"),
-          ),
-        );
-        return true;
-      },
-    );
+    // WHEN: The invalid exact fragment is planned.
+    const planning = () =>
+      buildWritePlan({ fragments: [sharedFragment(), invalid] });
+
+    // THEN: Every remaining exact-file invariant is rejected together.
+    assert.throws(planning, (error: unknown) => {
+      assert.ok(error instanceof WritePlanValidationError);
+      assert.ok(
+        error.errors.some((message) =>
+          message.includes("declares duplicate exact path"),
+        ),
+      );
+      assert.ok(
+        error.errors.some((message) =>
+          message.includes("contains duplicate artifact"),
+        ),
+      );
+      assert.ok(
+        error.errors.some((message) =>
+          message.includes("exact ownership may emit only files"),
+        ),
+      );
+      assert.ok(
+        error.errors.some((message) =>
+          message.includes("emits undeclared exact path"),
+        ),
+      );
+      return true;
+    });
   });
 });

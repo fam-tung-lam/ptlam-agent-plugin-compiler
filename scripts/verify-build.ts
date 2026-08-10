@@ -40,6 +40,7 @@ const expectedDeclarationNames = [
   "ProviderAdapterRegistry",
   "ProviderContext",
   "ProviderId",
+  "ProviderSelectionSource",
   "ValidateResult",
   "createPlanFragment",
   "createProjectPath",

@@ -7,6 +7,7 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
+    "providers",
     "name",
     "description",
     "version",
@@ -15,12 +16,16 @@
     "repository",
     "license",
     "keywords",
-    "marketplace",
     "categories",
     "skills"
   ],
   "properties": {
     "schema_version": { "const": 1 },
+    "providers": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/providerIdentifier" }
+    },
     "name": { "$ref": "#/$defs/identifier" },
     "description": { "$ref": "#/$defs/nonEmptyString" },
     "version": { "$ref": "#/$defs/version" },
@@ -29,7 +34,6 @@
     "repository": { "$ref": "#/$defs/nonEmptyString" },
     "license": { "$ref": "#/$defs/nonEmptyString" },
     "keywords": { "$ref": "#/$defs/stringList" },
-    "marketplace": { "$ref": "#/$defs/marketplace" },
     "categories": {
       "type": "array",
       "minItems": 1,
@@ -48,6 +52,10 @@
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
     "nonEmptyString": { "type": "string", "pattern": "\\S" },
+    "providerIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
     "version": {
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
@@ -66,24 +74,6 @@
         "name": { "$ref": "#/$defs/nonEmptyString" },
         "email": { "$ref": "#/$defs/nonEmptyString" },
         "url": { "$ref": "#/$defs/nonEmptyString" }
-      }
-    },
-    "marketplace": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "description",
-        "plugin_description",
-        "category",
-        "keywords"
-      ],
-      "properties": {
-        "name": { "$ref": "#/$defs/identifier" },
-        "description": { "$ref": "#/$defs/nonEmptyString" },
-        "plugin_description": { "$ref": "#/$defs/nonEmptyString" },
-        "category": { "$ref": "#/$defs/identifier" },
-        "keywords": { "$ref": "#/$defs/stringList" }
       }
     },
     "category": {

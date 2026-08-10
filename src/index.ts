@@ -12,11 +12,18 @@
  *   CODEX,
  * } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
  *
- * const compiler = new AgentPluginCompiler({
+ * const fromManifest = new AgentPluginCompiler({ rootDir: process.cwd() });
+ * const codexOnly = new AgentPluginCompiler({
  *   rootDir: process.cwd(),
  *   providers: [CODEX],
  * });
- * const result = await compiler.check();
+ * const sharedOnly = new AgentPluginCompiler({
+ *   rootDir: process.cwd(),
+ *   providers: [],
+ * });
+ * const result = await fromManifest.check();
+ * console.log(result.providers, result.providerSelectionSource);
+ * void [codexOnly, sharedOnly];
  * ```
  *
  * @packageDocumentation
@@ -26,6 +33,7 @@ export type {
   CompileResult,
   CompilerOptionsInput,
   InitResult,
+  ProviderSelectionSource,
   ValidateResult,
 } from "./compiler/index.js";
 export { AgentPluginCompiler } from "./compiler/index.js";

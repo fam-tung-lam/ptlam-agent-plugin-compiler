@@ -6,11 +6,7 @@ import {
   type ProviderId,
   ProviderSelectionError,
 } from "../providers/index.js";
-import {
-  CliCommand,
-  DEFAULT_PROVIDERS,
-  type ParsedCliArguments,
-} from "./commands.js";
+import { CliCommand, type ParsedCliArguments } from "./commands.js";
 
 const COMMANDS = new Set<string>(Object.values(CliCommand));
 
@@ -64,7 +60,6 @@ function resolveRequestedProviderIds(
   registry: ProviderAdapterRegistry,
   command: CliCommand,
 ): readonly ProviderId[] {
-  if (requested.length === 0) return DEFAULT_PROVIDERS;
   try {
     return Object.freeze(
       registry.resolve(requested).map((adapter) => adapter.id),
@@ -78,7 +73,7 @@ function resolveRequestedProviderIds(
 }
 
 /**
- * Parse one command, repository root, and provider selection.
+ * Parse one command, repository root, and optional provider override.
  *
  * @param argv - Command-line tokens without the executable and script path.
  * @param currentWorkingDirectory - Base directory used to resolve `--root`.
@@ -112,8 +107,8 @@ export function parseCliArguments(
 
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
-  let providerSeen = false;
-  const requestedProviders: ProviderId[] = [];
+  let providerOverride: readonly ProviderId[] | undefined;
+  let providerFlag: "--provider" | "--no-providers" | undefined;
   for (let index = 1; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--root") {
@@ -138,7 +133,13 @@ export function parseCliArguments(
           commandValue,
         );
       }
-      if (providerSeen) {
+      if (providerFlag === "--no-providers") {
+        throw new CliUsageError(
+          "--provider and --no-providers are mutually exclusive.",
+          commandValue,
+        );
+      }
+      if (providerFlag === "--provider") {
         throw new CliUsageError(
           "--provider may be specified only once.",
           commandValue,
@@ -151,9 +152,36 @@ export function parseCliArguments(
           commandValue,
         );
       }
-      requestedProviders.push(...parseProviderIds(providerValue, commandValue));
-      providerSeen = true;
+      providerOverride = resolveRequestedProviderIds(
+        parseProviderIds(providerValue, commandValue),
+        registry,
+        commandValue,
+      );
+      providerFlag = "--provider";
       index += 1;
+      continue;
+    }
+    if (argument === "--no-providers") {
+      if (commandValue === CliCommand.Init) {
+        throw new CliUsageError(
+          "init accepts only --root <path>.",
+          commandValue,
+        );
+      }
+      if (providerFlag === "--provider") {
+        throw new CliUsageError(
+          "--provider and --no-providers are mutually exclusive.",
+          commandValue,
+        );
+      }
+      if (providerFlag === "--no-providers") {
+        throw new CliUsageError(
+          "--no-providers may be specified only once.",
+          commandValue,
+        );
+      }
+      providerOverride = Object.freeze([]);
+      providerFlag = "--no-providers";
       continue;
     }
     throw new CliUsageError(
@@ -166,10 +194,6 @@ export function parseCliArguments(
     kind: "command",
     command: commandValue,
     rootDir,
-    providers: resolveRequestedProviderIds(
-      requestedProviders,
-      registry,
-      commandValue,
-    ),
+    ...(providerOverride === undefined ? {} : { providers: providerOverride }),
   });
 }

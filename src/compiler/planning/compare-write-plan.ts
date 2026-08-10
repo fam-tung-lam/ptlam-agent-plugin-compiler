@@ -53,7 +53,7 @@ function indexEntries(
  *
  * @param request.plan - Canonical plan containing expected artifacts and ownership.
  * @param request.snapshot - Factual generated state to compare with the plan.
- * @returns Immutable, path-ordered drift; disabled-provider paths are excluded.
+ * @returns Immutable, path-ordered drift; paths outside plan ownership are excluded.
  * @throws {WritePlanComparisonError} If either input contains duplicate artifact paths.
  */
 export function compareWritePlan({

@@ -45,14 +45,23 @@ describe("ClaudeProviderAdapter", () => {
       (artifact) => artifact.path === ".claude-plugin/marketplace.json",
     );
     assert.ok(marketplaceArtifact?.kind === ArtifactKind.File);
-    assert.deepEqual(
-      JSON.parse(marketplaceArtifact.content.toString("utf8")).owner,
-      {
+    assert.deepEqual(JSON.parse(marketplaceArtifact.content.toString("utf8")), {
+      name: "fixture-skills",
+      owner: {
         name: "Fixture Owner",
         email: "owner@example.test",
         url: "https://example.test/owner",
       },
-    );
+      description: "Fixture plugin description.",
+      plugins: [
+        {
+          name: "fixture-skills",
+          source: "./",
+          description: "Fixture plugin description.",
+          keywords: ["agent-skills", "fixtures"],
+        },
+      ],
+    });
     assert.equal(Object.isFrozen(fragment), true);
     assert.equal(Object.isFrozen(fragment.artifacts), true);
   });

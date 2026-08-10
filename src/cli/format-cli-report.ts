@@ -52,8 +52,10 @@ function rootHelpLines(): readonly string[] {
     "",
     "Provider selection for validate, check, and generate:",
     "  --provider <id>[,<id>...]",
+    "  --no-providers",
     `  Possible values: ${AVAILABLE_PROVIDERS.join(", ")}`,
-    "  Omit the option to compile only the shared skills/ tree.",
+    "  Omit both options to use plugin/plugin.yml providers.",
+    "  --provider replaces the manifest selection; --no-providers selects none.",
     "",
     "Use `plugin-compiler <command> --help` for more information on a command.",
   ]);
@@ -74,7 +76,9 @@ function commandHelpLines(command: CliCommand): readonly string[] {
       : [
           "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
           `                                 [possible values: ${availableProviders}]`,
-          "                                 [default: none; shared skills/ only]",
+          "                                 [replaces plugin/plugin.yml providers]",
+          "      --no-providers             Select no providers; shared skills/ only",
+          "                                 [default: plugin/plugin.yml providers]",
         ]),
     "  -h, --help                     Display help for this command",
   ]);
@@ -92,10 +96,24 @@ function countLabel(
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function scopeLine(scope: CompilerScope): string {
-  const providers =
-    scope.providers.length === 0 ? "none" : scope.providers.join(", ");
-  return `Scope: ${scope.rootDir}; providers: ${providers}.`;
+function providerNames(providers: readonly string[]): string {
+  return providers.length === 0 ? "none" : providers.join(", ");
+}
+
+function resultScopeLine(
+  scope: CompilerScope,
+  result: {
+    readonly providers: readonly string[];
+    readonly providerSelectionSource: "manifest" | "override";
+  },
+): string {
+  return `Scope: ${scope.rootDir}; providers: ${providerNames(result.providers)}; provider source: ${result.providerSelectionSource}.`;
+}
+
+function requestedScopeLine(scope: CompilerScope): string {
+  return scope.providers === undefined
+    ? `Scope: ${scope.rootDir}; requested provider source: manifest.`
+    : `Scope: ${scope.rootDir}; requested providers: ${providerNames(scope.providers)}; provider source: override.`;
 }
 
 function rootLine(scope: CompilerScope): string {
@@ -173,7 +191,7 @@ export function formatOperationError(
   const message = error instanceof Error ? error.message : String(error);
   return createReport({
     exitCode: CliExitCode.Failure,
-    stderr: [scopeLine(scope), `Command failed: ${message}`],
+    stderr: [requestedScopeLine(scope), `Command failed: ${message}`],
   });
 }
 
@@ -210,7 +228,7 @@ export function formatCliResult(
       return createReport({
         exitCode: CliExitCode.Success,
         stdout: [
-          scopeLine(scope),
+          resultScopeLine(scope, executed.result),
           `Validated ${executed.result.plugin.name}@${executed.result.plugin.version}: ${countLabel(executed.result.plugin.skills.length, "skill")} in ${countLabel(executed.result.plugin.categories.length, "category", "categories")}.`,
         ],
         stderr: warnings,
@@ -219,14 +237,17 @@ export function formatCliResult(
       return executed.result.upToDate
         ? createReport({
             exitCode: CliExitCode.Success,
-            stdout: [scopeLine(scope), "Output check passed."],
+            stdout: [
+              resultScopeLine(scope, executed.result),
+              "Output check passed.",
+            ],
             stderr: warnings,
           })
         : createReport({
             exitCode: CliExitCode.Failure,
             stderr: [
               ...warnings,
-              scopeLine(scope),
+              resultScopeLine(scope, executed.result),
               `Output check found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
               ...driftLines(executed.result.drift),
             ],
@@ -244,7 +265,7 @@ export function formatCliResult(
         ? createReport({
             exitCode: CliExitCode.Success,
             stdout: [
-              scopeLine(scope),
+              resultScopeLine(scope, executed.result),
               "Generation completed and post-write verification passed.",
               ...writeLines,
             ],
@@ -255,7 +276,7 @@ export function formatCliResult(
             stdout: writeLines,
             stderr: [
               ...warnings,
-              scopeLine(scope),
+              resultScopeLine(scope, executed.result),
               `Generation completed but verification found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
               ...driftLines(executed.result.drift),
             ],

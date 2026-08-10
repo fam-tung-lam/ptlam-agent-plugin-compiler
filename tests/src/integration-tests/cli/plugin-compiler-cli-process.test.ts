@@ -54,8 +54,10 @@ function runCli(
 
 async function createFixtureRepository({
   invalidManifest = false,
+  providers = ["claude", "codex"],
 }: {
   readonly invalidManifest?: boolean;
+  readonly providers?: readonly string[];
 } = {}): Promise<string> {
   const rootDir = await mkdtemp(
     path.join(tmpdir(), "ptlam-plugin-cli-process-"),
@@ -71,6 +73,7 @@ async function createFixtureRepository({
   await writeFile(
     path.join(rootDir, "plugin", "plugin.yml"),
     `schema_version: 1
+${providers.length === 0 ? "providers: []" : `providers:\n${providers.map((provider) => `  - ${provider}`).join("\n")}`}
 name: fixture-skills
 description: Fixture plugin.
 version: "0.1.0"
@@ -80,12 +83,6 @@ homepage: https://example.test/readme
 repository: https://example.test/repository
 license: MIT
 keywords: [agent-skills]
-marketplace:
-  name: fixture
-  description: Fixture marketplace.
-  plugin_description: Fixture listing.
-  category: development
-  keywords: [agent-skills]
 categories:
   - id: engineering
     name: Engineering
@@ -134,6 +131,7 @@ describe("plugin compiler CLI process", () => {
     assert.equal(first.exitCode, CliExitCode.Success);
     assert.match(first.stdout, /Plugin source initialized/u);
     assert.match(initialManifest, /# TODO: Replace this example identifier/u);
+    assert.match(initialManifest, /providers: \[\]/u);
     assert.match(
       initialManifest,
       /visibility: public # Possible values: internal, public\./u,
@@ -154,9 +152,17 @@ describe("plugin compiler CLI process", () => {
       true,
     );
     assert.equal(validation.exitCode, CliExitCode.Success);
+    assert.match(
+      validation.stdout,
+      /providers: none; provider source: manifest/u,
+    );
     assert.match(validation.stdout, /Validated example-agent-plugin@0\.1\.0/u);
     assert.match(validation.stdout, /3 skills in 2 categories/u);
     assert.equal(generation.exitCode, CliExitCode.Success);
+    assert.match(
+      generation.stdout,
+      /providers: none; provider source: manifest/u,
+    );
     assert.equal(
       (
         await lstat(
@@ -172,6 +178,18 @@ describe("plugin compiler CLI process", () => {
       ).isFile(),
       true,
     );
+    for (const providerManifest of [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      ".codex-plugin/plugin.json",
+      "gemini-extension.json",
+      "kimi.plugin.json",
+      "plugin.json",
+    ]) {
+      await assert.rejects(lstat(path.join(rootDir, providerManifest)), {
+        code: "ENOENT",
+      });
+    }
     assert.equal(second.exitCode, CliExitCode.Success);
     assert.match(second.stdout, /already initialized/u);
     assert.equal(await readFile(manifestPath, "utf8"), "user-owned: true\n");
@@ -203,7 +221,8 @@ describe("plugin compiler CLI process", () => {
         result.stdout,
         /Possible values: claude, codex, copilot, gemini, kimi/u,
       );
-      assert.match(result.stdout, /shared skills\/ tree/u);
+      assert.match(result.stdout, /plugin\/plugin\.yml providers/u);
+      assert.match(result.stdout, /--no-providers/u);
       assert.equal(result.stderr, "");
     },
   );
@@ -229,13 +248,15 @@ describe("plugin compiler CLI process", () => {
       assert.match(result.stdout, /--root <path>/u);
       if (command === CliCommand.Init) {
         assert.doesNotMatch(result.stdout, /--provider <id>/u);
+        assert.doesNotMatch(result.stdout, /--no-providers/u);
       } else {
         assert.match(result.stdout, /--provider <id>/u);
+        assert.match(result.stdout, /--no-providers/u);
         assert.match(
           result.stdout,
           /possible values: claude, codex, copilot, gemini, kimi/u,
         );
-        assert.match(result.stdout, /default: none; shared skills\/ only/u);
+        assert.match(result.stdout, /default: plugin\/plugin\.yml providers/u);
       }
       assert.match(result.stdout, /-h, --help/u);
       assert.doesNotMatch(result.stdout, /Commands:/u);
@@ -250,9 +271,10 @@ describe("plugin compiler CLI process", () => {
     // WHEN: A child Node process runs validate through the emitted executable entrypoint.
     const result = await runCli(["validate", "--root", rootDir]);
 
-    // THEN: The process succeeds with the empty provider scope and plugin result.
+    // THEN: The process succeeds with the manifest provider scope and plugin result.
     assert.equal(result.exitCode, CliExitCode.Success);
-    assert.match(result.stdout, /providers: none/u);
+    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /provider source: manifest/u);
     assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
     assert.equal(result.stderr, "");
   });
@@ -273,6 +295,7 @@ describe("plugin compiler CLI process", () => {
     // THEN: The process succeeds and reports both providers in stable order.
     assert.equal(result.exitCode, CliExitCode.Success);
     assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /provider source: override/u);
     assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
     assert.equal(result.stderr, "");
   });
@@ -284,26 +307,67 @@ describe("plugin compiler CLI process", () => {
     // WHEN: A child process checks the selected output plan.
     const result = await runCli(["check", "--root", rootDir]);
 
-    // THEN: Drift is a process failure and identifies only the shared output tree.
+    // THEN: Drift is a process failure and identifies managed shared and provider output.
     assert.equal(result.exitCode, CliExitCode.Failure);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /Output check found \d+ drift entries/u);
     assert.match(result.stderr, /skills\/README\.md/u);
-    assert.doesNotMatch(result.stderr, /plugin\.json/u);
+    assert.match(result.stderr, /\.claude-plugin\/plugin\.json/u);
+    assert.match(result.stderr, /\.codex-plugin\/plugin\.json/u);
+    assert.match(result.stderr, /provider source: manifest/u);
   });
 
-  it("generates only the shared tree by default without changing root README", async () => {
+  it("generates the manifest-selected providers by default", async () => {
+    // GIVEN: A valid authored repository selects Claude and Codex in its manifest.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: Generation omits every CLI provider option.
+    const result = await runCli(["generate", "--root", rootDir]);
+
+    // THEN: The manifest selection is effective and only its provider files exist.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /provider source: manifest/u);
+    assert.equal(result.stderr, "");
+    for (const manifestPath of [
+      ".claude-plugin/plugin.json",
+      ".claude-plugin/marketplace.json",
+      ".codex-plugin/plugin.json",
+    ]) {
+      assert.equal(
+        (await lstat(path.join(rootDir, manifestPath))).isFile(),
+        true,
+      );
+    }
+    for (const manifestPath of [
+      "plugin.json",
+      "gemini-extension.json",
+      "kimi.plugin.json",
+    ]) {
+      await assert.rejects(lstat(path.join(rootDir, manifestPath)), {
+        code: "ENOENT",
+      });
+    }
+  });
+
+  it("generates only the shared tree for an explicit empty override without changing root README", async () => {
     // GIVEN: A valid authored repository contains ordinary human-owned project documentation.
     const rootDir = await createFixtureRepository();
     const readmePath = path.join(rootDir, "README.md");
     const readmeBefore = await readFile(readmePath);
 
-    // WHEN: The repository-default generate command runs without provider flags.
-    const result = await runCli(["generate", "--root", rootDir]);
+    // WHEN: Generation explicitly overrides the manifest selection with none.
+    const result = await runCli([
+      "generate",
+      "--root",
+      rootDir,
+      "--no-providers",
+    ]);
 
     // THEN: Shared skills exist while all provider manifests remain absent.
     assert.equal(result.exitCode, CliExitCode.Success);
     assert.match(result.stdout, /providers: none/u);
+    assert.match(result.stdout, /provider source: override/u);
     assert.equal(result.stderr, "");
     const [catalog, readmeAfter] = await Promise.all([
       readFile(path.join(rootDir, "skills", "README.md"), "utf8"),
@@ -343,6 +407,7 @@ describe("plugin compiler CLI process", () => {
       result.stdout,
       /providers: claude, codex, copilot, gemini, kimi/u,
     );
+    assert.match(result.stdout, /provider source: override/u);
     assert.equal(result.stderr, "");
     const manifestPaths = [
       ".claude-plugin/plugin.json",
@@ -375,6 +440,7 @@ describe("plugin compiler CLI process", () => {
     // THEN: Shared and Codex output exist while Claude remains untouched.
     assert.equal(result.exitCode, CliExitCode.Success);
     assert.match(result.stdout, /providers: codex/u);
+    assert.match(result.stdout, /provider source: override/u);
     assert.doesNotMatch(result.stdout, /providers: claude/u);
     assert.equal(
       JSON.parse(
@@ -416,6 +482,14 @@ describe("plugin compiler CLI process", () => {
     {
       providerArguments: ["--provider", "claude", "--provider", "codex"],
       expected: /--provider may be specified only once/u,
+    },
+    {
+      providerArguments: ["--provider", "claude", "--no-providers"],
+      expected: /mutually exclusive/u,
+    },
+    {
+      providerArguments: ["--no-providers", "--provider", "claude"],
+      expected: /mutually exclusive/u,
     },
   ])(
     "returns usage exit semantics for invalid provider selection: $providerArguments",
