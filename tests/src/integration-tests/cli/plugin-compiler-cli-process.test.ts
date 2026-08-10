@@ -121,8 +121,8 @@ describe("plugin compiler CLI process", () => {
     );
     onTestFinished(() => rm(rootDir, { recursive: true, force: true }));
 
-    // WHEN: The real init command runs through validation and generation before running again.
-    const first = await runCli(["init"], rootDir);
+    // WHEN: Init targets the directory through --root before the default-root commands run there.
+    const first = await runCli(["init", "--root", rootDir]);
     const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
     const initialManifest = await readFile(manifestPath, "utf8");
     const validation = await runCli(["validate"], rootDir);

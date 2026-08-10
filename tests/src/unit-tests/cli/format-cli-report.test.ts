@@ -148,7 +148,10 @@ describe("formatCliResult", () => {
 
     // THEN: Help succeeds on stdout while misuse fails with exit code two on stderr.
     assert.equal(help.exitCode, CliExitCode.Success);
-    assert.match(help.stdout.join("\n"), /plugin-compiler init/u);
+    assert.match(
+      help.stdout.join("\n"),
+      /plugin-compiler init \[--root <path>\]/u,
+    );
     assert.match(help.stdout.join("\n"), /validate\|check\|generate/u);
     assert.match(help.stdout.join("\n"), /--provider <id>/u);
     assert.match(help.stdout.join("\n"), /Defaults to: claude, codex/u);

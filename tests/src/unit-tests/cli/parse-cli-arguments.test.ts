@@ -64,6 +64,22 @@ describe("parseCliArguments", () => {
     });
   });
 
+  it("resolves an explicit repository root for init without provider options", () => {
+    // GIVEN: Init targets a neighboring plugin repository.
+    const argv = ["init", "--root", "../plugin"];
+
+    // WHEN: The shared root option is parsed for initialization.
+    const parsed = parseCliArguments(argv, "/workspace/current");
+
+    // THEN: Init receives the normalized target and default internal provider scope.
+    assert.deepEqual(parsed, {
+      kind: "command",
+      command: CliCommand.Init,
+      rootDir: "/workspace/plugin",
+      providers: [CLAUDE, CODEX],
+    });
+  });
+
   it.each([
     { argv: [], expected: "A command is required" },
     { argv: ["legacy"], expected: "Unknown command" },
@@ -85,8 +101,8 @@ describe("parseCliArguments", () => {
       argv: ["check", "--root", "one", "--root", "two"],
       expected: "only once",
     },
-    { argv: ["init", "--root", "fixture"], expected: "does not accept" },
-    { argv: ["init", "--adopt"], expected: "does not accept" },
+    { argv: ["init", "--provider", "codex"], expected: "only --root" },
+    { argv: ["init", "--adopt"], expected: "Unknown argument" },
   ])("rejects invalid arguments: $expected", ({ argv, expected }) => {
     // GIVEN: A malformed or unsupported command line.
 

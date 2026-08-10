@@ -3,7 +3,7 @@ import type { CompilerScope } from "./ports.js";
 import { CliExitCode, type CliReport } from "./report.js";
 
 const USAGE_LINES = Object.freeze([
-  "Usage: plugin-compiler init",
+  "Usage: plugin-compiler init [--root <path>]",
   "       plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>]...",
   "Repeat --provider to select providers. Defaults to: claude, codex.",
 ]);

@@ -82,10 +82,6 @@ export function parseCliArguments(
     throw new CliUsageError(`Unknown command ${JSON.stringify(commandValue)}.`);
   }
 
-  if (commandValue === CliCommand.Init && argv.length > 1) {
-    throw new CliUsageError("init does not accept arguments.");
-  }
-
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
   const requestedProviders: ProviderId[] = [];
@@ -104,6 +100,9 @@ export function parseCliArguments(
       continue;
     }
     if (argument === "--provider") {
+      if (commandValue === CliCommand.Init) {
+        throw new CliUsageError("init accepts only --root <path>.");
+      }
       const providerValue = argv[index + 1];
       if (providerValue === undefined || providerValue === "") {
         throw new CliUsageError("--provider requires an identifier.");
