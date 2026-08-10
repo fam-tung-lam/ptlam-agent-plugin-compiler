@@ -197,7 +197,7 @@ describe("plugin compiler CLI process", () => {
     // GIVEN: A valid repository has no generated provider artifacts.
     const rootDir = await createFixtureRepository();
 
-    // WHEN: Generation selects only Codex through a repeated-capable provider flag.
+    // WHEN: Generation selects only Codex through one provider flag.
     const result = await runCli([
       "generate",
       "--root",
@@ -248,8 +248,8 @@ describe("plugin compiler CLI process", () => {
       expected: /unknown provider/u,
     },
     {
-      providerArguments: ["--provider", "codex", "--provider", "codex"],
-      expected: /duplicate provider/u,
+      providerArguments: ["--provider", "claude", "--provider", "codex"],
+      expected: /--provider may be specified only once/u,
     },
   ])(
     "returns usage exit semantics for invalid provider selection: $providerArguments",

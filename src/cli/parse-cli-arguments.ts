@@ -88,6 +88,7 @@ export function parseCliArguments(
 
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
+  let providerSeen = false;
   const requestedProviders: ProviderId[] = [];
   for (let index = 1; index < argv.length; index += 1) {
     const argument = argv[index];
@@ -104,11 +105,15 @@ export function parseCliArguments(
       continue;
     }
     if (argument === "--provider") {
+      if (providerSeen) {
+        throw new CliUsageError("--provider may be specified only once.");
+      }
       const providerValue = argv[index + 1];
       if (providerValue === undefined || providerValue === "") {
         throw new CliUsageError("--provider requires an identifier.");
       }
       requestedProviders.push(...parseProviderIds(providerValue));
+      providerSeen = true;
       index += 1;
       continue;
     }
