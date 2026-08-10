@@ -263,18 +263,23 @@ skills/
 
 ## Command-line interface
 
-| Command                                                         | Purpose                                      |
-| --------------------------------------------------------------- | -------------------------------------------- |
-| `plugin-compiler init [--root <path>]`                          | Create missing authored source paths         |
-| `plugin-compiler validate [--root <path>] [--provider <id>]...` | Validate the manifest, skills, and graph     |
-| `plugin-compiler generate [--root <path>] [--provider <id>]...` | Generate and verify all managed output files |
-| `plugin-compiler check [--root <path>] [--provider <id>]...`    | Report output that does not match the source |
-| `plugin-compiler --help`                                        | Show command usage                           |
+| Command                                                                | Purpose                                      |
+| ---------------------------------------------------------------------- | -------------------------------------------- |
+| `plugin-compiler init [--root <path>]`                                 | Create missing authored source paths         |
+| `plugin-compiler validate [--root <path>] [--provider <id>[,<id>...]]` | Validate the manifest, skills, and graph     |
+| `plugin-compiler generate [--root <path>] [--provider <id>[,<id>...]]` | Generate and verify all managed output files |
+| `plugin-compiler check [--root <path>] [--provider <id>[,<id>...]]`    | Report output that does not match the source |
+| `plugin-compiler --help`                                               | Show command usage                           |
 
 Without `--root`, every command uses the current working directory. `init`
-accepts only this shared option. For other commands, repeat `--provider` to
-select more than one provider. Without any provider flags, the compiler selects
-Claude and Codex.
+accepts only this shared option. For other commands, specify `--provider` once
+and separate multiple provider IDs with commas:
+
+```bash
+plugin-compiler generate --provider claude,codex
+```
+
+Without any provider flags, the compiler selects Claude and Codex.
 
 ## Node.js API
 

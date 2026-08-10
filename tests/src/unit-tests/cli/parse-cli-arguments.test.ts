@@ -9,24 +9,51 @@ import {
 } from "../../../../src/cli/index.ts";
 import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
+const PROVIDER_COMMANDS = Object.freeze([
+  CliCommand.Validate,
+  CliCommand.Check,
+  CliCommand.Generate,
+]);
+
 describe("parseCliArguments", () => {
-  it("parses repeated provider flags in stable registry order", () => {
-    // GIVEN: A command selects both built-ins in reverse order.
-    const argv = ["generate", "--provider", "codex", "--provider", "claude"];
+  it.each(PROVIDER_COMMANDS)(
+    "parses comma-separated providers for %s in stable registry order",
+    (command) => {
+      // GIVEN: One supported command selects both built-ins in reverse order.
+      const argv = [command, "--provider", "codex,claude"];
 
-    // WHEN: The provider-aware parser resolves the selection.
-    const parsed = parseCliArguments(argv, "/workspace/repository");
+      // WHEN: The provider-aware parser resolves the comma-separated selection.
+      const parsed = parseCliArguments(argv, "/workspace/repository");
 
-    // THEN: The command carries immutable provider IDs in registry order.
-    assert.deepEqual(parsed, {
-      kind: "command",
-      command: CliCommand.Generate,
-      rootDir: "/workspace/repository",
-      providers: [CLAUDE, CODEX],
-    });
-    assert.ok(parsed.kind === "command");
-    assert.equal(Object.isFrozen(parsed.providers), true);
-  });
+      // THEN: The command carries immutable provider IDs in registry order.
+      assert.deepEqual(parsed, {
+        kind: "command",
+        command,
+        rootDir: "/workspace/repository",
+        providers: [CLAUDE, CODEX],
+      });
+      assert.ok(parsed.kind === "command");
+      assert.equal(Object.isFrozen(parsed.providers), true);
+    },
+  );
+
+  it.each(PROVIDER_COMMANDS)(
+    "rejects repeated provider flags for %s",
+    (command) => {
+      // GIVEN: One supported command specifies the provider option twice.
+      const argv = [command, "--provider", "claude", "--provider", "codex"];
+
+      // WHEN: The strict parser evaluates the repeated option.
+      const parsing = () => parseCliArguments(argv, "/workspace/repository");
+
+      // THEN: The command requires one comma-separated provider option.
+      assert.throws(parsing, (error: unknown) => {
+        assert.ok(error instanceof CliUsageError);
+        assert.match(error.message, /--provider may be specified only once/u);
+        return true;
+      });
+    },
+  );
 
   it.each(Object.values(CliCommand))(
     "parses %s with the current repository as its default root",
@@ -93,8 +120,12 @@ describe("parseCliArguments", () => {
       expected: "unknown provider",
     },
     {
-      argv: ["check", "--provider", "codex", "--provider", "codex"],
+      argv: ["check", "--provider", "codex,codex"],
       expected: "duplicate provider",
+    },
+    {
+      argv: ["check", "--provider", "codex,"],
+      expected: "Invalid provider identifier",
     },
     { argv: ["generate", "--root"], expected: "requires a path" },
     {

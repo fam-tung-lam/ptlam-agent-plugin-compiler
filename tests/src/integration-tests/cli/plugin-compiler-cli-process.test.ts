@@ -195,6 +195,26 @@ describe("plugin compiler CLI process", () => {
     assert.equal(result.stderr, "");
   });
 
+  it("accepts comma-separated providers through the executable entrypoint", async () => {
+    // GIVEN: A valid authored plugin repository and both built-in provider IDs.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: A child process validates with one comma-separated provider flag.
+    const result = await runCli([
+      "validate",
+      "--root",
+      rootDir,
+      "--provider",
+      "codex,claude",
+    ]);
+
+    // THEN: The process succeeds and reports both providers in stable order.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
+    assert.equal(result.stderr, "");
+  });
+
   it("returns failure when a real read-only check observes drift", async () => {
     // GIVEN: A valid source repository has no generated skills or provider outputs.
     const rootDir = await createFixtureRepository();
@@ -247,7 +267,7 @@ describe("plugin compiler CLI process", () => {
     // GIVEN: A valid repository has no generated provider artifacts.
     const rootDir = await createFixtureRepository();
 
-    // WHEN: Generation selects only Codex through a repeated-capable provider flag.
+    // WHEN: Generation selects only Codex through one provider flag.
     const result = await runCli([
       "generate",
       "--root",
@@ -298,8 +318,8 @@ describe("plugin compiler CLI process", () => {
       expected: /unknown provider/u,
     },
     {
-      providerArguments: ["--provider", "codex", "--provider", "codex"],
-      expected: /duplicate provider/u,
+      providerArguments: ["--provider", "claude", "--provider", "codex"],
+      expected: /--provider may be specified only once/u,
     },
   ])(
     "returns usage exit semantics for invalid provider selection: $providerArguments",
