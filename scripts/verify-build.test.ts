@@ -5,6 +5,7 @@ import { describe, it } from "vitest";
 
 import {
   assertEmittedRuntimeTarget,
+  findRuntimeSpecifiers,
   isScannableBuildSource,
 } from "./verify-build.ts";
 
@@ -37,5 +38,12 @@ describe("verify-build JSON resources", () => {
     assert.equal(isScannableBuildSource(parser), true);
     assert.equal(isScannableBuildSource(`${parser.slice(0, -3)}.d.ts`), true);
     assert.equal(isScannableBuildSource(schema), false);
+  });
+
+  it("discovers JSON resources loaded through createRequire", () => {
+    assert.deepEqual(
+      findRuntimeSpecifiers(`const schema = require("${schemaSpecifier}");`),
+      [schemaSpecifier],
+    );
   });
 });

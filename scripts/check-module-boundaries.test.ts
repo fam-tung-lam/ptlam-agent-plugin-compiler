@@ -57,7 +57,7 @@ describe("module boundary checker", () => {
       ].join("\n"),
       "compiler/validation/parse.ts": [
         'import "../../core/index.js";',
-        'import schema from "../../schemas/v1/plugin-manifest.schema.json" with { type: "json" };',
+        'const schema = require("../../schemas/v1/plugin-manifest.schema.json");',
         "void schema;",
       ].join("\n"),
       "core/plugin/plugin.ts": "export interface Plugin {}",
@@ -130,7 +130,7 @@ describe("module boundary checker", () => {
   it("rejects code imports from schemas while allowing direct JSON", async () => {
     const sourceRoot = await makeSourceFixture({
       "compiler/validation/parse.ts": [
-        'import schema from "../../schemas/v1/schema.json" with { type: "json" };',
+        'const schema = require("../../schemas/v1/schema.json");',
         'import "../../schemas/v1/schema.js";',
         "void schema;",
       ].join("\n"),

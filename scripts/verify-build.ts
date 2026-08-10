@@ -68,10 +68,10 @@ async function collectFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-function findSpecifiers(source: string): string[] {
+export function findRuntimeSpecifiers(source: string): string[] {
   return [
     ...source.matchAll(
-      /(?:from\s+|import\s*(?:\(\s*)?)(["'])(?<specifier>[^"']+)\1/gu,
+      /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)(["'])(?<specifier>[^"']+)\1/gu,
     ),
   ].flatMap((match) =>
     match.groups?.["specifier"] === undefined
@@ -123,7 +123,7 @@ export async function verifyBuild(): Promise<string> {
   const bareRuntimePackages = new Set<string>();
   for (const file of files.filter(isScannableBuildSource)) {
     const source = await readFile(file, "utf8");
-    for (const specifier of findSpecifiers(source)) {
+    for (const specifier of findRuntimeSpecifiers(source)) {
       if (/\.(?:cts|mts|tsx?|d\.ts)$/u.test(specifier)) {
         throw new Error(
           `Emitted TypeScript specifier ${JSON.stringify(specifier)} in ${path.relative(projectRoot, file)}`,
