@@ -61,18 +61,24 @@ flowchart LR
     `"]
     ClaudePlugin["`.claude-plugin/**`"]
     CodexPlugin["`.codex-plugin/plugin.json`"]
+    CopilotPlugin["`plugin.json`"]
+    GeminiExtension["`gemini-extension.json`"]
+    KimiPlugin["`kimi.plugin.json`"]
 
     PluginManifest ------>|"`is passed to`"| AgentPluginCompiler
     SkillSources ------>|"`is passed to`"| AgentPluginCompiler
     AgentPluginCompiler ------>|"`produces`"| SharedSkills
     AgentPluginCompiler ------>|"`produces`"| ClaudePlugin
     AgentPluginCompiler ------>|"`produces`"| CodexPlugin
+    AgentPluginCompiler ------>|"`produces`"| CopilotPlugin
+    AgentPluginCompiler ------>|"`produces`"| GeminiExtension
+    AgentPluginCompiler ------>|"`produces`"| KimiPlugin
 ```
 
 1. Declare skills in `plugin/skills/` and dependencies in `plugin/plugin.yml`.
 2. The compiler validates those relationships, puts each required skill inside
    the skill that needs it
-3. Generate the public skill catalog for Claude and Codex from the same source.
+3. Generate the shared skill catalog and only the provider manifests you select.
 
 Can be used through CLI commands or the `AgentPluginCompiler` Node.js API.
 
@@ -240,8 +246,8 @@ files.
 
 ```bash
 npm exec -- plugin-compiler validate
-npm exec -- plugin-compiler generate
-npm exec -- plugin-compiler check
+npm exec -- plugin-compiler generate --provider claude,codex,copilot,gemini,kimi
+npm exec -- plugin-compiler check --provider claude,codex,copilot,gemini,kimi
 ```
 
 The result is a public skill with its internal dependency included:
@@ -259,6 +265,9 @@ skills/
 └── plugin.json
 .codex-plugin/
 └── plugin.json
+plugin.json
+gemini-extension.json
+kimi.plugin.json
 ```
 
 ## Command-line interface
@@ -280,11 +289,14 @@ and separate multiple provider IDs with commas:
 plugin-compiler generate --provider claude,codex
 ```
 
-Without any provider flags, the compiler selects Claude and Codex.
+Possible values are `claude`, `codex`, `copilot`, `gemini`, and `kimi`. Without
+`--provider`, the compiler generates only the shared `skills/` tree and no
+provider manifest.
 
 Root help lists the available commands. Help after `init`, `validate`, `check`,
-or `generate` stays focused on that command and its options. The `init` help
-lists only `--root` because initialization does not select providers.
+or `generate` stays focused on that command and its options. Both `-h` and
+`--help` show every possible provider ID and the shared-only default. The `init`
+help lists only `--root` because initialization does not select providers.
 
 ## Node.js API
 
@@ -293,11 +305,14 @@ import {
   AgentPluginCompiler,
   CLAUDE,
   CODEX,
+  COPILOT,
+  GEMINI,
+  KIMI,
 } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
 const compiler = new AgentPluginCompiler({
   rootDir: process.cwd(),
-  providers: [CLAUDE, CODEX],
+  providers: [CLAUDE, CODEX, COPILOT, GEMINI, KIMI],
 });
 
 await compiler.validate();
@@ -307,8 +322,8 @@ const result = await compiler.check();
 console.log(result.upToDate);
 ```
 
-Select Claude, Codex, both providers, or an empty list when only the shared
-`skills/` tree is needed.
+Select any combination of the five built-ins, or pass an empty list when only
+the shared `skills/` tree is needed.
 
 Advanced integrations can supply a per-instance `ProviderAdapterRegistry` to
 extend the compiler with another provider adapter. Each registry is immutable

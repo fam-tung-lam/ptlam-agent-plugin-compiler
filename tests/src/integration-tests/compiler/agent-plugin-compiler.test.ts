@@ -38,6 +38,33 @@ function codexCompiler(rootDir: string): AgentPluginCompiler {
 }
 
 describe("AgentPluginCompiler", () => {
+  it("compiles only the shared skills tree for an empty provider selection", async () => {
+    // GIVEN: A valid repository selects no provider adapters.
+    const rootDir = await createCompilerRepository();
+    const compiler = new AgentPluginCompiler({ rootDir, providers: [] });
+
+    // WHEN: The public facade compiles and verifies the selected plan.
+    const result = await compiler.compile();
+
+    // THEN: Shared skills are written while existing unselected provider bytes remain untouched.
+    assert.equal(result.verified, true);
+    assert.deepEqual(result.writeResult.changedPaths, ["skills"]);
+    assert.equal(
+      (await lstat(path.join(rootDir, "skills"))).isDirectory(),
+      true,
+    );
+    assert.equal(
+      await readFile(
+        path.join(rootDir, ".claude-plugin", "plugin.json"),
+        "utf8",
+      ),
+      DISABLED_CLAUDE_BYTES,
+    );
+    await assert.rejects(lstat(path.join(rootDir, ".codex-plugin")), {
+      code: "ENOENT",
+    });
+  });
+
   it("uses an injected registry for an external provider", async () => {
     // GIVEN: One compiler instance receives a registry containing only an external adapter.
     const rootDir = await createCompilerRepository();

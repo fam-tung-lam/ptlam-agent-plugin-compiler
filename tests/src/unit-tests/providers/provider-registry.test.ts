@@ -5,12 +5,18 @@ import { describe, it } from "vitest";
 import {
   CLAUDE,
   CODEX,
+  COPILOT,
   createProviderId,
+  GEMINI,
+  KIMI,
   type ProviderAdapter,
 } from "../../../../src/core/index.ts";
 import {
   ClaudeProviderAdapter,
   CodexProviderAdapter,
+  CopilotProviderAdapter,
+  GeminiProviderAdapter,
+  KimiProviderAdapter,
   ProviderAdapterRegistry,
   ProviderSelectionError,
   ProviderSelectionErrorReason,
@@ -41,19 +47,22 @@ describe("ProviderAdapterRegistry", () => {
   });
 
   it("resolves built-ins in stable registry order", () => {
-    // GIVEN: The built-in providers are requested in reverse order.
+    // GIVEN: Every built-in provider is requested in reverse order.
     const registry = ProviderAdapterRegistry.withBuiltIns();
 
     // WHEN: The requested adapters are resolved.
-    const resolved = registry.resolve([CODEX, CLAUDE]);
+    const resolved = registry.resolve([KIMI, GEMINI, COPILOT, CODEX, CLAUDE]);
 
     // THEN: Resolution follows stable registry order and returns real adapters.
     assert.deepEqual(
       resolved.map((adapter) => adapter.id),
-      [CLAUDE, CODEX],
+      [CLAUDE, CODEX, COPILOT, GEMINI, KIMI],
     );
     assert.equal(resolved[0] instanceof ClaudeProviderAdapter, true);
     assert.equal(resolved[1] instanceof CodexProviderAdapter, true);
+    assert.equal(resolved[2] instanceof CopilotProviderAdapter, true);
+    assert.equal(resolved[3] instanceof GeminiProviderAdapter, true);
+    assert.equal(resolved[4] instanceof KimiProviderAdapter, true);
     assert.equal(Object.isFrozen(resolved), true);
   });
 
@@ -72,7 +81,7 @@ describe("ProviderAdapterRegistry", () => {
   });
 
   it("rejects unknown and duplicate provider selections", () => {
-    // GIVEN: A registry with the two built-in adapters.
+    // GIVEN: A registry with every built-in adapter.
     const registry = ProviderAdapterRegistry.withBuiltIns();
 
     // WHEN: Resolution receives one unknown ID or one repeated ID.

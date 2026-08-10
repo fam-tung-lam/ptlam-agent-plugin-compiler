@@ -45,13 +45,19 @@ export {
   ArtifactKind,
   CLAUDE,
   CODEX,
+  COPILOT,
   createPlanFragment,
   createProjectPath,
   createProviderId,
+  GEMINI,
+  KIMI,
   OwnershipKind,
 } from "./core/index.js";
 export {
   ClaudeProviderAdapter,
   CodexProviderAdapter,
+  CopilotProviderAdapter,
+  GeminiProviderAdapter,
+  KimiProviderAdapter,
   ProviderAdapterRegistry,
 } from "./providers/index.js";

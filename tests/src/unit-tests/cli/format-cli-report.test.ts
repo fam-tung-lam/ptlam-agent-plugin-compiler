@@ -161,6 +161,11 @@ describe("formatCliResult", () => {
       "Options:",
       "  -h, --help  Display help for this command",
       "",
+      "Provider selection for validate, check, and generate:",
+      "  --provider <id>[,<id>...]",
+      "  Possible values: claude, codex, copilot, gemini, kimi",
+      "  Omit the option to compile only the shared skills/ tree.",
+      "",
       "Use `plugin-compiler <command> --help` for more information on a command.",
     ]);
     assert.deepEqual(help.stderr, []);
@@ -211,8 +216,8 @@ describe("formatCliResult", () => {
         ...(supportsProviders
           ? [
               "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
-              "                                 [possible values: claude, codex]",
-              "                                 [default: claude, codex]",
+              "                                 [possible values: claude, codex, copilot, gemini, kimi]",
+              "                                 [default: none; shared skills/ only]",
             ]
           : []),
         "  -h, --help                     Display help for this command",
