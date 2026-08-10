@@ -199,6 +199,11 @@ describe("plugin compiler CLI process", () => {
       assert.match(result.stdout, /\n {2}validate\s/u);
       assert.match(result.stdout, /\n {2}check\s/u);
       assert.match(result.stdout, /\n {2}generate\s/u);
+      assert.match(
+        result.stdout,
+        /Possible values: claude, codex, copilot, gemini, kimi/u,
+      );
+      assert.match(result.stdout, /shared skills\/ tree/u);
       assert.equal(result.stderr, "");
     },
   );
@@ -226,6 +231,11 @@ describe("plugin compiler CLI process", () => {
         assert.doesNotMatch(result.stdout, /--provider <id>/u);
       } else {
         assert.match(result.stdout, /--provider <id>/u);
+        assert.match(
+          result.stdout,
+          /possible values: claude, codex, copilot, gemini, kimi/u,
+        );
+        assert.match(result.stdout, /default: none; shared skills\/ only/u);
       }
       assert.match(result.stdout, /-h, --help/u);
       assert.doesNotMatch(result.stdout, /Commands:/u);
@@ -240,9 +250,9 @@ describe("plugin compiler CLI process", () => {
     // WHEN: A child Node process runs validate through the emitted executable entrypoint.
     const result = await runCli(["validate", "--root", rootDir]);
 
-    // THEN: The process succeeds and communicates both provider scope and plugin result.
+    // THEN: The process succeeds with the empty provider scope and plugin result.
     assert.equal(result.exitCode, CliExitCode.Success);
-    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /providers: none/u);
     assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
     assert.equal(result.stderr, "");
   });
@@ -274,15 +284,15 @@ describe("plugin compiler CLI process", () => {
     // WHEN: A child process checks the selected output plan.
     const result = await runCli(["check", "--root", rootDir]);
 
-    // THEN: Drift is a process failure and identifies compiler-owned output paths.
+    // THEN: Drift is a process failure and identifies only the shared output tree.
     assert.equal(result.exitCode, CliExitCode.Failure);
     assert.equal(result.stdout, "");
     assert.match(result.stderr, /Output check found \d+ drift entries/u);
     assert.match(result.stderr, /skills\/README\.md/u);
-    assert.match(result.stderr, /\.codex-plugin\/plugin\.json/u);
+    assert.doesNotMatch(result.stderr, /plugin\.json/u);
   });
 
-  it("generates the shared catalog and both provider surfaces without changing root README", async () => {
+  it("generates only the shared tree by default without changing root README", async () => {
     // GIVEN: A valid authored repository contains ordinary human-owned project documentation.
     const rootDir = await createFixtureRepository();
     const readmePath = path.join(rootDir, "README.md");
@@ -291,28 +301,62 @@ describe("plugin compiler CLI process", () => {
     // WHEN: The repository-default generate command runs without provider flags.
     const result = await runCli(["generate", "--root", rootDir]);
 
-    // THEN: Shared skills and every default provider artifact coexist after one run.
+    // THEN: Shared skills exist while all provider manifests remain absent.
     assert.equal(result.exitCode, CliExitCode.Success);
-    assert.match(result.stdout, /providers: claude, codex/u);
+    assert.match(result.stdout, /providers: none/u);
     assert.equal(result.stderr, "");
-    const [catalog, claudePlugin, claudeMarketplace, codexPlugin, readmeAfter] =
-      await Promise.all([
-        readFile(path.join(rootDir, "skills", "README.md"), "utf8"),
-        readFile(path.join(rootDir, ".claude-plugin", "plugin.json"), "utf8"),
-        readFile(
-          path.join(rootDir, ".claude-plugin", "marketplace.json"),
-          "utf8",
-        ),
-        readFile(path.join(rootDir, ".codex-plugin", "plugin.json"), "utf8"),
-        readFile(readmePath),
-      ]);
-    assert.match(catalog, /`fixture-skill`/u);
-    assert.deepEqual(JSON.parse(claudePlugin).skills, [
-      "./skills/fixture-skill",
+    const [catalog, readmeAfter] = await Promise.all([
+      readFile(path.join(rootDir, "skills", "README.md"), "utf8"),
+      readFile(readmePath),
     ]);
-    assert.equal(JSON.parse(claudeMarketplace).plugins[0]?.source, "./");
-    assert.equal(JSON.parse(codexPlugin).skills, "./skills/");
+    assert.match(catalog, /`fixture-skill`/u);
     assert.deepEqual(readmeAfter, readmeBefore);
+    for (const manifestPath of [
+      ".claude-plugin/plugin.json",
+      ".codex-plugin/plugin.json",
+      "plugin.json",
+      "gemini-extension.json",
+      "kimi.plugin.json",
+    ]) {
+      await assert.rejects(lstat(path.join(rootDir, manifestPath)), {
+        code: "ENOENT",
+      });
+    }
+  });
+
+  it("generates every explicitly selected provider manifest", async () => {
+    // GIVEN: A valid repository has no generated provider artifacts.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: Generation selects all public provider IDs in reverse order.
+    const result = await runCli([
+      "generate",
+      "--root",
+      rootDir,
+      "--provider",
+      "kimi,gemini,copilot,codex,claude",
+    ]);
+
+    // THEN: The shared tree and all provider manifests are generated in stable order.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(
+      result.stdout,
+      /providers: claude, codex, copilot, gemini, kimi/u,
+    );
+    assert.equal(result.stderr, "");
+    const manifestPaths = [
+      ".claude-plugin/plugin.json",
+      ".codex-plugin/plugin.json",
+      "plugin.json",
+      "gemini-extension.json",
+      "kimi.plugin.json",
+    ];
+    for (const manifestPath of manifestPaths) {
+      assert.equal(
+        (await lstat(path.join(rootDir, manifestPath))).isFile(),
+        true,
+      );
+    }
   });
 
   it("generates only the explicitly selected provider surface", async () => {

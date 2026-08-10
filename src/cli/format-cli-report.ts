@@ -1,6 +1,6 @@
 import {
+  AVAILABLE_PROVIDERS,
   CliCommand,
-  DEFAULT_PROVIDERS,
   type ExecutedCliCommand,
 } from "./commands.js";
 import type { CompilerScope } from "./ports.js";
@@ -50,12 +50,17 @@ function rootHelpLines(): readonly string[] {
     "Options:",
     "  -h, --help  Display help for this command",
     "",
+    "Provider selection for validate, check, and generate:",
+    "  --provider <id>[,<id>...]",
+    `  Possible values: ${AVAILABLE_PROVIDERS.join(", ")}`,
+    "  Omit the option to compile only the shared skills/ tree.",
+    "",
     "Use `plugin-compiler <command> --help` for more information on a command.",
   ]);
 }
 
 function commandHelpLines(command: CliCommand): readonly string[] {
-  const defaultProviders = DEFAULT_PROVIDERS.join(", ");
+  const availableProviders = AVAILABLE_PROVIDERS.join(", ");
   return Object.freeze([
     COMMAND_HELP[command].introduction,
     "",
@@ -68,8 +73,8 @@ function commandHelpLines(command: CliCommand): readonly string[] {
       ? []
       : [
           "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
-          `                                 [possible values: ${defaultProviders}]`,
-          `                                 [default: ${defaultProviders}]`,
+          `                                 [possible values: ${availableProviders}]`,
+          "                                 [default: none; shared skills/ only]",
         ]),
     "  -h, --help                     Display help for this command",
   ]);
@@ -88,7 +93,9 @@ function countLabel(
 }
 
 function scopeLine(scope: CompilerScope): string {
-  return `Scope: ${scope.rootDir}; providers: ${scope.providers.join(", ")}.`;
+  const providers =
+    scope.providers.length === 0 ? "none" : scope.providers.join(", ");
+  return `Scope: ${scope.rootDir}; providers: ${providers}.`;
 }
 
 function rootLine(scope: CompilerScope): string {

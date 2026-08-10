@@ -149,6 +149,12 @@ export function createSkillId(value: string): SkillId {
 export const CLAUDE = createProviderId("claude");
 /** Identifier of the built-in Codex provider adapter. */
 export const CODEX = createProviderId("codex");
+/** Identifier of the built-in GitHub Copilot CLI provider adapter. */
+export const COPILOT = createProviderId("copilot");
+/** Identifier of the built-in Gemini CLI provider adapter. */
+export const GEMINI = createProviderId("gemini");
+/** Identifier of the built-in Kimi Code CLI provider adapter. */
+export const KIMI = createProviderId("kimi");
 
 /**
  * Compare two logical project paths without locale-dependent ordering.

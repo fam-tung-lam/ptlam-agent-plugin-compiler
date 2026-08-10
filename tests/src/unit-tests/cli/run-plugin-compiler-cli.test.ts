@@ -9,7 +9,7 @@ import {
 } from "../../../../src/cli/index.ts";
 import { createValidateResult } from "../../../../src/compiler/index.ts";
 import type { Plugin } from "../../../../src/core/index.ts";
-import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
+import { CODEX } from "../../../../src/providers/index.ts";
 
 const plugin = Object.freeze({
   name: "fixture-skills",
@@ -125,7 +125,7 @@ describe("runPluginCompilerCli", () => {
     });
   });
 
-  it("creates validate operations with both repository providers", async () => {
+  it("creates validate operations with no provider adapters by default", async () => {
     // GIVEN: A compiler factory records scope and terminal adapters collect output.
     let receivedScope: unknown;
     const stdout: string[] = [];
@@ -145,11 +145,11 @@ describe("runPluginCompilerCli", () => {
       },
     });
 
-    // THEN: The compiler receives the root and both providers before success is presented.
+    // THEN: The compiler receives the root and an empty provider selection.
     assert.equal(exitCode, CliExitCode.Success);
     assert.deepEqual(receivedScope, {
       rootDir: "/repository",
-      providers: [CLAUDE, CODEX],
+      providers: [],
     });
     assert.match(stdout.join("\n"), /Validated fixture-skills/u);
     assert.deepEqual(stderr, []);

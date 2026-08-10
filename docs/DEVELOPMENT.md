@@ -58,11 +58,11 @@ npm test -- tests/scripts/unit-tests/check-module-boundaries.test.ts
 
 ## Test layers
 
-| Layer       | Proves                                                |
-| ----------- | ----------------------------------------------------- |
-| Unit        | One rule or pure module                               |
-| Integration | Real boundaries between compiler, disk, and CLI       |
-| Conformance | Claude and Codex output matches their owned contracts |
+| Layer       | Proves                                              |
+| ----------- | --------------------------------------------------- |
+| Unit        | One rule or pure module                             |
+| Integration | Real boundaries between compiler, disk, and CLI     |
+| Conformance | Built-in provider output matches its owned contract |
 
 Place a test at the lowest layer that can prove the behavior. Use real disk and
 process boundaries only when those boundaries matter.

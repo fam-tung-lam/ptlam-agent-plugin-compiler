@@ -17,12 +17,18 @@ and this project adheres to
 - Added structured root help for the CLI command overview and focused `-h` or
   `--help` output for `init`, `validate`, `check`, and `generate`, including
   each command's usage and options.
+- Added opt-in GitHub Copilot CLI (`plugin.json`), Gemini CLI
+  (`gemini-extension.json`), and Kimi Code CLI (`kimi.plugin.json`) provider
+  adapters with pinned conformance contracts.
 
 ### Changed
 
 - **Breaking:** Replaced repeated `--provider` flags with one comma-separated
   provider list. Migrate `--provider claude --provider codex` to
   `--provider claude,codex`.
+- **Breaking:** Removed the implicit Claude-and-Codex CLI provider selection.
+  Omitting `--provider` now generates only the shared `skills/` tree; select any
+  manifests explicitly with `--provider claude,codex,copilot,gemini,kimi`.
 
 ## [0.1.0-alpha.3] - 2026-08-10
 
