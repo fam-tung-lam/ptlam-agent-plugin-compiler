@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0-beta.1] - 2026-08-10
+
+### Changed
+
+- Promoted the current compiler contract from alpha to beta without changing
+  its public CLI, Node.js API, or generated output.
+
 ## [0.1.0-alpha.4] - 2026-08-10
 
 ### Added
@@ -102,7 +109,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.4...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.1...HEAD
+[0.1.0-beta.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.4...v0.1.0-beta.1
 [0.1.0-alpha.4]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.3...v0.1.0-alpha.4
 [0.1.0-alpha.3]:
