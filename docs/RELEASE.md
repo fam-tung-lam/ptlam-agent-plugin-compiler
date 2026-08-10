@@ -61,14 +61,14 @@ Make the required code or documentation changes. Set the new version in
 `package.json` and keep `package-lock.json` in sync. For example:
 
 ```bash
-npm version 0.1.0-alpha.2 --no-git-tag-version
+npm version 0.1.0-alpha.3 --no-git-tag-version
 ```
 
 Use:
 
 | Release stage | Version example | npm tag  |
 | ------------- | --------------- | -------- |
-| Alpha         | `0.1.0-alpha.2` | `next`   |
+| Alpha         | `0.1.0-alpha.3` | `next`   |
 | Beta          | `0.1.0-beta.1`  | `next`   |
 | RC            | `0.1.0-rc.1`    | `next`   |
 | Stable        | `0.1.0`         | `latest` |
@@ -80,7 +80,7 @@ performs those checks.
 
 Commit the required changes, push the branch, and open a pull request against
 `main`. Use lower case after the commit type, for example
-`chore: prepare v0.1.0-alpha.2 release`.
+`chore: prepare v0.1.0-alpha.3 release`.
 
 CI automatically checks:
 

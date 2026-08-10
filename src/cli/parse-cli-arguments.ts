@@ -1,6 +1,16 @@
 import path from "node:path";
 
-import { CliCommand, type ParsedCliArguments } from "./cli-models.js";
+import {
+  createProviderId,
+  ProviderAdapterRegistry,
+  type ProviderId,
+  ProviderSelectionError,
+} from "../providers/index.js";
+import {
+  CliCommand,
+  DEFAULT_PROVIDERS,
+  type ParsedCliArguments,
+} from "./commands.js";
 
 const COMMANDS = new Set<string>(Object.values(CliCommand));
 
@@ -12,10 +22,38 @@ function isCommand(value: string): value is CliCommand {
   return COMMANDS.has(value);
 }
 
-/** Parse one command and an optional repository root without compiler knowledge. */
+function parseProviderId(value: string): ProviderId {
+  try {
+    return createProviderId(value);
+  } catch {
+    throw new CliUsageError(
+      `Invalid provider identifier ${JSON.stringify(value)}.`,
+    );
+  }
+}
+
+function resolveRequestedProviderIds(
+  requested: readonly ProviderId[],
+  registry: ProviderAdapterRegistry,
+): readonly ProviderId[] {
+  if (requested.length === 0) return DEFAULT_PROVIDERS;
+  try {
+    return Object.freeze(
+      registry.resolve(requested).map((adapter) => adapter.id),
+    );
+  } catch (error) {
+    if (error instanceof ProviderSelectionError) {
+      throw new CliUsageError(`${error.message}.`);
+    }
+    throw error;
+  }
+}
+
+/** Parse one command, repository root, and explicit provider selection. */
 export function parseCliArguments(
   argv: readonly string[],
   currentWorkingDirectory: string,
+  registry = ProviderAdapterRegistry.withBuiltIns(),
 ): ParsedCliArguments {
   if (argv.length === 1 && (argv[0] === "--help" || argv[0] === "-h")) {
     return Object.freeze({ kind: "help" });
@@ -31,24 +69,37 @@ export function parseCliArguments(
 
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
+  const requestedProviders: ProviderId[] = [];
   for (let index = 1; index < argv.length; index += 1) {
     const argument = argv[index];
-    if (argument !== "--root") {
-      throw new CliUsageError(`Unknown argument ${JSON.stringify(argument)}.`);
+    if (argument === "--root") {
+      if (rootSeen)
+        throw new CliUsageError("--root may be specified only once.");
+      const rootValue = argv[index + 1];
+      if (rootValue === undefined || rootValue === "") {
+        throw new CliUsageError("--root requires a path.");
+      }
+      rootDir = path.resolve(currentWorkingDirectory, rootValue);
+      rootSeen = true;
+      index += 1;
+      continue;
     }
-    if (rootSeen) throw new CliUsageError("--root may be specified only once.");
-    const rootValue = argv[index + 1];
-    if (rootValue === undefined || rootValue === "") {
-      throw new CliUsageError("--root requires a path.");
+    if (argument === "--provider") {
+      const providerValue = argv[index + 1];
+      if (providerValue === undefined || providerValue === "") {
+        throw new CliUsageError("--provider requires an identifier.");
+      }
+      requestedProviders.push(parseProviderId(providerValue));
+      index += 1;
+      continue;
     }
-    rootDir = path.resolve(currentWorkingDirectory, rootValue);
-    rootSeen = true;
-    index += 1;
+    throw new CliUsageError(`Unknown argument ${JSON.stringify(argument)}.`);
   }
 
   return Object.freeze({
     kind: "command",
     command: commandValue,
     rootDir,
+    providers: resolveRequestedProviderIds(requestedProviders, registry),
   });
 }

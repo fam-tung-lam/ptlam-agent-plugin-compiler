@@ -5,11 +5,11 @@ import path from "node:path";
 
 import { describe, it, onTestFinished } from "vitest";
 
-import { SourceEntryKind } from "../../../../src/core/index.ts";
 import {
   FilesystemDiagnosticReason,
-  readPluginSource,
-} from "../../../../src/filesystem/index.ts";
+  SourceEntryKind,
+} from "../../../../src/core/index.ts";
+import { readPluginSource } from "../../../../src/filesystem/index.ts";
 import { createFilesystemRepository } from "./test-fixtures/filesystem-repository-fixture.ts";
 
 describe("readPluginSource", () => {

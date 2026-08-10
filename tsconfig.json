@@ -16,6 +16,7 @@
     "noUnusedParameters": true,
     "newLine": "lf",
     "rootDir": ".",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2024",

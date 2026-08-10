@@ -4,18 +4,17 @@ import { readFile } from "node:fs/promises";
 import { describe, it } from "vitest";
 
 import {
-  OutputEntryKind,
-  OutputOwnershipKind,
-} from "../../../../../src/core/index.ts";
-import {
-  codexProvider,
+  ArtifactKind,
+  CODEX,
   createProviderContext,
-} from "../../../../../src/providers/index.ts";
+  OwnershipKind,
+} from "../../../../../src/core/index.ts";
+import { CodexProviderAdapter } from "../../../../../src/providers/index.ts";
 import {
   CODEX_CONTRACT_VERIFIED_ON,
   CODEX_OFFICIAL_SOURCE,
 } from "./official-contract.ts";
-import { makeCodexConformancePlugin } from "./validated-plugin-fixture.ts";
+import { makeCodexConformancePlugin } from "./plugin-fixture.ts";
 
 describe("Codex provider conformance", () => {
   it("matches the official Codex plugin manifest golden artifact", async () => {
@@ -30,22 +29,22 @@ describe("Codex provider conformance", () => {
       "utf8",
     );
 
-    // WHEN: Codex compiles the provider-neutral validated plugin.
-    const fragment = codexProvider.compile(
+    // WHEN: Codex compiles the provider-neutral plugin.
+    const fragment = new CodexProviderAdapter().compile(
       createProviderContext(makeCodexConformancePlugin()),
     );
     const artifact = fragment.artifacts[0];
     const artifactPaths = fragment.artifacts.map((entry) => entry.path);
+    const expectedPaths = [".codex-plugin/plugin.json"];
 
-    // THEN: The required manifest bytes match the checked-in golden exactly.
-    assert.equal(fragment.ownerId, codexProvider.id);
-    assert.equal(fragment.ownership.kind, OutputOwnershipKind.ExactFiles);
-    assert.ok(fragment.ownership.kind === OutputOwnershipKind.ExactFiles);
-    assert.deepEqual(fragment.ownership.paths, codexProvider.ownedPaths);
-    assert.equal(fragment.artifacts.length, codexProvider.ownedPaths.length);
+    // THEN: The required manifest bytes and actual owned path match exactly.
+    assert.equal(fragment.ownerId, CODEX);
+    assert.equal(fragment.ownership.kind, OwnershipKind.ExactFiles);
+    assert.ok(fragment.ownership.kind === OwnershipKind.ExactFiles);
+    assert.deepEqual(fragment.ownership.paths, expectedPaths);
     assert.equal(new Set(artifactPaths).size, artifactPaths.length);
-    assert.deepEqual(artifactPaths, codexProvider.ownedPaths);
-    assert.ok(artifact?.kind === OutputEntryKind.File);
+    assert.deepEqual(artifactPaths, expectedPaths);
+    assert.ok(artifact?.kind === ArtifactKind.File);
     assert.equal(artifact.path, ".codex-plugin/plugin.json");
     assert.equal(artifact.content.toString("utf8"), expected);
   });

@@ -4,20 +4,18 @@ import path from "node:path";
 
 import {
   compareProjectPaths,
+  createPluginSnapshot,
   createPluginSource,
   createProjectPath,
+  type FilesystemDiagnostic,
+  FilesystemDiagnosticOperation,
+  FilesystemDiagnosticReason,
+  type PluginSnapshot,
   type ProjectPath,
   type SourceEntryInput,
   SourceEntryKind,
   type SourceFileInput,
 } from "../../core/index.js";
-import {
-  createProjectSnapshot,
-  type FilesystemDiagnostic,
-  FilesystemDiagnosticOperation,
-  FilesystemDiagnosticReason,
-  type ProjectSnapshot,
-} from "../models/project-snapshot.js";
 import {
   assertRealRepository,
   assertSafePath,
@@ -195,7 +193,7 @@ async function walkSkillsDirectory(
 /** Read bounded authored source facts without parsing or business validation. */
 export async function readPluginSource(
   rootDir: string,
-): Promise<ProjectSnapshot> {
+): Promise<PluginSnapshot> {
   const repositoryRoot = await assertRealRepository(rootDir);
   const diagnostics: FilesystemDiagnostic[] = [];
   const manifest = await readManifest(repositoryRoot, diagnostics);
@@ -245,7 +243,7 @@ export async function readPluginSource(
           ? 1
           : 0;
   });
-  return createProjectSnapshot({
+  return createPluginSnapshot({
     source: createPluginSource({ manifest, skillEntries }),
     diagnostics,
   });
