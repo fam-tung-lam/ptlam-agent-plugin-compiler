@@ -14,7 +14,4 @@ local/
 .env
 
 # Local dev setup
-justfile
 .codex/
-.agents
-skills-lock.json

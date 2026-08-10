@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "ptlam-creating-atomic-note": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-creating-atomic-note/SKILL.md",
+      "computedHash": "93cc2a9fa44452b19d12ee51ccf0a0ec0af4c2bd8a69191831f747ccc414f1c0"
+    },
+    "ptlam-creating-skill": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-creating-skill/SKILL.md",
+      "computedHash": "8c01743c195ba2554e49428316575dcd263fd4187f7972bef65c3596d61da53d"
+    },
+    "ptlam-explaining-with-analogy": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-explaining-with-analogy/SKILL.md",
+      "computedHash": "72575925d707cdce4e1f449e05df9623395f5adc1d4fe57b60ec69724fd58d22"
+    },
+    "ptlam-git": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-git/SKILL.md",
+      "computedHash": "b04f76fea7aca056b693a7eb64a7cc2fb4f0195be783e4a6180bbb5a49180e0e"
+    },
+    "ptlam-grilling": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-grilling/SKILL.md",
+      "computedHash": "bb25f5ae9c022b2ae0d128d2631d7a85025e18399df03de57862cda2e6c49b30"
+    },
+    "ptlam-testing": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-testing/SKILL.md",
+      "computedHash": "bd31cc1af539a23ad0039ba805e3cd754bb16b18083b42ce8f0a6f6678606888"
+    },
+    "ptlam-testing-typescript": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-testing-typescript/SKILL.md",
+      "computedHash": "7fdb964eb1ed05dd7ba9514c95750b8a491129629ad981875786e6a01fc3d70b"
+    },
+    "ptlam-visualization-with-html": {
+      "source": "fam-tung-lam/ptlam-agent-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/ptlam-visualization-with-html/SKILL.md",
+      "computedHash": "1bb62d6de4f872b42b73cd0900add6a3aede4c076d1117a040324ebc6d4fe3c6"
+    }
+  }
+}
