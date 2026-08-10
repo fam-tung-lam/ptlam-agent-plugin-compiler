@@ -22,29 +22,47 @@ const COMMANDS = new Set<string>(Object.values(CliCommand));
 export class CliUsageError extends Error {
   /** Stable discriminator for usage failures. */
   override readonly name = "CliUsageError";
+
+  /**
+   * Create one usage failure, optionally scoped to a recognized command.
+   *
+   * @param message - User-facing syntax or selection diagnostic.
+   * @param command - Recognized command whose usage should accompany the error.
+   */
+  constructor(
+    message: string,
+    readonly command?: CliCommand,
+  ) {
+    super(message);
+  }
 }
 
 function isCommand(value: string): value is CliCommand {
   return COMMANDS.has(value);
 }
 
-function parseProviderId(value: string): ProviderId {
+function parseProviderId(value: string, command: CliCommand): ProviderId {
   try {
     return createProviderId(value);
   } catch {
     throw new CliUsageError(
       `Invalid provider identifier ${JSON.stringify(value)}.`,
+      command,
     );
   }
 }
 
-function parseProviderIds(value: string): readonly ProviderId[] {
-  return value.split(",").map(parseProviderId);
+function parseProviderIds(
+  value: string,
+  command: CliCommand,
+): readonly ProviderId[] {
+  return value.split(",").map((provider) => parseProviderId(provider, command));
 }
 
 function resolveRequestedProviderIds(
   requested: readonly ProviderId[],
   registry: ProviderAdapterRegistry,
+  command: CliCommand,
 ): readonly ProviderId[] {
   if (requested.length === 0) return DEFAULT_PROVIDERS;
   try {
@@ -53,7 +71,7 @@ function resolveRequestedProviderIds(
     );
   } catch (error) {
     if (error instanceof ProviderSelectionError) {
-      throw new CliUsageError(`${error.message}.`);
+      throw new CliUsageError(`${error.message}.`, command);
     }
     throw error;
   }
@@ -86,6 +104,12 @@ export function parseCliArguments(
     throw new CliUsageError(`Unknown command ${JSON.stringify(commandValue)}.`);
   }
 
+  if (
+    argv.slice(1).some((argument) => argument === "--help" || argument === "-h")
+  ) {
+    return Object.freeze({ kind: "help", command: commandValue });
+  }
+
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
   let providerSeen = false;
@@ -94,10 +118,13 @@ export function parseCliArguments(
     const argument = argv[index];
     if (argument === "--root") {
       if (rootSeen)
-        throw new CliUsageError("--root may be specified only once.");
+        throw new CliUsageError(
+          "--root may be specified only once.",
+          commandValue,
+        );
       const rootValue = argv[index + 1];
       if (rootValue === undefined || rootValue === "") {
-        throw new CliUsageError("--root requires a path.");
+        throw new CliUsageError("--root requires a path.", commandValue);
       }
       rootDir = path.resolve(currentWorkingDirectory, rootValue);
       rootSeen = true;
@@ -106,27 +133,43 @@ export function parseCliArguments(
     }
     if (argument === "--provider") {
       if (commandValue === CliCommand.Init) {
-        throw new CliUsageError("init accepts only --root <path>.");
+        throw new CliUsageError(
+          "init accepts only --root <path>.",
+          commandValue,
+        );
       }
       if (providerSeen) {
-        throw new CliUsageError("--provider may be specified only once.");
+        throw new CliUsageError(
+          "--provider may be specified only once.",
+          commandValue,
+        );
       }
       const providerValue = argv[index + 1];
       if (providerValue === undefined || providerValue === "") {
-        throw new CliUsageError("--provider requires an identifier.");
+        throw new CliUsageError(
+          "--provider requires an identifier.",
+          commandValue,
+        );
       }
-      requestedProviders.push(...parseProviderIds(providerValue));
+      requestedProviders.push(...parseProviderIds(providerValue, commandValue));
       providerSeen = true;
       index += 1;
       continue;
     }
-    throw new CliUsageError(`Unknown argument ${JSON.stringify(argument)}.`);
+    throw new CliUsageError(
+      `Unknown argument ${JSON.stringify(argument)}.`,
+      commandValue,
+    );
   }
 
   return Object.freeze({
     kind: "command",
     command: commandValue,
     rootDir,
-    providers: resolveRequestedProviderIds(requestedProviders, registry),
+    providers: resolveRequestedProviderIds(
+      requestedProviders,
+      registry,
+      commandValue,
+    ),
   });
 }

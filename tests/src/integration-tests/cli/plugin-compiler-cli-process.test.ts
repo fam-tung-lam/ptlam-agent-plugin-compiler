@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, it, onTestFinished } from "vitest";
 
-import { CliExitCode } from "../../../../src/cli/index.ts";
+import { CliCommand, CliExitCode } from "../../../../src/cli/index.ts";
 
 const repositoryRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -180,6 +180,58 @@ describe("plugin compiler CLI process", () => {
     assert.equal(generation.stderr, "");
     assert.equal(second.stderr, "");
   });
+
+  it.each(["--help", "-h"])(
+    "renders the command overview through the executable entrypoint with %s",
+    async (helpFlag) => {
+      // GIVEN: The built executable is available without any plugin repository input.
+
+      // WHEN: A child process requests root help with either supported flag.
+      const result = await runCli([helpFlag]);
+
+      // THEN: Help succeeds on stdout with all commands and no compiler diagnostic.
+      assert.equal(result.exitCode, CliExitCode.Success);
+      assert.match(
+        result.stdout,
+        /Usage: plugin-compiler \[OPTIONS\] <COMMAND>/u,
+      );
+      assert.match(result.stdout, /Commands:\n {2}init\s/u);
+      assert.match(result.stdout, /\n {2}validate\s/u);
+      assert.match(result.stdout, /\n {2}check\s/u);
+      assert.match(result.stdout, /\n {2}generate\s/u);
+      assert.equal(result.stderr, "");
+    },
+  );
+
+  it.each(
+    Object.values(CliCommand).flatMap((command) =>
+      ["--help", "-h"].map((helpFlag) => ({ command, helpFlag })),
+    ),
+  )(
+    "renders only $command help through the executable entrypoint with $helpFlag",
+    async ({ command, helpFlag }) => {
+      // GIVEN: One recognized command and either supported help flag.
+
+      // WHEN: A child process requests focused command help.
+      const result = await runCli([command, helpFlag]);
+
+      // THEN: Help succeeds with the command's options and without the root command list.
+      assert.equal(result.exitCode, CliExitCode.Success);
+      assert.match(
+        result.stdout,
+        new RegExp(`Usage: plugin-compiler ${command} \\[OPTIONS\\]`, "u"),
+      );
+      assert.match(result.stdout, /--root <path>/u);
+      if (command === CliCommand.Init) {
+        assert.doesNotMatch(result.stdout, /--provider <id>/u);
+      } else {
+        assert.match(result.stdout, /--provider <id>/u);
+      }
+      assert.match(result.stdout, /-h, --help/u);
+      assert.doesNotMatch(result.stdout, /Commands:/u);
+      assert.equal(result.stderr, "");
+    },
+  );
 
   it("validates a real fixture through the executable entrypoint", async () => {
     // GIVEN: A valid authored plugin repository and the real compiler composition.

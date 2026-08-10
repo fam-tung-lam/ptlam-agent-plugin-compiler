@@ -139,28 +139,106 @@ describe("formatCliResult", () => {
     ]);
   });
 
-  it("formats help and usage failures on separate terminal streams", () => {
-    // GIVEN: One explicit help request and one invalid argument diagnostic.
+  it("formats root help as a command overview", () => {
+    // GIVEN: The user requests help without selecting a command.
 
-    // WHEN: Both usage reports are formatted.
+    // WHEN: Root help is formatted.
     const help = formatUsageReport();
-    const invalid = formatUsageReport('Unknown command "legacy".');
 
-    // THEN: Help succeeds on stdout while misuse fails with exit code two on stderr.
+    // THEN: The report presents the product, usage, commands, and root options.
     assert.equal(help.exitCode, CliExitCode.Success);
-    assert.match(
-      help.stdout.join("\n"),
-      /plugin-compiler init \[--root <path>\]/u,
-    );
-    assert.match(help.stdout.join("\n"), /validate\|check\|generate/u);
-    assert.match(help.stdout.join("\n"), /--provider <id>/u);
-    assert.match(help.stdout.join("\n"), /Specify --provider once/u);
-    assert.match(
-      help.stdout.join("\n"),
-      /separate multiple providers with commas/u,
-    );
-    assert.match(help.stdout.join("\n"), /Defaults to: claude, codex/u);
+    assert.deepEqual(help.stdout, [
+      "A deterministic compiler for PTLam-compatible agent plugin projects.",
+      "",
+      "Usage: plugin-compiler [OPTIONS] <COMMAND>",
+      "",
+      "Commands:",
+      "  init      Create missing authored plugin source paths",
+      "  validate  Validate the authored plugin manifest, skills, and graph",
+      "  check     Check compiler-managed output against the authored sources",
+      "  generate  Generate and verify all compiler-managed output",
+      "",
+      "Options:",
+      "  -h, --help  Display help for this command",
+      "",
+      "Use `plugin-compiler <command> --help` for more information on a command.",
+    ]);
+    assert.deepEqual(help.stderr, []);
+  });
+
+  it.each([
+    {
+      command: CliCommand.Init,
+      introduction:
+        "Create missing authored plugin source paths without replacing existing content.",
+      supportsProviders: false,
+    },
+    {
+      command: CliCommand.Validate,
+      introduction:
+        "Validate the authored plugin manifest, skills, and dependency graph.",
+      supportsProviders: true,
+    },
+    {
+      command: CliCommand.Check,
+      introduction:
+        "Check compiler-managed output against the authored plugin sources.",
+      supportsProviders: true,
+    },
+    {
+      command: CliCommand.Generate,
+      introduction: "Generate and verify all compiler-managed output files.",
+      supportsProviders: true,
+    },
+  ])(
+    "formats focused $command help with command options",
+    ({ command, introduction, supportsProviders }) => {
+      // GIVEN: The user requests help for one recognized compiler command.
+
+      // WHEN: Command-specific help is formatted.
+      const help = formatUsageReport({ command });
+
+      // THEN: The report contains only that command's usage and supported options.
+      assert.equal(help.exitCode, CliExitCode.Success);
+      assert.deepEqual(help.stdout, [
+        introduction,
+        "",
+        `Usage: plugin-compiler ${command} [OPTIONS]`,
+        "",
+        "Options:",
+        "      --root <path>              Plugin repository root",
+        "                                 [default: current working directory]",
+        ...(supportsProviders
+          ? [
+              "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
+              "                                 [possible values: claude, codex]",
+              "                                 [default: claude, codex]",
+            ]
+          : []),
+        "  -h, --help                     Display help for this command",
+      ]);
+      assert.doesNotMatch(help.stdout.join("\n"), /Commands:/u);
+      assert.deepEqual(help.stderr, []);
+    },
+  );
+
+  it("formats a command usage failure with focused help on stderr", () => {
+    // GIVEN: A recognized check command contains an invalid argument.
+
+    // WHEN: Its usage failure is formatted.
+    const invalid = formatUsageReport({
+      command: CliCommand.Check,
+      error: 'Unknown argument "--future".',
+    });
+
+    // THEN: The diagnostic and check usage fail on stderr without the root command list.
     assert.equal(invalid.exitCode, CliExitCode.Usage);
-    assert.match(invalid.stderr.join("\n"), /Unknown command/u);
+    assert.equal(invalid.stdout.length, 0);
+    assert.match(invalid.stderr.join("\n"), /Unknown argument "--future"/u);
+    assert.match(
+      invalid.stderr.join("\n"),
+      /Usage: plugin-compiler check \[OPTIONS\]/u,
+    );
+    assert.doesNotMatch(invalid.stderr.join("\n"), /Commands:/u);
   });
 });

@@ -148,13 +148,26 @@ describe("parseCliArguments", () => {
     });
   });
 
-  it("recognizes standalone help without constructing a command", () => {
-    // GIVEN: The user requests CLI help.
+  it.each([
+    { argv: ["--help"], expected: { kind: "help" } },
+    { argv: ["-h"], expected: { kind: "help" } },
+    ...Object.values(CliCommand).flatMap((command) => [
+      {
+        argv: [command, "--help"],
+        expected: { kind: "help", command },
+      },
+      { argv: [command, "-h"], expected: { kind: "help", command } },
+    ]),
+  ])(
+    "parses focused help without constructing a command: $argv",
+    ({ argv, expected }) => {
+      // GIVEN: The user requests root or command-specific CLI help.
 
-    // WHEN: Help arguments are parsed.
-    const parsed = parseCliArguments(["--help"], "/workspace");
+      // WHEN: Help arguments are parsed.
+      const parsed = parseCliArguments(argv, "/workspace");
 
-    // THEN: The result carries no compiler operation.
-    assert.deepEqual(parsed, { kind: "help" });
-  });
+      // THEN: The result identifies only the requested help scope.
+      assert.deepEqual(parsed, expected);
+    },
+  );
 });

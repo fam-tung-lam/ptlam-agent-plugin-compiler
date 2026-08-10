@@ -14,6 +14,9 @@ and this project adheres to
   without changing existing content. A new manifest is a schema-valid commented
   template with matching standalone, dependency, and dependent example skill
   sources.
+- Added structured root help for the CLI command overview and focused `-h` or
+  `--help` output for `init`, `validate`, `check`, and `generate`, including
+  each command's usage and options.
 
 ### Changed
 

@@ -269,7 +269,8 @@ skills/
 | `plugin-compiler validate [--root <path>] [--provider <id>[,<id>...]]` | Validate the manifest, skills, and graph     |
 | `plugin-compiler generate [--root <path>] [--provider <id>[,<id>...]]` | Generate and verify all managed output files |
 | `plugin-compiler check [--root <path>] [--provider <id>[,<id>...]]`    | Report output that does not match the source |
-| `plugin-compiler --help`                                               | Show command usage                           |
+| `plugin-compiler -h` or `plugin-compiler --help`                       | Show the command overview and global options |
+| `plugin-compiler <command> -h` or `--help`                             | Show usage and options for one command       |
 
 Without `--root`, every command uses the current working directory. `init`
 accepts only this shared option. For other commands, specify `--provider` once
@@ -280,6 +281,10 @@ plugin-compiler generate --provider claude,codex
 ```
 
 Without any provider flags, the compiler selects Claude and Codex.
+
+Root help lists the available commands. Help after `init`, `validate`, `check`,
+or `generate` stays focused on that command and its options. The `init` help
+lists only `--root` because initialization does not select providers.
 
 ## Node.js API
 
