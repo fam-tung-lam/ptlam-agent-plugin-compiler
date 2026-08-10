@@ -2,7 +2,7 @@
 
 Install Agent Plugin Compiler in the repository that owns your agent plugin.
 
-## Installation
+## npm
 
 Use `--save-exact` so the resolved compiler version is recorded without a range:
 

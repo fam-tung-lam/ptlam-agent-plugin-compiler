@@ -510,20 +510,10 @@ body {
 .vp-doc h2 {
   position: relative;
   margin-top: 42px;
-  border-top: 1px solid var(--apc-line);
+  border-top: 1px solid var(--apc-teal);
   padding-top: 28px;
   letter-spacing: -0.025em;
   line-height: 1.2;
-}
-
-.vp-doc h2::before {
-  position: absolute;
-  top: -1px;
-  left: 0;
-  width: 54px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--apc-violet), var(--apc-teal));
-  content: "";
 }
 
 .vp-doc h3 {
