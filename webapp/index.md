@@ -15,9 +15,6 @@ hero:
     - theme: brand
       text: Get started
       link: /guide/introduction
-    - theme: alt
-      text: Explore the reference
-      link: /reference/
 
 features:
   - title: Dependency-aware skills
@@ -37,36 +34,3 @@ features:
       Produce contracts for Claude, Codex, GitHub Copilot CLI, Gemini CLI, and
       Kimi Code CLI from the same validated model.
 ---
-
-## A build step for agent skills
-
-Agent skills often start as Markdown files, but a publishable plugin also needs
-dependency instructions, catalog metadata, lifecycle rules, and host-specific
-manifests. Maintaining those copies by hand makes incomplete installations and
-silent drift easy.
-
-Agent Plugin Compiler moves that coordination into a repeatable build:
-
-```text
-plugin/plugin.yml + plugin/skills/**
-                  │
-                  ▼
-        validate → generate → check
-                  │
-                  ▼
-      skills/** + provider manifests
-```
-
-The current public contract is `0.1.0-alpha.4`.
-
-```bash
-npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@next
-
-npm exec -- plugin-compiler init
-npm exec -- plugin-compiler validate
-npm exec -- plugin-compiler generate
-npm exec -- plugin-compiler check
-```
-
-[Understand the workflow →](/guide/introduction)
