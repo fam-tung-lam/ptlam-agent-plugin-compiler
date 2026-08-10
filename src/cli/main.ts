@@ -12,14 +12,24 @@ const consoleOutput: CliOutputAdapters = Object.freeze({
   stderr: (line: string) => console.error(line),
 });
 
-/** Compose the terminal adapter with the real compiler facade. */
+/**
+ * Compose terminal I/O with the real compiler facade.
+ *
+ * @param argv - Command arguments without the Node executable and script path.
+ * @param options - Optional process environment adapters.
+ * @returns The process exit code after all report lines are written.
+ * @throws If an output adapter fails.
+ * @internal
+ */
 export function runPluginCompilerProcess(
   argv: readonly string[],
   {
     currentWorkingDirectory = process.cwd(),
     output = consoleOutput,
   }: {
+    /** Base directory for resolving `--root`. */
     readonly currentWorkingDirectory?: string;
+    /** Line-oriented stdout and stderr adapters. */
     readonly output?: CliOutputAdapters;
   } = {},
 ): Promise<number> {

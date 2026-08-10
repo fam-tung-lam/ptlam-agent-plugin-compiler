@@ -49,7 +49,14 @@ function requireCategoryName(
   return categoryName;
 }
 
-/** Render the complete generated skills catalog without root README markers. */
+/**
+ * Renders the generated skills catalog body without root README markers.
+ *
+ * @param plugin - Validated plugin supplying category metadata.
+ * @param publishedSkills - Published skills to list, in desired row order.
+ * @returns A newline-terminated Markdown catalog section.
+ * @throws {Error} If a skill references an unknown category, deprecated metadata is missing, or a table cell contains unsupported characters.
+ */
 export function renderSkillsCatalog(
   plugin: Plugin,
   publishedSkills: readonly Skill[],

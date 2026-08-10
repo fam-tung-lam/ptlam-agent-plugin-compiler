@@ -37,9 +37,17 @@ const ALLOWED_MODULE_IMPORTS: Readonly<
   cli: ["compiler", "providers"],
 };
 
+/**
+ * One import that violates the configured source-module graph.
+ *
+ * @internal
+ */
 export interface BoundaryViolation {
+  /** Source file relative to the checked source root. */
   readonly file: string;
+  /** Actionable dependency-rule explanation. */
   readonly message: string;
+  /** Relative module specifier found in the source file. */
   readonly specifier: string;
 }
 
@@ -124,6 +132,14 @@ function checkImport(
   return undefined;
 }
 
+/**
+ * Check relative TypeScript imports below one source root.
+ *
+ * @param sourceRoot - Absolute directory whose children use the configured module layout.
+ * @returns Deterministically ordered violations; an empty array means the graph is valid.
+ * @throws If the source tree cannot be traversed or read.
+ * @internal
+ */
 export async function checkModuleBoundaries(
   sourceRoot: string,
 ): Promise<BoundaryViolation[]> {

@@ -4,15 +4,27 @@ import type { Definition, Image, Link, RootContent } from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 
 interface ValidateMarkdownLinksRequest {
+  /** Markdown source text to inspect. */
   readonly source: string;
+  /** Skill-relative path used to resolve local destinations. */
   readonly markdownPath: string;
+  /** Skill-relative files that local destinations may reference. */
   readonly sourceFiles: ReadonlySet<string>;
+  /** Logical skill root displayed in diagnostics. */
   readonly skillPath: string;
 }
 
 type DestinationNode = Definition | Image | Link;
 
-/** Validate real Markdown destinations against one isolated logical skill tree. */
+/**
+ * Validates Markdown destinations against one isolated logical skill tree.
+ *
+ * @param request.source - Markdown source text to inspect.
+ * @param request.markdownPath - Skill-relative path used to resolve destinations.
+ * @param request.sourceFiles - Skill-relative files that local links may target.
+ * @param request.skillPath - Logical skill root displayed in diagnostics.
+ * @returns Validation diagnostics in document traversal order.
+ */
 export function validateMarkdownLinks({
   source,
   markdownPath,

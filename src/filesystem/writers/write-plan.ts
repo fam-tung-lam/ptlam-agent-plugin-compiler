@@ -23,12 +23,16 @@ import {
 } from "./skills-tree-transaction.js";
 
 interface ExactTarget {
+  /** Owned standalone file path. */
   readonly path: ProjectPath;
+  /** Desired file artifact. */
   readonly artifact: FileArtifact;
 }
 
 interface TreeTarget {
+  /** Owned complete-tree root. */
   readonly root: ProjectPath;
+  /** Complete desired artifact set below the root. */
   readonly artifacts: readonly Artifact[];
 }
 
@@ -145,7 +149,15 @@ async function preflightTargets(
   }
 }
 
-/** Write one validated plan while preserving exact provider and whole-tree ownership. */
+/**
+ * Apply one write plan while preserving exact-file and complete-tree ownership.
+ *
+ * @param rootDir - Repository root to update without following symbolic links.
+ * @param plan - Validated desired state and ownership declarations.
+ * @returns Immutable changed and unchanged ownership roots.
+ * @throws If ownership is inconsistent, a path is unsafe, or a filesystem operation fails.
+ * @internal
+ */
 export async function writePlan(
   rootDir: string,
   plan: WritePlan,

@@ -22,10 +22,16 @@ import { renderSkillsCatalog } from "./render-skills-catalog.js";
 
 const SKILLS_ROOT = createProjectPath("skills");
 
+/** Reports one or more failures while composing the shared generated skills tree. */
 export class SharedSkillsCompilationError extends Error {
+  /** Stable error class name. */
   override readonly name = "SharedSkillsCompilationError";
+  /** Deduplicated composition and generated-Markdown diagnostics. */
   readonly errors: readonly string[];
 
+  /**
+   * @param errors - Composition diagnostics to normalize and snapshot.
+   */
   constructor(errors: Iterable<string>) {
     const normalized = Object.freeze([...new Set(errors)].filter(Boolean));
     super(
@@ -233,7 +239,13 @@ function validateGeneratedMarkdown(
   }
 }
 
-/** Compile one complete provider-neutral root skills tree. */
+/**
+ * Composes the provider-neutral `skills/` tree for every published skill.
+ *
+ * @param plugin - Validated domain plugin to render.
+ * @returns A complete-tree plan fragment containing the catalog, skill documents, dependencies, and resources.
+ * @throws {SharedSkillsCompilationError} If paths collide, required skills are missing, generated Markdown is invalid, or frontmatter formatting fails.
+ */
 export async function compileSharedSkills(
   plugin: Plugin,
 ): Promise<PlanFragment> {

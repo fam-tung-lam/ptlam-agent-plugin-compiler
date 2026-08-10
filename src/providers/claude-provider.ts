@@ -15,10 +15,34 @@ import { renderJson } from "./render-json.js";
 const marketplacePath = createProjectPath(".claude-plugin/marketplace.json");
 const pluginPath = createProjectPath(".claude-plugin/plugin.json");
 
-/** Pure Claude adapter for the official plugin and marketplace manifests. */
+/**
+ * Built-in adapter for Claude plugin and marketplace manifests.
+ *
+ * It owns `.claude-plugin/plugin.json` and
+ * `.claude-plugin/marketplace.json`; the shared compiler renderer owns the
+ * referenced `skills/` tree.
+ *
+ * @example
+ * ```ts
+ * const registry = new ProviderAdapterRegistry([
+ *   new ClaudeProviderAdapter(),
+ * ]);
+ * const compiler = new AgentPluginCompiler(
+ *   { rootDir: process.cwd(), providers: [CLAUDE] },
+ *   registry,
+ * );
+ * ```
+ */
 export class ClaudeProviderAdapter implements ProviderAdapter {
+  /** Built-in Claude provider identifier. */
   readonly id: ProviderId = CLAUDE;
 
+  /**
+   * Render Claude manifests from a validated plugin.
+   *
+   * @param context - Validated plugin data.
+   * @returns An exact-file fragment containing both Claude manifests.
+   */
   compile({ plugin }: ProviderContext): PlanFragment {
     const publishedSkills = selectPublishedSkills(plugin.skills);
     const pluginJson = renderJson({

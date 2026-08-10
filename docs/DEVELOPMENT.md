@@ -53,7 +53,7 @@ Run one test area while editing:
 ```bash
 npm test -- tests/src/unit-tests/compiler
 npm test -- tests/src/conformance-tests/providers
-npm test -- scripts/check-module-boundaries.test.ts
+npm test -- tests/scripts/unit-tests/check-module-boundaries.test.ts
 ```
 
 ## Test layers
@@ -70,7 +70,10 @@ process boundaries only when those boundaries matter.
 Mirror the production area first:
 
 - Keep compiler source tests under `tests/src/` and organize them by test layer.
-- Keep maintainer-script tests beside their scripts as `scripts/*.test.ts`.
+- Keep maintainer-script tests under `tests/scripts/` and organize them by test
+  layer.
+- Keep every TypeScript test under `tests/`; the test-placement unit test
+  enforces this repository boundary.
 
 ## Release
 

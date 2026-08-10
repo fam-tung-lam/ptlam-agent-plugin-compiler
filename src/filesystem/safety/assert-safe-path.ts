@@ -7,9 +7,21 @@ import {
   type SafePathInspection,
 } from "./assert-no-symlink-escape.js";
 
+/**
+ * Terminal filesystem kind required by a safe-path inspection.
+ *
+ * @internal
+ */
 export type ExpectedPathKind = "directory" | "file";
 
-/** Reject a linked or non-directory repository root before any traversal. */
+/**
+ * Resolve and validate a real repository root before traversal.
+ *
+ * @param rootDir - Repository root supplied by a caller.
+ * @returns The absolute real directory path.
+ * @throws If the path is missing, linked, not a directory, or cannot be inspected.
+ * @internal
+ */
 export async function assertRealRepository(rootDir: string): Promise<string> {
   const repositoryRoot = path.resolve(rootDir);
   const stats = await lstat(repositoryRoot);
@@ -19,7 +31,16 @@ export async function assertRealRepository(rootDir: string): Promise<string> {
   return repositoryRoot;
 }
 
-/** Assert the existing terminal kind while allowing an owned path to be absent. */
+/**
+ * Validate a repository-relative path and its existing terminal kind.
+ *
+ * @param repositoryRoot - Absolute real repository directory.
+ * @param projectPath - Validated repository-relative path to inspect.
+ * @param expectedKind - Required kind when the terminal entry exists.
+ * @returns Safe inspection data; absent owned paths retain `null` metadata.
+ * @throws If a segment is unsafe, inspection fails, or the terminal kind differs.
+ * @internal
+ */
 export async function assertSafePath(
   repositoryRoot: string,
   projectPath: ProjectPath,

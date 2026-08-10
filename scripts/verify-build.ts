@@ -52,6 +52,10 @@ const expectedRuntimeNames = [
   "createProviderId",
 ];
 
+function removeJsDocComments(source: string): string {
+  return source.replace(/\/\*\*[\s\S]*?\*\//gu, "");
+}
+
 async function collectFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const files: string[] = [];
@@ -68,9 +72,18 @@ async function collectFiles(directory: string): Promise<string[]> {
   return files;
 }
 
+/**
+ * Extract static, dynamic, and CommonJS runtime specifiers from emitted source,
+ * excluding JSDoc usage examples.
+ *
+ * @param source - Emitted JavaScript or declaration text.
+ * @returns Specifiers in source order.
+ * @internal
+ */
 export function findRuntimeSpecifiers(source: string): string[] {
+  const executableSource = removeJsDocComments(source);
   return [
-    ...source.matchAll(
+    ...executableSource.matchAll(
       /(?:from\s+|import\s*(?:\(\s*)?|require\s*\(\s*)(["'])(?<specifier>[^"']+)\1/gu,
     ),
   ].flatMap((match) =>
@@ -87,10 +100,28 @@ function packageName(specifier: string): string {
   return specifier.split("/")[0] ?? specifier;
 }
 
+/**
+ * Decide whether an emitted file contains importable source text.
+ *
+ * @param file - Absolute or relative emitted file path.
+ * @returns `true` for JavaScript and declaration files.
+ * @internal
+ */
 export function isScannableBuildSource(file: string): boolean {
   return file.endsWith(".js") || file.endsWith(".d.ts");
 }
 
+/**
+ * Require one relative runtime specifier to resolve to an emitted file.
+ *
+ * @param file - Emitted JavaScript file containing the specifier.
+ * @param specifier - Relative runtime specifier to resolve.
+ * @param runtimeFiles - Absolute emitted JavaScript and JSON paths.
+ * @param root - Base path used to shorten diagnostics.
+ * @returns When the resolved target exists in `runtimeFiles`.
+ * @throws If the resolved target was not emitted.
+ * @internal
+ */
 export function assertEmittedRuntimeTarget(
   file: string,
   specifier: string,
@@ -105,6 +136,13 @@ export function assertEmittedRuntimeTarget(
   }
 }
 
+/**
+ * Verify the complete `dist` artifact and package-root interface.
+ *
+ * @returns A human-readable verification summary.
+ * @throws If emitted files, dependencies, runtime targets, or root exports differ from the contract.
+ * @internal
+ */
 export async function verifyBuild(): Promise<string> {
   const files = await collectFiles(distRoot);
   const javascriptFiles = files.filter((file) => file.endsWith(".js"));
@@ -167,15 +205,16 @@ export async function verifyBuild(): Promise<string> {
     path.join(distRoot, "index.d.ts"),
     "utf8",
   );
-  if (/export\s+(?:default|\*)/u.test(rootDeclaration)) {
+  const declarationSurface = removeJsDocComments(rootDeclaration);
+  if (/export\s+(?:default|\*)/u.test(declarationSurface)) {
     throw new Error("Root declaration contains a default or wildcard export");
   }
   const declarationExportPattern =
     /export\s+(?:type\s+)?\{(?<clause>[^}]*)\}\s+from\s+["'][^"']+["'];/gu;
   const declarationExports = [
-    ...rootDeclaration.matchAll(declarationExportPattern),
+    ...declarationSurface.matchAll(declarationExportPattern),
   ];
-  const unparsedDeclaration = rootDeclaration
+  const unparsedDeclaration = declarationSurface
     .replace(declarationExportPattern, "")
     .trim();
   if (unparsedDeclaration.length > 0) {
