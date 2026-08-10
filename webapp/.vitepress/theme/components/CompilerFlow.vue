@@ -22,11 +22,11 @@
       <div class="apc-flow-node apc-flow-source">
         <span class="apc-flow-node__eyebrow">AUTHORED PLUGIN</span>
         <strong>plugin/</strong>
-        <div class="apc-flow-source__entry">
+        <div class="apc-flow-tree__entry">
           <code>plugin.yml</code>
           <span>metadata, providers, and skill graph</span>
         </div>
-        <div class="apc-flow-source__entry">
+        <div class="apc-flow-tree__entry">
           <code>skills/**</code>
           <span>authored instructions and supporting files</span>
         </div>
@@ -59,19 +59,19 @@
         <path d="M180 0C180 30 90 25 90 77" marker-end="url(#apc-output-tip)" />
         <path d="M180 0C180 30 270 25 270 77" marker-end="url(#apc-output-tip)" />
         <text x="41" y="41">compile skills</text>
-        <text x="235" y="41">render hosts</text>
+        <text x="252" y="41">render hosts</text>
       </svg>
 
-      <div class="apc-flow-outputs">
-        <div class="apc-flow-node apc-flow-output">
-          <span class="apc-flow-node__eyebrow">SELF-CONTAINED</span>
-          <strong>skills/**</strong>
-          <span>public roots with required skills nested inside</span>
+      <div class="apc-flow-node apc-flow-output">
+        <span class="apc-flow-node__eyebrow">GENERATED PLUGIN</span>
+        <strong>compiler-owned output</strong>
+        <div class="apc-flow-tree__entry">
+          <code>skills/**</code>
+          <span>self-contained public skills</span>
         </div>
-        <div class="apc-flow-node apc-flow-output">
-          <span class="apc-flow-node__eyebrow">EXACT HOST FILES</span>
-          <strong>Provider manifests</strong>
-          <span>Claude · Codex · Copilot · Gemini · Kimi</span>
+        <div class="apc-flow-tree__entry">
+          <code>host files</code>
+          <span>exact manifests for selected providers</span>
         </div>
       </div>
     </div>

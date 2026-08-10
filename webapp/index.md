@@ -5,9 +5,9 @@ title: Agent Plugin Compiler
 hero:
   text: Author the plugin once. Compile every agent host.
   tagline: >-
-    Define metadata and dependencies in plugin/plugin.yml, with authored skill
-    sources under plugin/skills/**. Validate the graph, then build
-    self-contained skills and deterministic manifests for every selected host.
+    Ship reliable agent skills without hand-maintaining dependency instructions
+    or host manifests. Validate once, compile deterministic output, and publish
+    a complete plugin for every supported agent host.
   actions:
     - theme: brand
       text: Get started

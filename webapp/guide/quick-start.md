@@ -1,7 +1,8 @@
 # Quick Start
 
-This workflow creates an immediately valid authored plugin, then replaces the
-starter values with your own.
+This workflow initializes an immediately valid authored plugin, then replaces
+the starter values with your own. `compile` reads this source; it never creates
+or changes files under `plugin/**`.
 
 ## 1. Initialize the source
 
@@ -11,7 +12,7 @@ Run this command from the plugin repository root:
 npm exec -- plugin-compiler init
 ```
 
-The command creates only missing paths:
+`init` creates only these missing starter paths:
 
 ```text
 plugin/
@@ -25,12 +26,15 @@ plugin/
         └── SKILL.md
 ```
 
-Running `init` again leaves existing manifest and skill content unchanged.
+These paths are authored source, not compile output. Running `init` again leaves
+existing manifest and skill content unchanged.
 
 ## 2. Replace the starter values
 
-Open `plugin/plugin.yml` and replace its `TODO` values. Choose the providers to
-compile by default:
+The generated manifest is fully commented, schema-valid, and includes three
+example skills. Open `plugin/plugin.yml`, replace its `TODO` values, and choose
+the providers to compile by default. For example, a customized manifest can
+contain:
 
 ```yaml
 schema_version: 1
@@ -77,6 +81,9 @@ skills:
         reason: The plan must reflect the repository structure.
         instructions: Inspect the repository and pass the facts forward.
 ```
+
+The starter manifest uses `providers: []`. Until you select providers, `compile`
+writes the shared `skills/**` tree but no host manifest files.
 
 Every declared skill needs a matching `plugin/skills/<skill-id>/SKILL.md` file.
 Do not add YAML frontmatter; the compiler creates generated frontmatter from the

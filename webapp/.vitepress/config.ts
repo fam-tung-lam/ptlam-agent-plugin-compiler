@@ -11,6 +11,22 @@ export default defineConfig({
     "Compile one authored agent plugin into deterministic provider-specific output.",
   base: "/",
   cleanUrls: true,
+  markdown: {
+    config(markdown) {
+      const renderFence = markdown.renderer.rules.fence;
+      if (!renderFence) return;
+
+      markdown.renderer.rules.fence = (tokens, index, ...rest) => {
+        const token = tokens[index];
+        if (token.info.trim() !== "mermaid") {
+          return renderFence(tokens, index, ...rest);
+        }
+
+        const definition = encodeURIComponent(token.content);
+        return `<ClientOnly><MermaidDiagram definition="${definition}"></MermaidDiagram></ClientOnly>`;
+      };
+    },
+  },
   sitemap: {
     hostname: productionUrl,
   },
@@ -66,7 +82,10 @@ export default defineConfig({
             { text: "Introduction", link: "/guide/introduction" },
             { text: "Installation", link: "/guide/installation" },
             { text: "Quick Start", link: "/guide/quick-start" },
-            { text: "Authored Plugin Source", link: "/guide/authored-source" },
+            {
+              text: "Authored Plugin Source",
+              link: "/guide/authored-source",
+            },
             { text: "Generated Output", link: "/guide/generated-output" },
           ],
         },

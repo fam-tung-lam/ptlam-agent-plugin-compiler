@@ -283,7 +283,7 @@ body {
   width: 100%;
 }
 
-.apc-flow-source__entry {
+.apc-flow-tree__entry {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
@@ -292,13 +292,13 @@ body {
   padding-top: 6px;
 }
 
-.apc-flow-source__entry code {
+.apc-flow-tree__entry code {
   font-size: 7px;
   font-weight: 720;
   color: var(--apc-violet);
 }
 
-.apc-flow-source__entry span {
+.apc-flow-tree__entry span {
   font-size: 6px;
   line-height: 9px;
 }
@@ -366,17 +366,8 @@ body {
   letter-spacing: 0.02em;
 }
 
-.apc-flow-outputs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.apc-flow-output {
   width: 100%;
-  min-width: 0;
-}
-
-.apc-flow-output > span:last-child {
-  font-size: 6px;
-  line-height: 9px;
 }
 
 @keyframes apc-flow-dash {
@@ -609,6 +600,24 @@ body {
   max-width: 100%;
 }
 
+.vp-doc .mermaid {
+  overflow-x: auto;
+  margin: 20px 0;
+  border: 1px solid color-mix(in srgb, var(--apc-violet) 18%, var(--apc-line));
+  border-radius: 14px;
+  padding: 22px;
+  background: var(--apc-surface-raised);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 8%);
+}
+
+.vp-doc .mermaid svg {
+  display: block;
+  margin: 0 auto;
+  min-width: 280px;
+  max-width: 100%;
+  height: auto;
+}
+
 .vp-doc table {
   margin: 22px 0;
   border: 1px solid var(--apc-line);
@@ -661,6 +670,10 @@ body {
 }
 
 @media (min-width: 960px) {
+  .apc-compiler-flow {
+    top: 58%;
+  }
+
   .VPHomeHero .text {
     font-size: 58px;
   }
@@ -672,6 +685,7 @@ body {
 
 @media (max-width: 959px) {
   .VPHomeHero .image {
+    margin-top: 40px;
     margin-bottom: 72px;
   }
 
@@ -723,7 +737,7 @@ body {
     padding: 9px;
   }
 
-  .apc-flow-source__entry {
+  .apc-flow-tree__entry {
     grid-template-columns: 70px minmax(0, 1fr);
     gap: 5px;
   }
@@ -744,10 +758,6 @@ body {
 
   .apc-flow-arrow--outputs {
     height: 62px;
-  }
-
-  .apc-flow-outputs {
-    gap: 8px;
   }
 
   .apc-capabilities {
@@ -794,6 +804,17 @@ body {
   .vp-doc div[class*="language-"] {
     margin: 18px 0;
     border-radius: 11px;
+  }
+
+  .vp-doc .mermaid {
+    margin: 18px 0;
+    border-radius: 11px;
+    padding: 14px 8px;
+  }
+
+  .vp-doc .mermaid svg {
+    min-width: 0;
+    width: 100%;
   }
 
   .vp-doc table {

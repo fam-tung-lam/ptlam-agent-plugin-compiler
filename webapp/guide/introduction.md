@@ -1,16 +1,74 @@
 # Introduction
 
-Agent Plugin Compiler turns an authored skill graph into a checked, publishable
-plugin layout.
+Agent Plugin Compiler turns dependency-aware skill sources into checked,
+self-contained output that users can install with confidence.
 
 ## The problem it solves
 
-A public skill can rely on another skill for context or a required procedure. If
-that relationship exists only in prose, an installer may publish the parent
-without its dependency. Renames, lifecycle changes, and manual copies can also
-leave instructions or host manifests out of sync.
+Suppose a plugin publishes two skills:
 
-The compiler gives those relationships one explicit source:
+```text
+skills/
+├── skill-a/  # requires skill-b
+└── skill-b/
+```
+
+This creates two recurring problems:
+
+1. **Users can install an incomplete skill.** Installers often present a flat
+   catalog, so someone can install `skill-a` without knowing that `skill-b` is
+   required.
+2. **Authors can break dependencies silently.** If `skill-b` is renamed,
+   archived, or deleted, hard-coded instructions in `skill-a` can become stale.
+
+Relying on humans or AI agents to keep every repeated reference synchronized is
+not a reliable publication process. The compiler makes dependencies explicit,
+validates missing, circular, and invalid edges, and embeds every required skill
+inside the public skill that needs it.
+
+If both skills are public, the dependency remains independently installable and
+is also nested inside its parent:
+
+```text
+skills/
+├── skill-a/
+│   ├── SKILL.md
+│   └── skills/
+│       └── skill-b/
+│           └── SKILL.md
+└── skill-b/
+    └── SKILL.md
+```
+
+If `skill-b` is an internal building block, it is nested where required but is
+not published as a standalone skill:
+
+```text
+skills/
+└── skill-a/
+    ├── SKILL.md
+    └── skills/
+        └── skill-b/
+            └── SKILL.md
+```
+
+In both cases, a user can install `skill-a` by itself and receive everything it
+needs. The same validated plugin model also generates deterministic manifests
+for every selected provider.
+
+## When it is a good fit
+
+Use the compiler when a repository publishes agent skills and needs one or more
+of these guarantees:
+
+- dependencies must be visible and validated before publication;
+- public skills must include the instructions they require;
+- several host manifests must reflect the same plugin metadata;
+- generated state must be reproducible in local development and CI.
+
+## The authored source and generated result
+
+The compiler gives the complete plugin one explicit source:
 
 - `plugin/plugin.yml` declares plugin metadata, providers, categories, skills,
   visibility, lifecycle status, and dependency edges;
@@ -20,8 +78,20 @@ The compiler gives those relationships one explicit source:
 
 ## The authoring loop
 
-```text
-Initialize → Edit authored source → Validate → Compile → Check → Publish
+```mermaid
+flowchart TB
+  Initialize["Initialize source"]
+  Edit["Edit authored source"]
+  Validate["Validate dependencies"]
+  Compile["Compile output"]
+  Check["Check drift"]
+  Publish["Publish plugin"]
+
+  Initialize --> Edit
+  Edit --> Validate
+  Validate --> Compile
+  Compile --> Check
+  Check --> Publish
 ```
 
 1. `init` creates missing starter paths without replacing existing content.
@@ -41,16 +111,6 @@ source and run `compile` again.
 The compiler owns the complete root `skills/` tree and exact manifest paths for
 the built-in providers. Files outside those declared paths remain outside its
 write plan.
-
-## When it is a good fit
-
-Use the compiler when a repository publishes agent skills and needs one or more
-of these guarantees:
-
-- dependencies must be visible and validated before publication;
-- public skills must include the instructions they require;
-- several host manifests must reflect the same plugin metadata;
-- generated state must be reproducible in local development and CI.
 
 Next: [install the compiler](/guide/installation), or inspect the
 [contract overview](/reference/).
