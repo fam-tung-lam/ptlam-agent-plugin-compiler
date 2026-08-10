@@ -28,7 +28,7 @@ async function executeCommand(
       return { command, result: await compiler.validate() };
     case CliCommand.Check:
       return { command, result: await compiler.check() };
-    case CliCommand.Generate:
+    case CliCommand.Compile:
       return { command, result: await compiler.compile() };
   }
 }

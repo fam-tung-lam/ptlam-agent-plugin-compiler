@@ -53,8 +53,8 @@ describe("runPluginCompilerCli", () => {
       expectedUsage: "plugin-compiler init [OPTIONS]",
     },
     {
-      argv: ["generate", "-h"],
-      expectedUsage: "plugin-compiler generate [OPTIONS]",
+      argv: ["compile", "-h"],
+      expectedUsage: "plugin-compiler compile [OPTIONS]",
     },
   ])(
     "presents $expectedUsage without constructing the compiler",

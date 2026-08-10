@@ -277,7 +277,7 @@ async function main(): Promise<void> {
     ) {
       fail(`Installed CLI help omits provider selection:\n${help.stdout}`);
     }
-    for (const command of ["init", "validate", "check", "generate"]) {
+    for (const command of ["init", "validate", "check", "compile"]) {
       if (!help.stdout.includes(`  ${command}`)) {
         fail(`Installed CLI help omits ${command}:\n${help.stdout}`);
       }
@@ -296,27 +296,33 @@ async function main(): Promise<void> {
       );
     }
 
-    const generateHelp = await run(
-      binary,
-      ["generate", "--help"],
-      consumerRoot,
-    );
-    requireSuccess(generateHelp, "Installed plugin-compiler generate --help");
+    const compileHelp = await run(binary, ["compile", "--help"], consumerRoot);
+    requireSuccess(compileHelp, "Installed plugin-compiler compile --help");
     if (
-      !generateHelp.stdout.includes(
-        "Usage: plugin-compiler generate [OPTIONS]",
+      !compileHelp.stdout.includes(
+        "Usage: plugin-compiler compile [OPTIONS]",
       ) ||
-      !generateHelp.stdout.includes("--root <path>") ||
-      !generateHelp.stdout.includes("--provider <id>") ||
-      !generateHelp.stdout.includes("--no-providers") ||
-      !generateHelp.stdout.includes(
+      !compileHelp.stdout.includes("--root <path>") ||
+      !compileHelp.stdout.includes("--provider <id>") ||
+      !compileHelp.stdout.includes("--no-providers") ||
+      !compileHelp.stdout.includes(
         "possible values: claude, codex, copilot, gemini, kimi",
       ) ||
-      !generateHelp.stdout.includes("default: plugin/plugin.yml providers") ||
-      generateHelp.stdout.includes("Commands:")
+      !compileHelp.stdout.includes("default: plugin/plugin.yml providers") ||
+      compileHelp.stdout.includes("Commands:")
     ) {
       fail(
-        `Installed CLI returned unexpected generate help output:\n${generateHelp.stdout}`,
+        `Installed CLI returned unexpected compile help output:\n${compileHelp.stdout}`,
+      );
+    }
+
+    const legacyGenerate = await run(binary, ["generate"], consumerRoot);
+    if (
+      legacyGenerate.exitCode !== 2 ||
+      !legacyGenerate.stderr.includes('Unknown command "generate".')
+    ) {
+      fail(
+        `Installed CLI still accepts the removed generate command:\n${legacyGenerate.stdout}${legacyGenerate.stderr}`,
       );
     }
 

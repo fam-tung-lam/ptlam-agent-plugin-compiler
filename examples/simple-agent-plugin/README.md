@@ -35,7 +35,7 @@ cd examples/simple-agent-plugin
 npm ci
 ```
 
-The authored `plugin/plugin.yml` selects Claude and Codex. Generate the shared
+The authored `plugin/plugin.yml` selects Claude and Codex. Compile the shared
 skills tree and both provider manifests from that default:
 
 ```bash
@@ -49,12 +49,12 @@ npm run plugin:verify
 ```
 
 For a one-off replacement, call the compiler directly with a comma-separated
-list. To generate only shared skills for one run, pass the explicit empty
+list. To compile only shared skills for one run, pass the explicit empty
 override:
 
 ```bash
-npm exec -- plugin-compiler generate --provider codex
-npm exec -- plugin-compiler generate --no-providers
+npm exec -- plugin-compiler compile --provider codex
+npm exec -- plugin-compiler compile --no-providers
 ```
 
 Edit only `plugin/plugin.yml` and `plugin/skills/`. The compiler owns `skills/`,

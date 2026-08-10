@@ -64,9 +64,9 @@ npm test -- tests/scripts/unit-tests/check-module-boundaries.test.ts
 `AgentPluginCompiler` accept optional overrides:
 
 ```bash
-plugin-compiler generate                 # manifest providers
-plugin-compiler generate --provider kimi # explicit replacement
-plugin-compiler generate --no-providers  # explicit empty replacement
+plugin-compiler compile                 # manifest providers
+plugin-compiler compile --provider kimi # explicit replacement
+plugin-compiler compile --no-providers  # explicit empty replacement
 ```
 
 The two CLI provider options are mutually exclusive. Do not make CLI parsing

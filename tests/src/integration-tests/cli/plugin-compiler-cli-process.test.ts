@@ -123,7 +123,7 @@ describe("plugin compiler CLI process", () => {
     const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
     const initialManifest = await readFile(manifestPath, "utf8");
     const validation = await runCli(["validate"], rootDir);
-    const generation = await runCli(["generate"], rootDir);
+    const compilation = await runCli(["compile"], rootDir);
     await writeFile(manifestPath, "user-owned: true\n", "utf8");
     const second = await runCli(["init"], rootDir);
 
@@ -158,9 +158,9 @@ describe("plugin compiler CLI process", () => {
     );
     assert.match(validation.stdout, /Validated example-agent-plugin@0\.1\.0/u);
     assert.match(validation.stdout, /3 skills in 2 categories/u);
-    assert.equal(generation.exitCode, CliExitCode.Success);
+    assert.equal(compilation.exitCode, CliExitCode.Success);
     assert.match(
-      generation.stdout,
+      compilation.stdout,
       /providers: none; provider source: manifest/u,
     );
     assert.equal(
@@ -195,7 +195,7 @@ describe("plugin compiler CLI process", () => {
     assert.equal(await readFile(manifestPath, "utf8"), "user-owned: true\n");
     assert.equal(first.stderr, "");
     assert.equal(validation.stderr, "");
-    assert.equal(generation.stderr, "");
+    assert.equal(compilation.stderr, "");
     assert.equal(second.stderr, "");
   });
 
@@ -216,7 +216,8 @@ describe("plugin compiler CLI process", () => {
       assert.match(result.stdout, /Commands:\n {2}init\s/u);
       assert.match(result.stdout, /\n {2}validate\s/u);
       assert.match(result.stdout, /\n {2}check\s/u);
-      assert.match(result.stdout, /\n {2}generate\s/u);
+      assert.match(result.stdout, /\n {2}compile\s/u);
+      assert.doesNotMatch(result.stdout, /\n {2}generate\s/u);
       assert.match(
         result.stdout,
         /Possible values: claude, codex, copilot, gemini, kimi/u,
@@ -317,12 +318,12 @@ describe("plugin compiler CLI process", () => {
     assert.match(result.stderr, /provider source: manifest/u);
   });
 
-  it("generates the manifest-selected providers by default", async () => {
+  it("compiles the manifest-selected providers by default", async () => {
     // GIVEN: A valid authored repository selects Claude and Codex in its manifest.
     const rootDir = await createFixtureRepository();
 
-    // WHEN: Generation omits every CLI provider option.
-    const result = await runCli(["generate", "--root", rootDir]);
+    // WHEN: Compilation omits every CLI provider option.
+    const result = await runCli(["compile", "--root", rootDir]);
 
     // THEN: The manifest selection is effective and only its provider files exist.
     assert.equal(result.exitCode, CliExitCode.Success);
@@ -350,15 +351,15 @@ describe("plugin compiler CLI process", () => {
     }
   });
 
-  it("generates only the shared tree for an explicit empty override without changing root README", async () => {
+  it("compiles only the shared tree for an explicit empty override without changing root README", async () => {
     // GIVEN: A valid authored repository contains ordinary human-owned project documentation.
     const rootDir = await createFixtureRepository();
     const readmePath = path.join(rootDir, "README.md");
     const readmeBefore = await readFile(readmePath);
 
-    // WHEN: Generation explicitly overrides the manifest selection with none.
+    // WHEN: Compilation explicitly overrides the manifest selection with none.
     const result = await runCli([
-      "generate",
+      "compile",
       "--root",
       rootDir,
       "--no-providers",
@@ -388,13 +389,13 @@ describe("plugin compiler CLI process", () => {
     }
   });
 
-  it("generates every explicitly selected provider manifest", async () => {
+  it("compiles every explicitly selected provider manifest", async () => {
     // GIVEN: A valid repository has no generated provider artifacts.
     const rootDir = await createFixtureRepository();
 
-    // WHEN: Generation selects all public provider IDs in reverse order.
+    // WHEN: Compilation selects all public provider IDs in reverse order.
     const result = await runCli([
-      "generate",
+      "compile",
       "--root",
       rootDir,
       "--provider",
@@ -424,13 +425,13 @@ describe("plugin compiler CLI process", () => {
     }
   });
 
-  it("generates only the explicitly selected provider surface", async () => {
+  it("compiles only the explicitly selected provider surface", async () => {
     // GIVEN: A valid repository has no generated provider artifacts.
     const rootDir = await createFixtureRepository();
 
-    // WHEN: Generation selects only Codex through one provider flag.
+    // WHEN: Compilation selects only Codex through one provider flag.
     const result = await runCli([
-      "generate",
+      "compile",
       "--root",
       rootDir,
       "--provider",
