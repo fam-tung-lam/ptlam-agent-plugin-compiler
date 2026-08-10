@@ -1,14 +1,10 @@
-import {
-  CliCommand,
-  CliExitCode,
-  type CliReport,
-  type CompilerScope,
-  type ExecutedCliCommand,
-} from "./cli-models.js";
+import { CliCommand, type ExecutedCliCommand } from "./commands.js";
+import type { CompilerScope } from "./ports.js";
+import { CliExitCode, type CliReport } from "./report.js";
 
 const USAGE_LINES = Object.freeze([
-  "Usage: plugin-compiler <validate|check|generate> [--root <path>]",
-  "Repository commands compile providers: claude, codex.",
+  "Usage: plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>]...",
+  "Repeat --provider to select providers. Defaults to: claude, codex.",
 ]);
 
 function countLabel(
@@ -29,17 +25,13 @@ function warningLines(warnings: readonly string[]): string[] {
     : ["Warnings:", ...warnings.map((warning) => `- ${warning}`)];
 }
 
-interface FormattableDifference {
+interface FormattableDrift {
   readonly path: string;
   readonly reason: string;
 }
 
-function differenceLines(
-  differences: readonly FormattableDifference[],
-): string[] {
-  return differences.map(
-    (difference) => `- ${difference.path}: ${difference.reason}`,
-  );
+function driftLines(drift: readonly FormattableDrift[]): string[] {
+  return drift.map((entry) => `- ${entry.path}: ${entry.reason}`);
 }
 
 function createReport({
@@ -106,8 +98,8 @@ export function formatCliResult(
             stderr: [
               ...warnings,
               scopeLine(scope),
-              `Output check found ${countLabel(executed.result.differences.length, "difference")}:`,
-              ...differenceLines(executed.result.differences),
+              `Output check found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
+              ...driftLines(executed.result.drift),
             ],
           });
     case CliCommand.Generate: {
@@ -135,8 +127,8 @@ export function formatCliResult(
             stderr: [
               ...warnings,
               scopeLine(scope),
-              `Generation completed but verification found ${countLabel(executed.result.differences.length, "difference")}:`,
-              ...differenceLines(executed.result.differences),
+              `Generation completed but verification found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
+              ...driftLines(executed.result.drift),
             ],
           });
     }

@@ -1,15 +1,32 @@
 import assert from "node:assert/strict";
-import { lstat, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 import { describe, it, vi } from "vitest";
 import { AgentPluginCompiler } from "../../../../src/compiler/index.ts";
+import { PluginValidationError } from "../../../../src/compiler/validation/index.ts";
 import {
-  createOutputState,
-  PluginValidationError,
+  ArtifactKind,
+  createGeneratedSnapshot,
+  createPlanFragment,
+  createProjectPath,
+  createProviderId,
+  DriftReason,
+  OwnershipKind,
+  type ProviderAdapter,
 } from "../../../../src/core/index.ts";
 import * as filesystem from "../../../../src/filesystem/index.ts";
-import { Provider } from "../../../../src/providers/index.ts";
+import {
+  CODEX,
+  ProviderAdapterRegistry,
+} from "../../../../src/providers/index.ts";
 import {
   createCompilerRepository,
   DISABLED_CLAUDE_BYTES,
@@ -17,15 +34,58 @@ import {
 } from "./test-fixtures/compiler-repository-fixture.ts";
 
 function codexCompiler(rootDir: string): AgentPluginCompiler {
-  return new AgentPluginCompiler({ rootDir, providers: [Provider.Codex] });
+  return new AgentPluginCompiler({ rootDir, providers: [CODEX] });
 }
 
 describe("AgentPluginCompiler", () => {
+  it("uses an injected registry for an external provider", async () => {
+    // GIVEN: One compiler instance receives a registry containing only an external adapter.
+    const rootDir = await createCompilerRepository();
+    const providerId = createProviderId("external");
+    const outputPath = createProjectPath(".external-plugin/plugin.json");
+    const adapter = Object.freeze({
+      id: providerId,
+      compile: () =>
+        createPlanFragment({
+          ownerId: providerId,
+          ownership: {
+            kind: OwnershipKind.ExactFiles,
+            paths: [outputPath],
+          },
+          artifacts: [
+            {
+              kind: ArtifactKind.File,
+              path: outputPath,
+              content: Buffer.from("external\n", "utf8"),
+            },
+          ],
+        }),
+    }) satisfies ProviderAdapter;
+    const registry = new ProviderAdapterRegistry([adapter]);
+    const compiler = new AgentPluginCompiler(
+      { rootDir, providers: [providerId] },
+      registry,
+    );
+
+    // WHEN: The public facade compiles the selected provider.
+    const result = await compiler.compile();
+
+    // THEN: The external artifact is verified without enabling either built-in.
+    assert.equal(result.verified, true);
+    assert.equal(
+      await readFile(path.join(rootDir, outputPath), "utf8"),
+      "external\n",
+    );
+    await assert.rejects(lstat(path.join(rootDir, ".codex-plugin")), {
+      code: "ENOENT",
+    });
+  });
+
   it("checks the common tree and enabled provider without writing", async () => {
     // GIVEN: Common and Codex outputs are absent while disabled Claude bytes exist.
     const rootDir = await createCompilerRepository();
 
-    // WHEN: The selected output plan is checked.
+    // WHEN: The selected write plan is checked.
     const result = await codexCompiler(rootDir).check();
 
     // THEN: Check is read-only and excludes every disabled-provider path.
@@ -37,20 +97,16 @@ describe("AgentPluginCompiler", () => {
       code: "ENOENT",
     });
     assert.equal(
-      result.differences.some((difference) =>
-        String(difference.path).startsWith("skills"),
-      ),
+      result.drift.some((entry) => String(entry.path).startsWith("skills")),
       true,
     );
     assert.equal(
-      result.differences.some(
-        (difference) => difference.path === ".codex-plugin/plugin.json",
-      ),
+      result.drift.some((entry) => entry.path === ".codex-plugin/plugin.json"),
       true,
     );
     assert.equal(
-      result.differences.some((difference) =>
-        String(difference.path).startsWith(".claude-plugin"),
+      result.drift.some((entry) =>
+        String(entry.path).startsWith(".claude-plugin"),
       ),
       false,
     );
@@ -73,7 +129,7 @@ describe("AgentPluginCompiler", () => {
       true,
     );
     assert.equal(Object.isFrozen(result), true);
-    assert.equal(Object.isFrozen(result.differences), true);
+    assert.equal(Object.isFrozen(result.drift), true);
   });
 
   it("compiles and verifies only the common tree and enabled provider", async () => {
@@ -120,11 +176,33 @@ describe("AgentPluginCompiler", () => {
     assert.equal(Object.isFrozen(first.writeResult.changedPaths), true);
   });
 
+  it("reports a wrong-kind managed path as drift", async () => {
+    // GIVEN: Verified outputs are externally changed from a file into a directory.
+    const rootDir = await createCompilerRepository();
+    const compiler = codexCompiler(rootDir);
+    await compiler.compile();
+    const codexManifest = path.join(rootDir, ".codex-plugin", "plugin.json");
+    await rm(codexManifest);
+    await mkdir(codexManifest);
+
+    // WHEN: The public read-only check compares the generated snapshot.
+    const result = await compiler.check();
+
+    // THEN: The terminal kind mismatch is reported instead of aborting the check.
+    assert.equal(result.upToDate, false);
+    assert.deepEqual(result.drift, [
+      {
+        path: ".codex-plugin/plugin.json",
+        reason: DriftReason.KindDiffers,
+      },
+    ]);
+  });
+
   it("reports failed post-write verification from reread facts", async () => {
     // GIVEN: The writer is real but the post-write filesystem reread diverges.
     const rootDir = await createCompilerRepository();
-    vi.spyOn(filesystem, "readOutputState").mockResolvedValue(
-      createOutputState({ entries: [] }),
+    vi.spyOn(filesystem, "readGeneratedSnapshot").mockResolvedValue(
+      createGeneratedSnapshot({ entries: [] }),
     );
 
     // WHEN: Compilation writes and then verifies the selected plan.
@@ -132,7 +210,7 @@ describe("AgentPluginCompiler", () => {
 
     // THEN: Divergent reread facts make verified success unrepresentable.
     assert.equal(result.verified, false);
-    assert.notEqual(result.differences.length, 0);
+    assert.notEqual(result.drift.length, 0);
   });
 
   it("aggregates filesystem and core diagnostics before any write", async () => {

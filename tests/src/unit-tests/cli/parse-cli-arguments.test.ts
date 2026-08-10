@@ -7,8 +7,27 @@ import {
   CliUsageError,
   parseCliArguments,
 } from "../../../../src/cli/index.ts";
+import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
 describe("parseCliArguments", () => {
+  it("parses repeated provider flags in stable registry order", () => {
+    // GIVEN: A command selects both built-ins in reverse order.
+    const argv = ["generate", "--provider", "codex", "--provider", "claude"];
+
+    // WHEN: The provider-aware parser resolves the selection.
+    const parsed = parseCliArguments(argv, "/workspace/repository");
+
+    // THEN: The command carries immutable provider IDs in registry order.
+    assert.deepEqual(parsed, {
+      kind: "command",
+      command: CliCommand.Generate,
+      rootDir: "/workspace/repository",
+      providers: [CLAUDE, CODEX],
+    });
+    assert.ok(parsed.kind === "command");
+    assert.equal(Object.isFrozen(parsed.providers), true);
+  });
+
   it.each(Object.values(CliCommand))(
     "parses %s with the current repository as its default root",
     (command) => {
@@ -23,6 +42,7 @@ describe("parseCliArguments", () => {
         kind: "command",
         command,
         rootDir: cwd,
+        providers: [CLAUDE, CODEX],
       });
       assert.equal(Object.isFrozen(parsed), true);
     },
@@ -40,13 +60,26 @@ describe("parseCliArguments", () => {
       kind: "command",
       command: CliCommand.Validate,
       rootDir: "/workspace/fixture",
+      providers: [CLAUDE, CODEX],
     });
   });
 
   it.each([
     { argv: [], expected: "A command is required" },
     { argv: ["legacy"], expected: "Unknown command" },
-    { argv: ["check", "--provider"], expected: "Unknown argument" },
+    { argv: ["check", "--provider"], expected: "requires an identifier" },
+    {
+      argv: ["check", "--provider", "Claude!"],
+      expected: "Invalid provider identifier",
+    },
+    {
+      argv: ["check", "--provider", "future"],
+      expected: "unknown provider",
+    },
+    {
+      argv: ["check", "--provider", "codex", "--provider", "codex"],
+      expected: "duplicate provider",
+    },
     { argv: ["generate", "--root"], expected: "requires a path" },
     {
       argv: ["check", "--root", "one", "--root", "two"],

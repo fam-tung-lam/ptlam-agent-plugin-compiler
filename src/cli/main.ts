@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { AgentPluginCompiler } from "../compiler/index.js";
-import type { CliOutputAdapters } from "./cli-models.js";
+import type { CliOutputAdapters } from "./ports.js";
 import { runPluginCompilerCli } from "./run-plugin-compiler-cli.js";
 
 const consoleOutput: CliOutputAdapters = Object.freeze({

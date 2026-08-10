@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -128,7 +135,7 @@ describe("plugin compiler CLI process", () => {
     // THEN: Drift is a process failure and identifies compiler-owned output paths.
     assert.equal(result.exitCode, CliExitCode.Failure);
     assert.equal(result.stdout, "");
-    assert.match(result.stderr, /Output check found \d+ differences/u);
+    assert.match(result.stderr, /Output check found \d+ drift entries/u);
     assert.match(result.stderr, /skills\/README\.md/u);
     assert.match(result.stderr, /\.codex-plugin\/plugin\.json/u);
   });
@@ -166,6 +173,37 @@ describe("plugin compiler CLI process", () => {
     assert.deepEqual(readmeAfter, readmeBefore);
   });
 
+  it("generates only the explicitly selected provider surface", async () => {
+    // GIVEN: A valid repository has no generated provider artifacts.
+    const rootDir = await createFixtureRepository();
+
+    // WHEN: Generation selects only Codex through a repeated-capable provider flag.
+    const result = await runCli([
+      "generate",
+      "--root",
+      rootDir,
+      "--provider",
+      "codex",
+    ]);
+
+    // THEN: Shared and Codex output exist while Claude remains untouched.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /providers: codex/u);
+    assert.doesNotMatch(result.stdout, /providers: claude/u);
+    assert.equal(
+      JSON.parse(
+        await readFile(
+          path.join(rootDir, ".codex-plugin", "plugin.json"),
+          "utf8",
+        ),
+      ).skills,
+      "./skills/",
+    );
+    await assert.rejects(lstat(path.join(rootDir, ".claude-plugin")), {
+      code: "ENOENT",
+    });
+  });
+
   it("returns failure for invalid authored manifest data", async () => {
     // GIVEN: A fixture repository violates the closed manifest schema.
     const rootDir = await createFixtureRepository({ invalidManifest: true });
@@ -179,6 +217,35 @@ describe("plugin compiler CLI process", () => {
     assert.match(result.stderr, /Plugin validation failed/u);
     assert.match(result.stderr, /unexpected/u);
   });
+
+  it.each([
+    {
+      providerArguments: ["--provider", "Claude!"],
+      expected: /Invalid provider identifier/u,
+    },
+    {
+      providerArguments: ["--provider", "future"],
+      expected: /unknown provider/u,
+    },
+    {
+      providerArguments: ["--provider", "codex", "--provider", "codex"],
+      expected: /duplicate provider/u,
+    },
+  ])(
+    "returns usage exit semantics for invalid provider selection: $providerArguments",
+    async ({ providerArguments, expected }) => {
+      // GIVEN: The executable receives one malformed, unknown, or duplicate provider.
+
+      // WHEN: The child process parses the provider selection.
+      const result = await runCli(["validate", ...providerArguments]);
+
+      // THEN: Provider misuse is reported before compiler construction.
+      assert.equal(result.exitCode, CliExitCode.Usage);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, expected);
+      assert.match(result.stderr, /Usage: plugin-compiler/u);
+    },
+  );
 
   it("returns usage exit semantics without constructing the compiler", async () => {
     // GIVEN: The executable receives no command.

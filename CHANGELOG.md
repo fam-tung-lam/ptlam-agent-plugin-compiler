@@ -8,8 +8,38 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-08-10
+
 ### Changed
 
+- **Breaking:** Replaced the closed `Provider` enum (`Provider.Claude` and
+  `Provider.Codex`) with branded `ProviderId` values and the `CLAUDE` and
+  `CODEX` constants. The global `availableProviders` and `resolveProviders`
+  lookup became an immutable per-instance `ProviderAdapterRegistry`, which is
+  also the extension seam for custom adapters.
+- **Breaking:** Renamed parsed `Plugin` and `Skill` values to `PluginManifest`
+  and `SkillManifest`, and renamed `ValidatedPlugin` and `ValidatedSkill` to the
+  domain names `Plugin` and `Skill`. Their input types, constructors, and result
+  types follow the same naming change; skill and category references now use
+  branded `SkillId` and `CategoryId` values instead of plain strings.
+- **Breaking:** Replaced stage-based generated names with domain names:
+  `OutputFragment` with `PlanFragment`, `OutputPlan` with `WritePlan`,
+  `OutputState` with `GeneratedSnapshot`, `OutputDifference` with `DriftEntry`,
+  `OutputDifferenceReason` with `DriftReason`, `PlannedArtifact` with
+  `Artifact`, `OutputEntryKind` with `ArtifactKind`, `OutputOwnership` with
+  `Ownership`, and `OutputOwnershipKind` with `OwnershipKind`. `ProjectSnapshot`
+  became `PluginSnapshot`, and the pure `OutputStateEntry` aliases were removed.
+- **Breaking:** Renamed `CheckResult.differences` and
+  `CompileResult.differences` to `drift`, and renamed `renderSkillManifest()` to
+  `renderSkillDocument()`.
+- Moved the manifest contract from the TypeScript literal at
+  `src/core/validation/schemas/plugin-manifest-v1.schema.ts` to the
+  authoritative JSON Schema at `src/schemas/v1/plugin-manifest.schema.json`.
+  Builds and packed packages include it at
+  `dist/schemas/v1/plugin-manifest.schema.json`.
+- Added `npm run code:boundaries` and included it in `npm run code:check` to
+  enforce module dependencies, public indexes, private compiler submodules, and
+  direct JSON-only schema imports.
 - Made the `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` placement marker optional.
   An explicit marker still selects the insertion point; without one, generated
   required-skill guidance appears after the top-level title and introductory
@@ -46,7 +76,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.2...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.3...HEAD
+[0.1.0-alpha.3]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]:

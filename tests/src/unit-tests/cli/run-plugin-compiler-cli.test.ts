@@ -8,15 +8,15 @@ import {
   runPluginCompilerCli,
 } from "../../../../src/cli/index.ts";
 import { createValidateResult } from "../../../../src/compiler/index.ts";
-import type { ValidatedPlugin } from "../../../../src/core/index.ts";
-import { Provider } from "../../../../src/providers/index.ts";
+import type { Plugin } from "../../../../src/core/index.ts";
+import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
 const plugin = Object.freeze({
   name: "fixture-skills",
   version: "1.0.0",
   skills: Object.freeze([]),
   categories: Object.freeze([]),
-}) as unknown as ValidatedPlugin;
+}) as unknown as Plugin;
 
 function operations({
   validate = async () => createValidateResult({ plugin, warnings: [] }),
@@ -35,6 +35,32 @@ function operations({
 }
 
 describe("runPluginCompilerCli", () => {
+  it("passes an explicit provider selection to the compiler", async () => {
+    // GIVEN: A compiler factory records the parsed operation scope.
+    let receivedScope: unknown;
+
+    // WHEN: Validation selects only Codex.
+    const exitCode = await runPluginCompilerCli({
+      argv: ["validate", "--provider", "codex"],
+      currentWorkingDirectory: "/repository",
+      createCompiler: (scope) => {
+        receivedScope = scope;
+        return operations();
+      },
+      output: {
+        stdout: () => undefined,
+        stderr: () => undefined,
+      },
+    });
+
+    // THEN: The compiler receives only the selected provider ID.
+    assert.equal(exitCode, CliExitCode.Success);
+    assert.deepEqual(receivedScope, {
+      rootDir: "/repository",
+      providers: [CODEX],
+    });
+  });
+
   it("creates validate operations with both repository providers", async () => {
     // GIVEN: A compiler factory records scope and terminal adapters collect output.
     let receivedScope: unknown;
@@ -59,7 +85,7 @@ describe("runPluginCompilerCli", () => {
     assert.equal(exitCode, CliExitCode.Success);
     assert.deepEqual(receivedScope, {
       rootDir: "/repository",
-      providers: [Provider.Claude, Provider.Codex],
+      providers: [CLAUDE, CODEX],
     });
     assert.match(stdout.join("\n"), /Validated fixture-skills/u);
     assert.deepEqual(stderr, []);

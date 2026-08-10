@@ -1,20 +1,21 @@
 import {
   CliCommand,
-  type CliOutputAdapters,
-  type CliReport,
-  type CompilerOperations,
-  type CompilerScope,
-  type CreateCompilerOperations,
-  DEFAULT_PROVIDERS,
   type ExecutedCliCommand,
   type ParsedCliArguments,
-} from "./cli-models.js";
+} from "./commands.js";
 import {
   formatCliResult,
   formatOperationError,
   formatUsageReport,
 } from "./format-cli-report.js";
 import { CliUsageError, parseCliArguments } from "./parse-cli-arguments.js";
+import type {
+  CliOutputAdapters,
+  CompilerOperations,
+  CompilerScope,
+  CreateCompilerOperations,
+} from "./ports.js";
+import type { CliReport } from "./report.js";
 
 async function executeCommand(
   command: CliCommand,
@@ -69,7 +70,7 @@ export async function runPluginCompilerCli({
 
   const scope: CompilerScope = Object.freeze({
     rootDir: parsed.rootDir,
-    providers: DEFAULT_PROVIDERS,
+    providers: parsed.providers,
   });
   let report: CliReport;
   try {

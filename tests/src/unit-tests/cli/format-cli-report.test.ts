@@ -15,20 +15,20 @@ import {
 } from "../../../../src/compiler/index.ts";
 import {
   createProjectPath,
-  OutputDifferenceReason,
-  type ValidatedPlugin,
+  DriftReason,
+  type Plugin,
 } from "../../../../src/core/index.ts";
-import { Provider } from "../../../../src/providers/index.ts";
+import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
 const plugin = Object.freeze({
   name: "fixture-skills",
   version: "1.2.3",
   skills: Object.freeze([{}, {}]),
   categories: Object.freeze([{}]),
-}) as unknown as ValidatedPlugin;
+}) as unknown as Plugin;
 const scope = Object.freeze({
   rootDir: "/repository",
-  providers: Object.freeze([Provider.Claude, Provider.Codex]),
+  providers: Object.freeze([CLAUDE, CODEX]),
 });
 
 describe("formatCliResult", () => {
@@ -60,10 +60,10 @@ describe("formatCliResult", () => {
     const result = createCheckResult({
       plugin,
       warnings: [],
-      differences: [
+      drift: [
         {
           path: createProjectPath(".codex-plugin/plugin.json"),
-          reason: OutputDifferenceReason.ContentDiffers,
+          reason: DriftReason.ContentDiffers,
         },
       ],
     });
@@ -79,7 +79,7 @@ describe("formatCliResult", () => {
     assert.deepEqual(report.stdout, []);
     assert.deepEqual(report.stderr, [
       "Scope: /repository; providers: claude, codex.",
-      "Output check found 1 difference:",
+      "Output check found 1 drift entry:",
       "- .codex-plugin/plugin.json: content-differs",
     ]);
   });
@@ -93,7 +93,7 @@ describe("formatCliResult", () => {
         changedPaths: [createProjectPath("skills")],
         unchangedPaths: [createProjectPath(".claude-plugin/plugin.json")],
       },
-      differences: [],
+      drift: [],
     });
 
     // WHEN: The verified generation result is formatted.
@@ -122,6 +122,8 @@ describe("formatCliResult", () => {
     // THEN: Help succeeds on stdout while misuse fails with exit code two on stderr.
     assert.equal(help.exitCode, CliExitCode.Success);
     assert.match(help.stdout.join("\n"), /validate\|check\|generate/u);
+    assert.match(help.stdout.join("\n"), /--provider <id>/u);
+    assert.match(help.stdout.join("\n"), /Defaults to: claude, codex/u);
     assert.equal(invalid.exitCode, CliExitCode.Usage);
     assert.match(invalid.stderr.join("\n"), /Unknown command/u);
   });

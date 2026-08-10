@@ -15,35 +15,45 @@ versions.
 
 ## Project map
 
-| Path              | Contents                                                    |
-| ----------------- | ----------------------------------------------------------- |
-| `src/core/`       | Models, validation, shared compilation, and output planning |
-| `src/providers/`  | Claude and Codex output adapters                            |
-| `src/filesystem/` | Safe reads, output inspection, and recoverable writes       |
-| `src/compiler/`   | Public `AgentPluginCompiler` orchestration                  |
-| `src/cli/`        | Command parsing and terminal output                         |
-| `scripts/`        | Small build and packed-package checks                       |
-| `.github/`        | CI and release automation                                   |
-| `tests/`          | Unit, integration, and provider conformance tests           |
+| Path                       | Contents                                                   |
+| -------------------------- | ---------------------------------------------------------- |
+| `src/schemas/`             | Versioned JSON contracts                                   |
+| `src/core/`                | Shared plugin and generated types, plus their constructors |
+| `src/compiler/validation/` | Manifest and authored-source validation                    |
+| `src/compiler/rendering/`  | Shared skill document and catalog rendering                |
+| `src/compiler/planning/`   | Write-plan construction and generated-state comparison     |
+| `src/compiler/`            | Public `AgentPluginCompiler` orchestration                 |
+| `src/providers/`           | Provider adapters and per-instance registry                |
+| `src/filesystem/`          | Safe reads, output inspection, and recoverable writes      |
+| `src/cli/`                 | Command parsing and terminal output                        |
+| `scripts/`                 | Module-boundary, build, and packed-package checks          |
+| `.github/`                 | CI and release automation                                  |
+| `tests/`                   | Unit, integration, and provider conformance tests          |
+
+`core` is the cross-module type dictionary. Pipeline algorithms belong to the
+compiler's validation, rendering, and planning modules.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Commands
 
-| Command                  | Use                                       |
-| ------------------------ | ----------------------------------------- |
-| `npm run code:typecheck` | Check TypeScript without writing files    |
-| `npm run code:check`     | Check formatting and code rules           |
-| `npm run code:format`    | Apply code formatting                     |
-| `npm test`               | Run all Vitest tests                      |
-| `npm run test:package`   | Smoke-test one packed `.tgz` in isolation |
-| `npm run build`          | Create and verify `dist/`                 |
-| `npm run markdown:check` | Check Markdown format and rules           |
+| Command                   | Use                                              |
+| ------------------------- | ------------------------------------------------ |
+| `npm run code:boundaries` | Check imports across module seams                |
+| `npm run code:typecheck`  | Check TypeScript without writing files           |
+| `npm run code:check`      | Check module boundaries, formatting, and code    |
+| `npm run code:format`     | Apply code formatting                            |
+| `npm test`                | Build, then run all Vitest tests                 |
+| `npm run test:package`    | Smoke-test one packed `.tgz` in isolation        |
+| `npm run build`           | Create and verify JavaScript, declarations, JSON |
+| `npm run markdown:check`  | Check Markdown format and rules                  |
 
 Run one test area while editing:
 
 ```bash
-npm test -- tests/src/unit-tests/core
+npm test -- tests/src/unit-tests/compiler
+npm test -- tests/src/conformance-tests/providers
+npm test -- scripts/check-module-boundaries.test.ts
 ```
 
 ## Test layers
@@ -60,7 +70,7 @@ process boundaries only when those boundaries matter.
 Mirror the production area first:
 
 - Keep compiler source tests under `tests/src/` and organize them by test layer.
-- Add a separate `tests/scripts/` tree only when script-specific tests exist.
+- Keep maintainer-script tests beside their scripts as `scripts/*.test.ts`.
 
 ## Release
 

@@ -1,11 +1,24 @@
-export * from "./compilation/compile-shared-skills.js";
-export * from "./compilation/select-published-skills.js";
-export * from "./models/output.js";
-export * from "./models/plugin.js";
-export * from "./models/plugin-source.js";
-export * from "./models/project-path.js";
-export * from "./models/skill.js";
-export * from "./output/build-output-plan.js";
-export * from "./output/compare-output-plan.js";
-export * from "./validation/plugin-validation-error.js";
-export * from "./validation/validate-authored-plugin.js";
+// biome-ignore-all assist/source/organizeImports: Core exports follow compiler pipeline order.
+
+/**
+ * Compiler vocabulary. Algorithms over these values live in their owning modules.
+ *
+ * `XInput -> X` through `createX(...)` is the single construction convention:
+ * constructors normalize inputs, copy mutable bytes, and freeze their results.
+ * Pipeline stages use content names such as `PluginManifest -> Plugin`, not
+ * labels that merely describe which processing step has completed.
+ */
+
+export * from "./identifiers.js";
+export * from "./plugin/plugin-source.js";
+export * from "./plugin/plugin-snapshot.js";
+export * from "./plugin/plugin.js";
+export * from "./plugin/skill.js";
+export * from "./plugin/select-published-skills.js";
+export * from "./provider-adapter.js";
+export * from "./generated/artifact.js";
+export * from "./generated/plan-fragment.js";
+export * from "./generated/write-plan.js";
+export * from "./generated/generated-snapshot.js";
+export * from "./generated/drift.js";
+export * from "./generated/write-result.js";

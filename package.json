@@ -1,6 +1,6 @@
 {
   "name": "@fam-tung-lam/ptlam-agent-plugin-compiler",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "Deterministic compiler for PTLam-compatible agent plugin projects.",
   "type": "module",
   "license": "MIT",
@@ -45,7 +45,8 @@
   "scripts": {
     "build:clean": "node --experimental-strip-types scripts/clean-build.ts",
     "build": "npm run build:clean && tsc --project tsconfig.build.json && node --experimental-strip-types scripts/finalize-build.ts && node --experimental-strip-types scripts/verify-build.ts",
-    "code:check": "biome check .",
+    "code:boundaries": "node --experimental-strip-types scripts/check-module-boundaries.ts",
+    "code:check": "npm run code:boundaries && biome check .",
     "code:format": "biome check --write .",
     "code:typecheck": "tsc --project tsconfig.json",
     "markdown:check": "npm run markdown:format:check && npm run markdown:lint",

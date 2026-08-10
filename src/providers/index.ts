@@ -1,12 +1,16 @@
-export { claudeProvider } from "./claude-provider.js";
-export { codexProvider } from "./codex-provider.js";
-export * from "./models/provider.js";
-export { Provider } from "./provider.js";
 export {
-  createCompilerProvider,
-  ProviderContractError,
-} from "./provider-contract.js";
+  CLAUDE,
+  CODEX,
+  createProviderContext,
+  createProviderId,
+  type ProviderAdapter,
+  type ProviderContext,
+  type ProviderId,
+} from "../core/index.js";
+export { ClaudeProviderAdapter } from "./claude-provider.js";
+export { CodexProviderAdapter } from "./codex-provider.js";
 export {
-  availableProviders,
-  resolveProviders,
+  ProviderAdapterRegistry,
+  ProviderSelectionError,
+  ProviderSelectionErrorReason,
 } from "./provider-registry.js";

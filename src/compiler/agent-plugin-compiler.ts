@@ -1,26 +1,17 @@
 import {
-  buildOutputPlan,
-  compareOutputPlan,
-  compileSharedSkills,
-  PluginValidationError,
-  type ValidateAuthoredPluginResult,
-  type ValidatedPlugin,
-  validateAuthoredPlugin,
+  createProviderContext,
+  type Plugin,
+  type ProviderAdapter,
 } from "../core/index.js";
 import {
-  readOutputState,
+  readGeneratedSnapshot,
   readPluginSource,
-  writeOutputPlan,
+  writePlan,
 } from "../filesystem/index.js";
-import {
-  type CompilerProvider,
-  createProviderContext,
-  resolveProviders,
-} from "../providers/index.js";
-import {
-  CompilerOptions,
-  type CompilerOptionsInput,
-} from "./models/compiler-options.js";
+import { ProviderAdapterRegistry } from "../providers/index.js";
+import { CompilerOptions, type CompilerOptionsInput } from "./options.js";
+import { buildWritePlan, compareWritePlan } from "./planning/index.js";
+import { compileSharedSkills } from "./rendering/index.js";
 import {
   type CheckResult,
   type CompileResult,
@@ -28,9 +19,14 @@ import {
   createCompileResult,
   createValidateResult,
   type ValidateResult,
-} from "./models/operation-results.js";
+} from "./results.js";
+import {
+  PluginValidationError,
+  type ValidateAuthoredPluginResult,
+  validateAuthoredPlugin,
+} from "./validation/index.js";
 
-async function loadValidatedPlugin(
+async function loadPlugin(
   rootDir: string,
 ): Promise<ValidateAuthoredPluginResult> {
   const snapshot = await readPluginSource(rootDir);
@@ -46,17 +42,17 @@ async function loadValidatedPlugin(
   }
 
   let validation: ValidateAuthoredPluginResult | undefined;
-  let coreErrors: readonly string[] = [];
+  let domainErrors: readonly string[] = [];
   try {
     validation = validateAuthoredPlugin(snapshot.source);
   } catch (error) {
     if (!(error instanceof PluginValidationError)) throw error;
-    coreErrors = error.errors;
+    domainErrors = error.errors;
   }
 
   const errors = [
     ...snapshot.diagnostics.map((diagnostic) => diagnostic.message),
-    ...coreErrors,
+    ...domainErrors,
   ];
   if (errors.length > 0) throw new PluginValidationError(errors);
   if (validation === undefined) {
@@ -66,15 +62,15 @@ async function loadValidatedPlugin(
 }
 
 async function buildPlan(
-  plugin: ValidatedPlugin,
-  providers: readonly CompilerProvider[],
+  plugin: Plugin,
+  providers: readonly ProviderAdapter[],
 ) {
   const context = createProviderContext(plugin);
   const sharedSkills = await compileSharedSkills(plugin);
   const providerFragments = providers.map((provider) =>
     provider.compile(context),
   );
-  return buildOutputPlan({
+  return buildWritePlan({
     fragments: [sharedSkills, ...providerFragments],
   });
 }
@@ -82,41 +78,42 @@ async function buildPlan(
 /** Orchestrate validation, read-only checking, and verified compilation. */
 export class AgentPluginCompiler {
   private readonly options: CompilerOptions;
-  private readonly providers: readonly CompilerProvider[];
+  private readonly providers: readonly ProviderAdapter[];
 
-  constructor(input: CompilerOptionsInput) {
+  constructor(
+    input: CompilerOptionsInput,
+    registry = ProviderAdapterRegistry.withBuiltIns(),
+  ) {
     this.options = new CompilerOptions(input);
-    this.providers = resolveProviders(this.options.providers);
+    this.providers = registry.resolve(this.options.providers);
     Object.freeze(this);
   }
 
   /** Read and validate authored sources without inspecting compiled outputs. */
   async validate(): Promise<ValidateResult> {
-    return createValidateResult(
-      await loadValidatedPlugin(this.options.rootDir),
-    );
+    return createValidateResult(await loadPlugin(this.options.rootDir));
   }
 
-  /** Compare the complete selected output plan without writing. */
+  /** Compare the complete selected write plan without writing. */
   async check(): Promise<CheckResult> {
-    const validation = await loadValidatedPlugin(this.options.rootDir);
+    const validation = await loadPlugin(this.options.rootDir);
     const plan = await buildPlan(validation.plugin, this.providers);
-    const state = await readOutputState(this.options.rootDir, plan);
-    const differences = compareOutputPlan({ plan, state });
-    return createCheckResult({ ...validation, differences });
+    const snapshot = await readGeneratedSnapshot(this.options.rootDir, plan);
+    const drift = compareWritePlan({ plan, snapshot });
+    return createCheckResult({ ...validation, drift });
   }
 
   /** Write one validated plan, reread it, and report post-write verification. */
   async compile(): Promise<CompileResult> {
-    const validation = await loadValidatedPlugin(this.options.rootDir);
+    const validation = await loadPlugin(this.options.rootDir);
     const plan = await buildPlan(validation.plugin, this.providers);
-    const writeResult = await writeOutputPlan(this.options.rootDir, plan);
-    const state = await readOutputState(this.options.rootDir, plan);
-    const differences = compareOutputPlan({ plan, state });
+    const writeResult = await writePlan(this.options.rootDir, plan);
+    const snapshot = await readGeneratedSnapshot(this.options.rootDir, plan);
+    const drift = compareWritePlan({ plan, snapshot });
     return createCompileResult({
       ...validation,
       writeResult,
-      differences,
+      drift,
     });
   }
 }

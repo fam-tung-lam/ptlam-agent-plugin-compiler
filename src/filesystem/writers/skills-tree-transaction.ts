@@ -11,9 +11,9 @@ import {
 import path from "node:path";
 
 import {
+  type Artifact,
+  ArtifactKind,
   compareProjectPaths,
-  OutputEntryKind,
-  type PlannedArtifact,
   type ProjectPath,
 } from "../../core/index.js";
 import { assertSafePath } from "../safety/assert-safe-path.js";
@@ -41,9 +41,9 @@ function compareDirents(left: Dirent, right: Dirent): number {
 async function snapshotStagedTree(
   directory: string,
   root: ProjectPath,
-): Promise<PlannedArtifact[]> {
-  const artifacts: PlannedArtifact[] = [
-    Object.freeze({ kind: OutputEntryKind.Directory, path: root }),
+): Promise<Artifact[]> {
+  const artifacts: Artifact[] = [
+    Object.freeze({ kind: ArtifactKind.Directory, path: root }),
   ];
   async function visit(absoluteDirectory: string, relativeDirectory: string) {
     const children = await readdir(absoluteDirectory, { withFileTypes: true });
@@ -55,14 +55,14 @@ async function snapshotStagedTree(
       const absolutePath = path.join(absoluteDirectory, child.name);
       if (child.isDirectory()) {
         artifacts.push(
-          Object.freeze({ kind: OutputEntryKind.Directory, path: projectPath }),
+          Object.freeze({ kind: ArtifactKind.Directory, path: projectPath }),
         );
         await visit(absolutePath, relativePath);
       } else if (child.isFile()) {
         const bytes = await readFile(absolutePath);
         artifacts.push(
           Object.freeze({
-            kind: OutputEntryKind.File,
+            kind: ArtifactKind.File,
             path: projectPath,
             get content(): Buffer {
               return Buffer.from(bytes);
@@ -83,8 +83,8 @@ async function snapshotStagedTree(
 }
 
 function artifactsMatch(
-  expected: readonly PlannedArtifact[],
-  actual: readonly PlannedArtifact[],
+  expected: readonly Artifact[],
+  actual: readonly Artifact[],
 ): boolean {
   if (expected.length !== actual.length) return false;
   return expected.every((entry, index) => {
@@ -96,18 +96,18 @@ function artifactsMatch(
     ) {
       return false;
     }
-    return entry.kind === OutputEntryKind.Directory
+    return entry.kind === ArtifactKind.Directory
       ? true
-      : candidate.kind === OutputEntryKind.File &&
+      : candidate.kind === ArtifactKind.File &&
           entry.content.equals(candidate.content);
   });
 }
 
 /** Build and byte-verify a complete replacement tree before any committed write. */
-export async function stageOutputTree(
+export async function stageGeneratedTree(
   repositoryRoot: string,
   root: ProjectPath,
-  artifacts: readonly PlannedArtifact[],
+  artifacts: readonly Artifact[],
 ): Promise<string> {
   const stagedPath = path.join(
     repositoryRoot,
@@ -118,12 +118,15 @@ export async function stageOutputTree(
     for (const artifact of artifacts) {
       const relativePath = relativeArtifactPath(root, artifact.path);
       if (relativePath === "") continue;
-      const outputPath = path.join(stagedPath, ...relativePath.split("/"));
-      if (artifact.kind === OutputEntryKind.Directory) {
-        await mkdir(outputPath, { recursive: true });
+      const stagedArtifactPath = path.join(
+        stagedPath,
+        ...relativePath.split("/"),
+      );
+      if (artifact.kind === ArtifactKind.Directory) {
+        await mkdir(stagedArtifactPath, { recursive: true });
       } else {
-        await mkdir(path.dirname(outputPath), { recursive: true });
-        await writeFile(outputPath, artifact.content, { flag: "wx" });
+        await mkdir(path.dirname(stagedArtifactPath), { recursive: true });
+        await writeFile(stagedArtifactPath, artifact.content, { flag: "wx" });
       }
     }
     const expected = [...artifacts].sort((left, right) =>
@@ -131,7 +134,7 @@ export async function stageOutputTree(
     );
     const actual = await snapshotStagedTree(stagedPath, root);
     if (!artifactsMatch(expected, actual)) {
-      throw new Error(`${root}: staged bytes differ from the output plan`);
+      throw new Error(`${root}: staged bytes differ from the write plan`);
     }
     return stagedPath;
   } catch (error) {

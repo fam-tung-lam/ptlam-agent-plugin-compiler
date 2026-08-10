@@ -6,6 +6,7 @@
     ".codex/**",
     "coverage/**",
     "dist/**",
+    "local/**",
     "**/node_modules/**",
     "examples/**/skills/**",
   ],

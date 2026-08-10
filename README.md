@@ -222,26 +222,29 @@ skills/
 
 ## Command-line interface
 
-| Command                                    | Purpose                                      |
-| ------------------------------------------ | -------------------------------------------- |
-| `plugin-compiler validate [--root <path>]` | Validate the manifest, skills, and graph     |
-| `plugin-compiler generate [--root <path>]` | Generate and verify all managed output files |
-| `plugin-compiler check [--root <path>]`    | Report output that does not match the source |
-| `plugin-compiler --help`                   | Show command usage                           |
+| Command                                                         | Purpose                                      |
+| --------------------------------------------------------------- | -------------------------------------------- |
+| `plugin-compiler validate [--root <path>] [--provider <id>]...` | Validate the manifest, skills, and graph     |
+| `plugin-compiler generate [--root <path>] [--provider <id>]...` | Generate and verify all managed output files |
+| `plugin-compiler check [--root <path>] [--provider <id>]...`    | Report output that does not match the source |
+| `plugin-compiler --help`                                        | Show command usage                           |
 
-Without `--root`, the compiler uses the current working directory.
+Without `--root`, the compiler uses the current working directory. Repeat
+`--provider` to select more than one provider. Without any provider flags, the
+compiler selects Claude and Codex.
 
 ## Node.js API
 
 ```ts
 import {
   AgentPluginCompiler,
-  Provider,
+  CLAUDE,
+  CODEX,
 } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
 
 const compiler = new AgentPluginCompiler({
   rootDir: process.cwd(),
-  providers: [Provider.Claude, Provider.Codex],
+  providers: [CLAUDE, CODEX],
 });
 
 await compiler.validate();
@@ -253,6 +256,52 @@ console.log(result.upToDate);
 
 Select Claude, Codex, both providers, or an empty list when only the shared
 `skills/` tree is needed.
+
+Advanced integrations can supply a per-instance `ProviderAdapterRegistry` to
+extend the compiler with another provider adapter. Each registry is immutable
+and isolated from other compiler instances; `register` returns a new registry.
+
+```ts
+import {
+  AgentPluginCompiler,
+  ArtifactKind,
+  OwnershipKind,
+  ProviderAdapterRegistry,
+  createPlanFragment,
+  createProjectPath,
+  createProviderId,
+  type ProviderAdapter,
+} from "@fam-tung-lam/ptlam-agent-plugin-compiler";
+
+const EXTERNAL = createProviderId("external");
+const manifestPath = createProjectPath(".external-plugin/plugin.json");
+const externalAdapter = {
+  id: EXTERNAL,
+  compile: ({ plugin }) =>
+    createPlanFragment({
+      ownerId: EXTERNAL,
+      ownership: {
+        kind: OwnershipKind.ExactFiles,
+        paths: [manifestPath],
+      },
+      artifacts: [
+        {
+          kind: ArtifactKind.File,
+          path: manifestPath,
+          content: new TextEncoder().encode(
+            `${JSON.stringify({ name: plugin.name })}\n`,
+          ),
+        },
+      ],
+    }),
+} satisfies ProviderAdapter;
+
+const registry = new ProviderAdapterRegistry().register(externalAdapter);
+const externalCompiler = new AgentPluginCompiler(
+  { rootDir: process.cwd(), providers: [EXTERNAL] },
+  registry,
+);
+```
 
 ## Documentation and support
 

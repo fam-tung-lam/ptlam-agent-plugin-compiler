@@ -18,6 +18,7 @@ interface ProcessResult {
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
+const nodeTypesDependency = "@types/node@22.20.1";
 
 function fail(message: string): never {
   throw new Error(message);
@@ -129,7 +130,9 @@ async function main(): Promise<void> {
         "--no-audit",
         "--no-fund",
         "--no-package-lock",
+        "--save-dev",
         artifactPath,
+        nodeTypesDependency,
       ],
       consumerRoot,
     );
@@ -157,15 +160,50 @@ async function main(): Promise<void> {
     }
     rejectInstallScripts(installedManifest);
 
+    const installedSchemaPath = path.join(
+      installedRoot,
+      "dist",
+      "schemas",
+      "v1",
+      "plugin-manifest.schema.json",
+    );
+    if (!(await stat(installedSchemaPath)).isFile()) {
+      fail(`Installed schema resource is not a file: ${installedSchemaPath}`);
+    }
+    const installedSchema: unknown = JSON.parse(
+      await readFile(installedSchemaPath, "utf8"),
+    );
+    if (
+      !isRecord(installedSchema) ||
+      installedSchema["$id"] !==
+        "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json"
+    ) {
+      fail("Installed manifest schema has an unexpected $id");
+    }
+
     await writeFile(
       path.join(consumerRoot, "consumer.ts"),
-      `import { AgentPluginCompiler, Provider, type CheckResult, type CompileResult, type CompilerOptionsInput, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
-        `const options = { rootDir: ".", providers: [Provider.Codex] } satisfies CompilerOptionsInput;\n` +
-        `const compiler = new AgentPluginCompiler(options);\n` +
+      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, ClaudeProviderAdapter, CodexProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
+        `const externalId: ProviderId = createProviderId("external");\n` +
+        `const externalPath: ProjectPath = createProjectPath(".external-plugin/plugin.json");\n` +
+        `const externalAdapter: ProviderAdapter = Object.freeze({\n` +
+        `  id: externalId,\n` +
+        `  compile(context: ProviderContext): PlanFragment {\n` +
+        `    const input = { ownerId: externalId, ownership: { kind: OwnershipKind.ExactFiles, paths: [externalPath] }, artifacts: [{ kind: ArtifactKind.File, path: externalPath, content: new TextEncoder().encode(context.plugin.name) }] } satisfies PlanFragmentInput;\n` +
+        `    return createPlanFragment(input);\n` +
+        `  },\n` +
+        `});\n` +
+        `const registry = new ProviderAdapterRegistry().register(externalAdapter);\n` +
+        `const options = { rootDir: ".", providers: [externalId] } satisfies CompilerOptionsInput;\n` +
+        `const compiler = new AgentPluginCompiler(options, registry);\n` +
         `const validation: Promise<ValidateResult> = compiler.validate();\n` +
         `const check: Promise<CheckResult> = compiler.check();\n` +
         `const compilation: Promise<CompileResult> = compiler.compile();\n` +
-        `void [validation, check, compilation];\n`,
+        `const fragment: PlanFragment = externalAdapter.compile({ plugin: null as unknown as Plugin });\n` +
+        `const artifact: Artifact | undefined = fragment.artifacts[0];\n` +
+        `const ownership: Ownership = fragment.ownership;\n` +
+        `const manifest = null as unknown as PluginManifest;\n` +
+        `void [validation, check, compilation, artifact, ownership, manifest, CLAUDE, CODEX, ClaudeProviderAdapter, CodexProviderAdapter];\n`,
       "utf8",
     );
     await writeFile(
@@ -177,6 +215,7 @@ async function main(): Promise<void> {
             noEmit: true,
             strict: true,
             target: "ES2024",
+            types: ["node"],
           },
           files: ["consumer.ts"],
         },
@@ -203,8 +242,14 @@ async function main(): Promise<void> {
         "--eval",
         `const namespace = await import(${JSON.stringify(sourceIdentity.name)});\n` +
           `const names = Object.keys(namespace).sort();\n` +
-          `if (JSON.stringify(names) !== '["AgentPluginCompiler","Provider"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
-          `if (namespace.Provider.Claude !== "claude" || namespace.Provider.Codex !== "codex") throw new Error("Unexpected Provider enum values");`,
+          `if (JSON.stringify(names) !== '["AgentPluginCompiler","ArtifactKind","CLAUDE","CODEX","ClaudeProviderAdapter","CodexProviderAdapter","OwnershipKind","ProviderAdapterRegistry","createPlanFragment","createProjectPath","createProviderId"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
+          `if (namespace.CLAUDE !== "claude" || namespace.CODEX !== "codex") throw new Error("Unexpected built-in provider IDs");\n` +
+          `const externalId = namespace.createProviderId("external");\n` +
+          `const externalPath = namespace.createProjectPath(".external-plugin/plugin.json");\n` +
+          `const fragment = namespace.createPlanFragment({ ownerId: externalId, ownership: { kind: namespace.OwnershipKind.ExactFiles, paths: [externalPath] }, artifacts: [{ kind: namespace.ArtifactKind.File, path: externalPath, content: new TextEncoder().encode("external") }] });\n` +
+          `const empty = new namespace.ProviderAdapterRegistry();\n` +
+          `const registered = empty.register({ id: externalId, compile: () => fragment });\n` +
+          `if (empty.list().length !== 0 || registered.resolve([externalId])[0]?.id !== externalId) throw new Error("Unexpected registry behavior");`,
       ],
       consumerRoot,
     );
@@ -220,6 +265,9 @@ async function main(): Promise<void> {
     requireSuccess(help, "Installed plugin-compiler --help");
     if (!help.stdout.startsWith("Usage: plugin-compiler")) {
       fail(`Installed CLI returned unexpected help output:\n${help.stdout}`);
+    }
+    if (!help.stdout.includes("--provider <id>")) {
+      fail(`Installed CLI help omits provider selection:\n${help.stdout}`);
     }
 
     process.stdout.write(
