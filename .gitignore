@@ -5,6 +5,8 @@
 coverage/
 dist/
 node_modules/
+webapp/.vitepress/cache/
+webapp/.vitepress/dist/
 *.tgz
 
 # Local unrelated references

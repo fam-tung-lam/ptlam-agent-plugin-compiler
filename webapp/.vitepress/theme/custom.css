@@ -1,0 +1,115 @@
+:root {
+  --vp-c-brand-1: #5941c6;
+  --vp-c-brand-2: #6b50db;
+  --vp-c-brand-3: #4933a9;
+  --vp-c-brand-soft: rgb(89 65 198 / 14%);
+  --vp-c-tip-1: #087a72;
+  --vp-c-tip-2: #0b9186;
+  --vp-c-tip-3: #06645e;
+  --vp-c-tip-soft: rgb(8 122 114 / 14%);
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    118deg,
+    #5941c6 8%,
+    #7658e8 48%,
+    #087a72 100%
+  );
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgb(107 80 219 / 30%) 0%,
+    rgb(8 122 114 / 16%) 38%,
+    transparent 72%
+  );
+  --vp-home-hero-image-filter: blur(42px);
+}
+
+.dark {
+  --vp-c-brand-1: #b8abff;
+  --vp-c-brand-2: #c8bfff;
+  --vp-c-brand-3: #9b88f4;
+  --vp-c-brand-soft: rgb(184 171 255 / 16%);
+  --vp-c-tip-1: #68d8ce;
+  --vp-c-tip-2: #88e5dd;
+  --vp-c-tip-3: #49bdb3;
+  --vp-c-tip-soft: rgb(104 216 206 / 14%);
+  --vp-home-hero-name-background: linear-gradient(
+    118deg,
+    #c8bfff 4%,
+    #a993ff 50%,
+    #68d8ce 100%
+  );
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgb(155 136 244 / 28%) 0%,
+    rgb(104 216 206 / 14%) 38%,
+    transparent 72%
+  );
+}
+
+:where(a, button, input, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
+.VPButton {
+  border-radius: 12px;
+}
+
+.VPHomeHero .image-bg {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.VPFeature {
+  border-color: color-mix(
+    in srgb,
+    var(--vp-c-brand-1) 18%,
+    var(--vp-c-divider)
+  );
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, var(--vp-c-brand-soft), transparent 58%),
+    var(--vp-c-bg-soft);
+}
+
+.VPDoc :not(pre) > code {
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1) 18%, transparent);
+}
+
+@media (max-width: 639px) {
+  .VPHomeHero .actions {
+    gap: 10px;
+  }
+
+  .VPHomeHero .action,
+  .VPHomeHero .VPButton {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@supports not (color: color-mix(in srgb, black, white)) {
+  .VPFeature {
+    border-color: var(--vp-c-divider);
+  }
+
+  .VPDoc :not(pre) > code {
+    border-color: var(--vp-c-divider);
+  }
+}

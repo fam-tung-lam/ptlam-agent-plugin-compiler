@@ -395,6 +395,7 @@ const externalCompiler = new AgentPluginCompiler(
 
 ## Documentation and support
 
+- [Documentation](https://agent-plugin-compiler.phamtunglam.com)
 - [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)
 - [Complete example](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/tree/main/examples/simple-agent-plugin)
 - [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://agent-plugin-compiler.phamtunglam.com/sitemap.xml
