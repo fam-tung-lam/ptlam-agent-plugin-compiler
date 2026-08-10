@@ -12,14 +12,14 @@ Usage: plugin-compiler [OPTIONS] <COMMAND>
 | ---------- | --------------------- | ------------ | -------------------- | ------------------------------------ |
 | `init`     | Existing paths        | No           | Missing source paths | Create a safe starter                |
 | `validate` | Yes                   | No           | No                   | Validate manifest, skills, and graph |
-| `generate` | Yes                   | Yes          | Yes                  | Reconcile and verify managed output  |
+| `compile`  | Yes                   | Yes          | Yes                  | Compile and verify managed output    |
 | `check`    | Yes                   | Yes          | No                   | Report generated drift               |
 
 Show root or focused help:
 
 ```bash
 plugin-compiler --help
-plugin-compiler generate --help
+plugin-compiler compile --help
 ```
 
 Both `-h` and `--help` are accepted.
@@ -37,7 +37,7 @@ compiler operation begins.
 
 ## Provider options
 
-`validate`, `generate`, and `check` accept exactly one provider selection mode:
+`validate`, `compile`, and `check` accept exactly one provider selection mode:
 
 ```text
 --provider <id>[,<id>...]

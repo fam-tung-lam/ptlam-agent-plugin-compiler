@@ -29,11 +29,11 @@ Built-in constants are `CLAUDE`, `CODEX`, `COPILOT`, `GEMINI`, and `KIMI`.
 ```ts
 const initialized = await compiler.init();
 const validation = await compiler.validate();
-const generated = await compiler.compile();
+const compiled = await compiler.compile();
 const checked = await compiler.check();
 ```
 
-The Node.js method corresponding to the CLI `generate` command is `compile()`.
+The Node.js method corresponding to the CLI `compile` command is `compile()`.
 
 | Method       | Main result facts                                            |
 | ------------ | ------------------------------------------------------------ |

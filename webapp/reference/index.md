@@ -29,7 +29,7 @@ your installed version and verify behavior with focused `--help` output.
 ## Stability note
 
 The package is currently a beta prerelease. Pin it exactly, review release notes
-before upgrading, and regenerate output with the upgraded version before
+before upgrading, and recompile output with the upgraded version before
 accepting the change.
 
 Start with the [CLI reference](/reference/cli), or follow the

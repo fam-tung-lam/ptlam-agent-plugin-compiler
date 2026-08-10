@@ -1,7 +1,7 @@
 # Generated Output
 
 Generated files are a projection of `plugin/plugin.yml` and `plugin/skills/**`.
-Regenerate them; do not maintain them as a second source.
+Recompile them; do not maintain them as a second source.
 
 ## Shared skill tree
 
@@ -40,25 +40,25 @@ paths; unrelated repository files remain outside the plan.
 
 ## Select output for one run
 
-Without an override, `validate`, `generate`, and `check` use the manifest's
+Without an override, `validate`, `compile`, and `check` use the manifest's
 `providers` list. Replace that selection for one invocation with a
 comma-separated list:
 
 ```bash
-npm exec -- plugin-compiler generate --provider claude,codex
+npm exec -- plugin-compiler compile --provider claude,codex
 ```
 
-Generate only shared skills with no provider manifests:
+Compile only shared skills with no provider manifests:
 
 ```bash
-npm exec -- plugin-compiler generate --no-providers
+npm exec -- plugin-compiler compile --no-providers
 ```
 
 The two provider options are mutually exclusive.
 
 ## Keep CI honest
 
-Run `generate` when authored source changes. Run `check` in verification paths
+Run `compile` when authored source changes. Run `check` in verification paths
 where writes are undesirable:
 
 ```bash
@@ -66,7 +66,7 @@ npm exec -- plugin-compiler check
 ```
 
 A clean check proves the selected managed paths match the same deterministic
-write plan that `generate` would apply.
+write plan that `compile` would apply.
 
 Next: compare [provider contracts](/reference/providers), or use the compiler
 through its [Node.js interface](/reference/node-interface).

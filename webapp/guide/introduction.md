@@ -21,14 +21,14 @@ The compiler gives those relationships one explicit source:
 ## The authoring loop
 
 ```text
-Initialize → Edit authored source → Validate → Generate → Check → Publish
+Initialize → Edit authored source → Validate → Compile → Check → Publish
 ```
 
 1. `init` creates missing starter paths without replacing existing content.
 2. You edit only the authored manifest and skill sources.
 3. `validate` checks the manifest, source files, Markdown links, and dependency
    graph without inspecting generated output.
-4. `generate` reconciles compiler-owned output and verifies the result from a
+4. `compile` reconciles compiler-owned output and verifies the result from a
    fresh filesystem snapshot.
 5. `check` compares current output with the desired plan without writing.
 
@@ -36,7 +36,7 @@ Initialize → Edit authored source → Validate → Generate → Check → Publ
 
 Treat `plugin/**` as source and compiler-managed output as a build result. Do
 not fix a generated skill or provider manifest by hand: update the authored
-source and run `generate` again.
+source and run `compile` again.
 
 The compiler owns the complete root `skills/` tree and exact manifest paths for
 the built-in providers. Files outside those declared paths remain outside its

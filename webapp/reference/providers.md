@@ -38,7 +38,7 @@ An empty list requests shared skills without built-in provider manifests.
 The CLI override replaces the manifest list; it does not add to it:
 
 ```bash
-plugin-compiler generate --provider copilot,gemini,kimi
+plugin-compiler compile --provider copilot,gemini,kimi
 ```
 
 Use `--no-providers` for an explicit empty override. The Node.js interface uses

@@ -30,7 +30,7 @@ Running `init` again leaves existing manifest and skill content unchanged.
 ## 2. Replace the starter values
 
 Open `plugin/plugin.yml` and replace its `TODO` values. Choose the providers to
-generate by default:
+compile by default:
 
 ```yaml
 schema_version: 1
@@ -91,10 +91,10 @@ npm exec -- plugin-compiler validate
 Validation checks the complete authored source and reports all recoverable
 source diagnostics together.
 
-## 4. Generate and verify
+## 4. Compile and verify
 
 ```bash
-npm exec -- plugin-compiler generate
+npm exec -- plugin-compiler compile
 ```
 
 The compiler writes the shared `skills/` tree and the provider manifests

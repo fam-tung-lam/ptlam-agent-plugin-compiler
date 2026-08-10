@@ -48,7 +48,7 @@
         </div>
         <h3>Deterministic by default</h3>
         <p>
-          Generate exact managed paths, then use <code>check</code> to detect
+          Compile exact managed paths, then use <code>check</code> to detect
           drift without writing.
         </p>
       </article>

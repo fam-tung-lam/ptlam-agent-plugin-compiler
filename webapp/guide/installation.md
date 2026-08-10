@@ -12,4 +12,4 @@ npm install --save-dev --save-exact \
 ```
 
 Commit the resulting `package.json` and lockfile with your plugin source. A
-locked compiler version keeps local and CI generation aligned.
+locked compiler version keeps local and CI compilation aligned.
