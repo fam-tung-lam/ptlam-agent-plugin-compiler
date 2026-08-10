@@ -3,10 +3,11 @@ layout: home
 title: Agent Plugin Compiler
 
 hero:
-  text: Author once. Validate the graph. Compile every host manifest.
+  text: Author the plugin once. Compile every agent host.
   tagline: >-
-    Build self-contained agent skill plugins from one explicit authored source,
-    with deterministic output for Claude, Codex, Copilot, Gemini, and Kimi.
+    Define metadata in plugin/plugin.yml and keep skill instructions and
+    resources under plugin/skills/**. Validate the dependency graph, then build
+    self-contained skills and deterministic manifests for every selected host.
   actions:
     - theme: brand
       text: Get started

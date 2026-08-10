@@ -5,66 +5,55 @@
     aria-labelledby="compiler-flow-title compiler-flow-description"
   >
     <figcaption id="compiler-flow-title" class="apc-sr-only">
-      Agent Plugin Compiler transformation flow
+      Agent Plugin Compiler build flow
     </figcaption>
     <p id="compiler-flow-description" class="apc-sr-only">
-      A plugin manifest passes through Agent Plugin Compiler and becomes
-      deterministic output for five agent providers.
+      The authored plugin manifest, skill sources, and resources are validated
+      as one dependency graph and compiled through one deterministic write plan
+      into self-contained skills and exact provider manifests.
     </p>
 
     <div class="apc-compiler-flow__diagram" aria-hidden="true">
-      <div class="apc-flow-manifest">
-        <svg viewBox="0 0 32 32">
-          <path d="M8 4h11l5 5v19H8z" />
-          <path d="M19 4v6h6M12 16h8M12 21h8" />
-        </svg>
-        <span>Plugin manifest</span>
+      <div class="apc-flow-source apc-flow-node">
+        <span class="apc-flow-node__eyebrow">AUTHORED TREE</span>
+        <strong>plugin/</strong>
+        <span>plugin.yml</span>
+        <span>skills/**</span>
+        <span>resources</span>
       </div>
 
-      <svg class="apc-flow-arrow apc-flow-arrow--input" viewBox="0 0 70 20">
-        <path class="apc-flow-arrow__line" d="M0 10h70" />
-        <path class="apc-flow-arrow__tip" d="m64 6 6 4-6 4" />
+      <svg class="apc-flow-arrow apc-flow-arrow--input" viewBox="0 0 56 20">
+        <path class="apc-flow-arrow__line" d="M0 10h56" />
+        <path class="apc-flow-arrow__tip" d="m50 6 6 4-6 4" />
       </svg>
 
-      <div class="apc-flow-compiler">
+      <div class="apc-flow-compiler apc-flow-node">
         <img src="/logo.svg" alt="" />
-        <span>Plugin compiler</span>
+        <strong>Compiler</strong>
+        <span>validate · plan</span>
       </div>
 
       <svg
         class="apc-flow-arrow apc-flow-arrow--output"
-        viewBox="0 0 84 134"
+        viewBox="0 0 70 118"
         preserveAspectRatio="none"
       >
-        <path class="apc-flow-arrow__line" d="M0 67h28" />
-        <path class="apc-flow-arrow__line" d="M28 11v112" />
-        <path class="apc-flow-arrow__line" d="M28 11h56" />
-        <path class="apc-flow-arrow__line" d="M28 39h56" />
-        <path class="apc-flow-arrow__line" d="M28 67h56" />
-        <path class="apc-flow-arrow__line" d="M28 95h56" />
-        <path class="apc-flow-arrow__line" d="M28 123h56" />
-        <path class="apc-flow-arrow__tip" d="m78 7 6 4-6 4" />
-        <path class="apc-flow-arrow__tip" d="m78 35 6 4-6 4" />
-        <path class="apc-flow-arrow__tip" d="m78 63 6 4-6 4" />
-        <path class="apc-flow-arrow__tip" d="m78 91 6 4-6 4" />
-        <path class="apc-flow-arrow__tip" d="m78 119 6 4-6 4" />
+        <path class="apc-flow-arrow__line" d="M0 59h24M24 22v74M24 22h46M24 96h46" />
+        <path class="apc-flow-arrow__tip" d="m64 18 6 4-6 4M64 92l6 4-6 4" />
       </svg>
 
-      <div class="apc-flow-providers">
-        <div class="apc-flow-provider-row">
-          <span>Claude</span>
+      <div class="apc-flow-outputs">
+        <div class="apc-flow-output apc-flow-output--skills">
+          <span class="apc-flow-node__eyebrow">SELF-CONTAINED</span>
+          <strong>skills/**</strong>
+          <span>public roots + dependencies</span>
         </div>
-        <div class="apc-flow-provider-row">
-          <span>Codex</span>
-        </div>
-        <div class="apc-flow-provider-row">
-          <span>Copilot</span>
-        </div>
-        <div class="apc-flow-provider-row">
-          <span>Gemini</span>
-        </div>
-        <div class="apc-flow-provider-row">
-          <span>Kimi</span>
+        <div class="apc-flow-output apc-flow-output--hosts">
+          <span class="apc-flow-node__eyebrow">EXACT HOST FILES</span>
+          <div class="apc-flow-provider-list">
+            <span>Claude</span><span>Codex</span><span>Copilot</span>
+            <span>Gemini</span><span>Kimi</span>
+          </div>
         </div>
       </div>
     </div>
