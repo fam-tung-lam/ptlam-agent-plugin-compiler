@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added the argument-free `plugin-compiler init` command to create missing
+  `plugin/`, `plugin/skills/`, and empty `plugin/plugin.yml` paths without
+  changing existing content.
+
 ## [0.1.0-alpha.3] - 2026-08-10
 
 ### Changed

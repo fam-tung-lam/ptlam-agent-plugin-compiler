@@ -25,6 +25,7 @@ export type {
   CheckResult,
   CompileResult,
   CompilerOptionsInput,
+  InitResult,
   ValidateResult,
 } from "./compiler/index.js";
 export { AgentPluginCompiler } from "./compiler/index.js";

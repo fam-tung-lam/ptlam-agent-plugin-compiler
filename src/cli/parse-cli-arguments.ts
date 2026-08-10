@@ -82,6 +82,10 @@ export function parseCliArguments(
     throw new CliUsageError(`Unknown command ${JSON.stringify(commandValue)}.`);
   }
 
+  if (commandValue === CliCommand.Init && argv.length > 1) {
+    throw new CliUsageError("init does not accept arguments.");
+  }
+
   let rootDir = path.resolve(currentWorkingDirectory);
   let rootSeen = false;
   const requestedProviders: ProviderId[] = [];

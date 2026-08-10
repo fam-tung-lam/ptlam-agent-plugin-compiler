@@ -28,10 +28,13 @@ interface ProcessResult {
   readonly stderr: string;
 }
 
-function runCli(argv: readonly string[]): Promise<ProcessResult> {
+function runCli(
+  argv: readonly string[],
+  currentWorkingDirectory = repositoryRoot,
+): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, ...argv], {
-      cwd: repositoryRoot,
+      cwd: currentWorkingDirectory,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
@@ -111,6 +114,37 @@ ${invalidManifest ? "unexpected: true\n" : ""}`,
 }
 
 describe("plugin compiler CLI process", () => {
+  it("initializes missing source paths and preserves them on repeated runs", async () => {
+    // GIVEN: An empty real directory will become an authored plugin repository.
+    const rootDir = await mkdtemp(
+      path.join(tmpdir(), "ptlam-plugin-cli-init-"),
+    );
+    onTestFinished(() => rm(rootDir, { recursive: true, force: true }));
+
+    // WHEN: The real init command runs, the manifest gains user content, and init runs again.
+    const first = await runCli(["init"], rootDir);
+    const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+    await writeFile(manifestPath, "user-owned: true\n", "utf8");
+    const second = await runCli(["init"], rootDir);
+
+    // THEN: Missing paths are created once and existing content remains unchanged.
+    assert.equal(first.exitCode, CliExitCode.Success);
+    assert.match(first.stdout, /Plugin source initialized/u);
+    assert.equal(
+      (await lstat(path.join(rootDir, "plugin"))).isDirectory(),
+      true,
+    );
+    assert.equal(
+      (await lstat(path.join(rootDir, "plugin", "skills"))).isDirectory(),
+      true,
+    );
+    assert.equal(second.exitCode, CliExitCode.Success);
+    assert.match(second.stdout, /already initialized/u);
+    assert.equal(await readFile(manifestPath, "utf8"), "user-owned: true\n");
+    assert.equal(first.stderr, "");
+    assert.equal(second.stderr, "");
+  });
+
   it("validates a real fixture through the executable entrypoint", async () => {
     // GIVEN: A valid authored plugin repository and the real compiler composition.
     const rootDir = await createFixtureRepository();

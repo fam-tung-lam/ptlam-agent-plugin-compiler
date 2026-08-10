@@ -85,6 +85,8 @@ describe("parseCliArguments", () => {
       argv: ["check", "--root", "one", "--root", "two"],
       expected: "only once",
     },
+    { argv: ["init", "--root", "fixture"], expected: "does not accept" },
+    { argv: ["init", "--adopt"], expected: "does not accept" },
   ])("rejects invalid arguments: $expected", ({ argv, expected }) => {
     // GIVEN: A malformed or unsupported command line.
 

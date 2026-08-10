@@ -11,6 +11,7 @@ import {
 import {
   createCheckResult,
   createCompileResult,
+  createInitResult,
   createValidateResult,
 } from "../../../../src/compiler/index.ts";
 import {
@@ -32,6 +33,32 @@ const scope = Object.freeze({
 });
 
 describe("formatCliResult", () => {
+  it("formats created and unchanged initialization paths without providers", () => {
+    // GIVEN: Initialization creates two paths and preserves one existing path.
+    const result = createInitResult({
+      createdPaths: [
+        createProjectPath("plugin/skills"),
+        createProjectPath("plugin/plugin.yml"),
+      ],
+      existingPaths: [createProjectPath("plugin")],
+      warnings: [],
+    });
+
+    // WHEN: The init result is formatted for the terminal.
+    const report = formatCliResult({ command: CliCommand.Init, result }, scope);
+
+    // THEN: Output reports filesystem facts without irrelevant providers.
+    assert.equal(report.exitCode, CliExitCode.Success);
+    assert.deepEqual(report.stdout, [
+      "Scope: /repository.",
+      "Plugin source initialized.",
+      "- plugin/skills: created",
+      "- plugin/plugin.yml: created",
+      "- plugin: unchanged",
+    ]);
+    assert.deepEqual(report.stderr, []);
+  });
+
   it("formats validation scope, counts, and warnings", () => {
     // GIVEN: Validation succeeds with one warning for both repository providers.
     const result = createValidateResult({
@@ -121,6 +148,7 @@ describe("formatCliResult", () => {
 
     // THEN: Help succeeds on stdout while misuse fails with exit code two on stderr.
     assert.equal(help.exitCode, CliExitCode.Success);
+    assert.match(help.stdout.join("\n"), /plugin-compiler init/u);
     assert.match(help.stdout.join("\n"), /validate\|check\|generate/u);
     assert.match(help.stdout.join("\n"), /--provider <id>/u);
     assert.match(help.stdout.join("\n"), /Defaults to: claude, codex/u);

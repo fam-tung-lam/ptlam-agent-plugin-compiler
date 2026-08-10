@@ -100,7 +100,19 @@ npm install --save-dev --save-exact \
 
 ## Quick start
 
-### 1. Create the authored plugin source
+### 1. Initialize the authored plugin source
+
+Run `init` from the plugin repository root:
+
+```bash
+npm exec -- plugin-compiler init
+```
+
+The command creates an empty `plugin/plugin.yml` and the `plugin/skills/`
+directory. It is safe to run repeatedly: existing paths and manifest content
+remain unchanged.
+
+### 2. Describe the authored plugin source
 
 ```text
 plugin/
@@ -199,7 +211,7 @@ Create a focused implementation plan from verified repository facts.
   top-level title, they appear at the beginning.
 - Do not add YAML frontmatter here; the compiler generates it.
 
-### 2. Run the compiler
+### 3. Run the compiler
 
 `generate` replaces the compiler-owned root `skills/` tree and provider manifest
 files.
@@ -231,14 +243,16 @@ skills/
 
 | Command                                                         | Purpose                                      |
 | --------------------------------------------------------------- | -------------------------------------------- |
+| `plugin-compiler init`                                          | Create missing authored source paths         |
 | `plugin-compiler validate [--root <path>] [--provider <id>]...` | Validate the manifest, skills, and graph     |
 | `plugin-compiler generate [--root <path>] [--provider <id>]...` | Generate and verify all managed output files |
 | `plugin-compiler check [--root <path>] [--provider <id>]...`    | Report output that does not match the source |
 | `plugin-compiler --help`                                        | Show command usage                           |
 
-Without `--root`, the compiler uses the current working directory. Repeat
-`--provider` to select more than one provider. Without any provider flags, the
-compiler selects Claude and Codex.
+`init` accepts no arguments and always uses the current working directory. For
+other commands, without `--root`, the compiler uses the current working
+directory. Repeat `--provider` to select more than one provider. Without any
+provider flags, the compiler selects Claude and Codex.
 
 ## Node.js API
 

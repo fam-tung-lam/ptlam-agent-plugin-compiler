@@ -22,6 +22,7 @@ const expectedDeclarationNames = [
   "CodexProviderAdapter",
   "CompileResult",
   "CompilerOptionsInput",
+  "InitResult",
   "Ownership",
   "OwnershipKind",
   "PlanFragment",

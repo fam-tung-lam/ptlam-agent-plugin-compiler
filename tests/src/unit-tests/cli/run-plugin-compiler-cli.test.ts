@@ -24,6 +24,11 @@ function operations({
   readonly validate?: CompilerOperations["validate"];
 } = {}): CompilerOperations {
   return {
+    init: async () => ({
+      createdPaths: [],
+      existingPaths: [],
+      warnings: [],
+    }),
     validate,
     check: async () => {
       throw new Error("Unexpected check call");

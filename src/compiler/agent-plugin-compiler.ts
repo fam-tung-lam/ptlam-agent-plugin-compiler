@@ -4,6 +4,7 @@ import {
   type ProviderAdapter,
 } from "../core/index.js";
 import {
+  initializePluginSource,
   readGeneratedSnapshot,
   readPluginSource,
   writePlan,
@@ -17,7 +18,9 @@ import {
   type CompileResult,
   createCheckResult,
   createCompileResult,
+  createInitResult,
   createValidateResult,
+  type InitResult,
   type ValidateResult,
 } from "./results.js";
 import {
@@ -115,6 +118,23 @@ export class AgentPluginCompiler {
     this.options = new CompilerOptions(input);
     this.providers = registry.resolve(this.options.providers);
     Object.freeze(this);
+  }
+
+  /**
+   * Creates the minimal authored source layout without replacing existing paths.
+   *
+   * @returns Paths created or left unchanged by initialization.
+   * @throws {Error} If the repository cannot be inspected or a path has the wrong kind.
+   *
+   * @example
+   * ```ts
+   * const result = await compiler.init();
+   * console.log(result.createdPaths);
+   * ```
+   */
+  async init(): Promise<InitResult> {
+    const result = await initializePluginSource(this.options.rootDir);
+    return createInitResult({ ...result, warnings: [] });
   }
 
   /**

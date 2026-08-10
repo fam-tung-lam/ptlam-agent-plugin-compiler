@@ -3,7 +3,8 @@ import type { CompilerScope } from "./ports.js";
 import { CliExitCode, type CliReport } from "./report.js";
 
 const USAGE_LINES = Object.freeze([
-  "Usage: plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>]...",
+  "Usage: plugin-compiler init",
+  "       plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>]...",
   "Repeat --provider to select providers. Defaults to: claude, codex.",
 ]);
 
@@ -17,6 +18,10 @@ function countLabel(
 
 function scopeLine(scope: CompilerScope): string {
   return `Scope: ${scope.rootDir}; providers: ${scope.providers.join(", ")}.`;
+}
+
+function rootLine(scope: CompilerScope): string {
+  return `Scope: ${scope.rootDir}.`;
 }
 
 function warningLines(warnings: readonly string[]): string[] {
@@ -101,6 +106,21 @@ export function formatCliResult(
 ): CliReport {
   const warnings = warningLines(executed.result.warnings);
   switch (executed.command) {
+    case CliCommand.Init:
+      return createReport({
+        exitCode: CliExitCode.Success,
+        stdout: [
+          rootLine(scope),
+          executed.result.createdPaths.length === 0
+            ? "Plugin source is already initialized."
+            : "Plugin source initialized.",
+          ...executed.result.createdPaths.map((path) => `- ${path}: created`),
+          ...executed.result.existingPaths.map(
+            (path) => `- ${path}: unchanged`,
+          ),
+        ],
+        stderr: warnings,
+      });
     case CliCommand.Validate:
       return createReport({
         exitCode: CliExitCode.Success,
