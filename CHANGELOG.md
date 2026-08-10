@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Replaced repeated `--provider` flags with one comma-separated
+  provider list. Migrate `--provider claude --provider codex` to
+  `--provider claude,codex`.
+
 ## [0.1.0-alpha.3] - 2026-08-10
 
 ### Changed

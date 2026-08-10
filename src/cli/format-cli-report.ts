@@ -3,8 +3,8 @@ import type { CompilerScope } from "./ports.js";
 import { CliExitCode, type CliReport } from "./report.js";
 
 const USAGE_LINES = Object.freeze([
-  "Usage: plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>]...",
-  "Repeat --provider to select providers. Defaults to: claude, codex.",
+  "Usage: plugin-compiler <validate|check|generate> [--root <path>] [--provider <id>[,<id>...]]",
+  "Specify --provider once; separate multiple providers with commas. Defaults to: claude, codex.",
 ]);
 
 function countLabel(
