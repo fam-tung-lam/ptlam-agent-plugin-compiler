@@ -143,13 +143,14 @@ sequenceDiagram
 | ------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | Package operation seam    | `AgentPluginCompiler`                                                          | Operation order and pipeline composition                                       |
 | `compiler` internal seams | `compiler/validation`, `compiler/rendering`, and `compiler/planning` functions | Parsing, graph checks, Markdown rendering, plan assembly, and drift comparison |
-| Provider seam             | `core`'s `ProviderAdapter`                                                     | Registry and Claude/Codex rendering rules                                      |
+| Provider seam             | `core`'s `ProviderAdapter`                                                     | Registry and host-specific rendering rules                                     |
 | Repository seam           | `filesystem` readers and writer                                                | Path safety, snapshots, atomic file writes, and skills-tree replacement        |
 | Terminal seam             | `cli` command runner and immutable reports                                     | Argument parsing, output routing, and process exit handling                    |
 
 - Authored inputs are `plugin/plugin.yml` and `plugin/skills/**`.
 - Shared generated outputs are `skills/**` and `skills/README.md`.
-- Provider outputs are `.claude-plugin/**` and `.codex-plugin/plugin.json`.
+- Provider outputs are `.claude-plugin/**`, `.codex-plugin/plugin.json`, root
+  `plugin.json`, `gemini-extension.json`, and `kimi.plugin.json`.
 - `src/schemas/v1/plugin-manifest.schema.json` is a versioned data resource, not
   a code module; the build copies it to the same path under `dist/`.
 - Root `README.md`, `LICENSE`, and every unowned path remain human-owned.
@@ -246,6 +247,9 @@ flowchart LR
         CodexProviderAdapter
         (built-in adapter)
     `"]
+    CopilotProviderAdapter["`CopilotProviderAdapter`"]
+    GeminiProviderAdapter["`GeminiProviderAdapter`"]
+    KimiProviderAdapter["`KimiProviderAdapter`"]
     ProviderContext["`
         ProviderContext
         (validated Plugin)
@@ -259,6 +263,9 @@ flowchart LR
     ProviderAdapterRegistry ------>|"`owns selected adapters`"| ProviderAdapter
     ClaudeProviderAdapter ------>|"`implements`"| ProviderAdapter
     CodexProviderAdapter ------>|"`implements`"| ProviderAdapter
+    CopilotProviderAdapter ------>|"`implements`"| ProviderAdapter
+    GeminiProviderAdapter ------>|"`implements`"| ProviderAdapter
+    KimiProviderAdapter ------>|"`implements`"| ProviderAdapter
     ProviderAdapter ------>|"`reads`"| ProviderContext
     ProviderAdapter ------>|"`returns`"| PlanFragment
 ```
@@ -269,6 +276,9 @@ flowchart LR
 | `ProviderContext`         | `core`      | Give adapters the validated plugin data they need   | Contains no live filesystem access                        |
 | `ClaudeProviderAdapter`   | `providers` | Render `.claude-plugin/**`                          | Owns only Claude paths                                    |
 | `CodexProviderAdapter`    | `providers` | Render `.codex-plugin/plugin.json`                  | Owns only Codex paths                                     |
+| `CopilotProviderAdapter`  | `providers` | Render root `plugin.json`                           | Owns only the Copilot manifest                            |
+| `GeminiProviderAdapter`   | `providers` | Render root `gemini-extension.json`                 | Owns only the Gemini manifest                             |
+| `KimiProviderAdapter`     | `providers` | Render root `kimi.plugin.json`                      | Owns only the Kimi manifest                               |
 | `ProviderAdapterRegistry` | `providers` | Hold and resolve adapters for one compiler instance | Immutable, unique IDs, deterministic order                |
 
 - `AgentPluginCompiler` accepts a registry and uses a registry with built-ins by
@@ -279,6 +289,8 @@ flowchart LR
   unchanged.
 - `cli` provider input is first converted to `ProviderId`, then checked against
   the registry.
+- Omitting `--provider` selects no adapters, so the plan contains only the
+  shared `skills/` fragment. Every provider manifest is opt-in.
 - A malformed ID and a well-formed unknown ID are distinct failures; both are
   `cli` usage errors with exit code `2`.
 - Planning applies fragment integrity, collision, ownership, and path checks to
@@ -286,7 +298,7 @@ flowchart LR
 - `providers` contains host-specific rendering only; operation order remains in
   `compiler`.
 
-The seam is open inside the process and has two real adapters. It is not a
+The seam is open inside the process and has five real adapters. It is not a
 separate package or process ABI, and it needs neither an abstract base class nor
 a global registry.
 

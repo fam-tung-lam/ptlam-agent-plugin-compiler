@@ -4,7 +4,14 @@ import type {
   InitResult,
   ValidateResult,
 } from "../compiler/index.js";
-import { CLAUDE, CODEX, type ProviderId } from "../providers/index.js";
+import {
+  CLAUDE,
+  CODEX,
+  COPILOT,
+  GEMINI,
+  KIMI,
+  type ProviderId,
+} from "../providers/index.js";
 
 /**
  * CLI operations accepted by the terminal adapter.
@@ -22,15 +29,23 @@ export enum CliCommand {
   Generate = "generate",
 }
 
+/** Built-in provider IDs accepted by the CLI. @internal */
+export const AVAILABLE_PROVIDERS: readonly ProviderId[] = Object.freeze([
+  CLAUDE,
+  CODEX,
+  COPILOT,
+  GEMINI,
+  KIMI,
+]);
+
 /**
  * Built-in providers selected when no `--provider` flag is present.
  *
+ * An empty selection still compiles the shared `skills/` tree.
+ *
  * @internal
  */
-export const DEFAULT_PROVIDERS: readonly ProviderId[] = Object.freeze([
-  CLAUDE,
-  CODEX,
-]);
+export const DEFAULT_PROVIDERS: readonly ProviderId[] = Object.freeze([]);
 
 /**
  * One completed compiler operation paired with its command.

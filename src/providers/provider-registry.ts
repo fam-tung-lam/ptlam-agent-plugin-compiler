@@ -1,6 +1,9 @@
 import type { ProviderAdapter } from "../core/index.js";
 import { ClaudeProviderAdapter } from "./claude-provider.js";
 import { CodexProviderAdapter } from "./codex-provider.js";
+import { CopilotProviderAdapter } from "./copilot-provider.js";
+import { GeminiProviderAdapter } from "./gemini-provider.js";
+import { KimiProviderAdapter } from "./kimi-provider.js";
 
 /** Why a provider selection could not be resolved. */
 export enum ProviderSelectionErrorReason {
@@ -77,9 +80,9 @@ export class ProviderAdapterRegistry {
   }
 
   /**
-   * Create an isolated registry containing the Claude and Codex adapters.
+   * Create an isolated registry containing every built-in provider adapter.
    *
-   * @returns A new immutable registry in Claude-then-Codex order.
+   * @returns A new immutable registry in public provider ID order.
    *
    * @example
    * ```ts
@@ -90,6 +93,9 @@ export class ProviderAdapterRegistry {
     return new ProviderAdapterRegistry([
       new ClaudeProviderAdapter(),
       new CodexProviderAdapter(),
+      new CopilotProviderAdapter(),
+      new GeminiProviderAdapter(),
+      new KimiProviderAdapter(),
     ]);
   }
 

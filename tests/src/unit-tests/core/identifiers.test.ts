@@ -6,10 +6,13 @@ import {
   type CategoryId,
   CLAUDE,
   CODEX,
+  COPILOT,
   createCategoryId,
   createProviderId,
   createSkillId,
+  GEMINI,
   InvalidIdentifierError,
+  KIMI,
   type PluginCategory,
   type ProviderId,
   type SkillId,
@@ -46,6 +49,9 @@ describe("branded identifiers", () => {
   it("supports extensible provider identifiers and stable built-in constants", () => {
     assert.equal(CLAUDE, "claude");
     assert.equal(CODEX, "codex");
+    assert.equal(COPILOT, "copilot");
+    assert.equal(GEMINI, "gemini");
+    assert.equal(KIMI, "kimi");
     assert.equal(createProviderId("custom-provider"), "custom-provider");
 
     for (const value of ["", "Claude", "1provider", "provider!"]) {

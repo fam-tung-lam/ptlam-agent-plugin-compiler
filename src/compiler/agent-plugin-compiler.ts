@@ -108,7 +108,7 @@ export class AgentPluginCompiler {
    * Creates a compiler with a fixed repository and provider selection.
    *
    * @param input - Repository path and provider IDs for this instance.
-   * @param registry - Per-instance adapter registry; defaults to Claude and Codex adapters.
+   * @param registry - Per-instance adapter registry; defaults to all built-in adapters.
    * @throws {TypeError} If the repository path is empty or a selected provider is unknown or duplicated.
    */
   constructor(

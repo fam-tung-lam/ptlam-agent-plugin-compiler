@@ -183,7 +183,7 @@ async function main(): Promise<void> {
 
     await writeFile(
       path.join(consumerRoot, "consumer.ts"),
-      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, ClaudeProviderAdapter, CodexProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
+      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
         `const externalId: ProviderId = createProviderId("external");\n` +
         `const externalPath: ProjectPath = createProjectPath(".external-plugin/plugin.json");\n` +
         `const externalAdapter: ProviderAdapter = Object.freeze({\n` +
@@ -203,7 +203,7 @@ async function main(): Promise<void> {
         `const artifact: Artifact | undefined = fragment.artifacts[0];\n` +
         `const ownership: Ownership = fragment.ownership;\n` +
         `const manifest = null as unknown as PluginManifest;\n` +
-        `void [validation, check, compilation, artifact, ownership, manifest, CLAUDE, CODEX, ClaudeProviderAdapter, CodexProviderAdapter];\n`,
+        `void [validation, check, compilation, artifact, ownership, manifest, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter];\n`,
       "utf8",
     );
     await writeFile(
@@ -242,8 +242,8 @@ async function main(): Promise<void> {
         "--eval",
         `const namespace = await import(${JSON.stringify(sourceIdentity.name)});\n` +
           `const names = Object.keys(namespace).sort();\n` +
-          `if (JSON.stringify(names) !== '["AgentPluginCompiler","ArtifactKind","CLAUDE","CODEX","ClaudeProviderAdapter","CodexProviderAdapter","OwnershipKind","ProviderAdapterRegistry","createPlanFragment","createProjectPath","createProviderId"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
-          `if (namespace.CLAUDE !== "claude" || namespace.CODEX !== "codex") throw new Error("Unexpected built-in provider IDs");\n` +
+          `if (JSON.stringify(names) !== '["AgentPluginCompiler","ArtifactKind","CLAUDE","CODEX","COPILOT","ClaudeProviderAdapter","CodexProviderAdapter","CopilotProviderAdapter","GEMINI","GeminiProviderAdapter","KIMI","KimiProviderAdapter","OwnershipKind","ProviderAdapterRegistry","createPlanFragment","createProjectPath","createProviderId"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
+          `if (namespace.CLAUDE !== "claude" || namespace.CODEX !== "codex" || namespace.COPILOT !== "copilot" || namespace.GEMINI !== "gemini" || namespace.KIMI !== "kimi") throw new Error("Unexpected built-in provider IDs");\n` +
           `const externalId = namespace.createProviderId("external");\n` +
           `const externalPath = namespace.createProjectPath(".external-plugin/plugin.json");\n` +
           `const fragment = namespace.createPlanFragment({ ownerId: externalId, ownership: { kind: namespace.OwnershipKind.ExactFiles, paths: [externalPath] }, artifacts: [{ kind: namespace.ArtifactKind.File, path: externalPath, content: new TextEncoder().encode("external") }] });\n` +
@@ -265,6 +265,14 @@ async function main(): Promise<void> {
     requireSuccess(help, "Installed plugin-compiler --help");
     if (!help.stdout.includes("Usage: plugin-compiler [OPTIONS] <COMMAND>")) {
       fail(`Installed CLI returned unexpected help output:\n${help.stdout}`);
+    }
+    if (
+      !help.stdout.includes(
+        "Possible values: claude, codex, copilot, gemini, kimi",
+      ) ||
+      !help.stdout.includes("shared skills/ tree")
+    ) {
+      fail(`Installed CLI help omits provider selection:\n${help.stdout}`);
     }
     for (const command of ["init", "validate", "check", "generate"]) {
       if (!help.stdout.includes(`  ${command}`)) {
@@ -297,6 +305,10 @@ async function main(): Promise<void> {
       ) ||
       !generateHelp.stdout.includes("--root <path>") ||
       !generateHelp.stdout.includes("--provider <id>") ||
+      !generateHelp.stdout.includes(
+        "possible values: claude, codex, copilot, gemini, kimi",
+      ) ||
+      !generateHelp.stdout.includes("default: none; shared skills/ only") ||
       generateHelp.stdout.includes("Commands:")
     ) {
       fail(

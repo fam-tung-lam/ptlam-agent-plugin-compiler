@@ -7,7 +7,13 @@ import {
   CliUsageError,
   parseCliArguments,
 } from "../../../../src/cli/index.ts";
-import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
+import {
+  CLAUDE,
+  CODEX,
+  COPILOT,
+  GEMINI,
+  KIMI,
+} from "../../../../src/providers/index.ts";
 
 const PROVIDER_COMMANDS = Object.freeze([
   CliCommand.Validate,
@@ -34,6 +40,27 @@ describe("parseCliArguments", () => {
       });
       assert.ok(parsed.kind === "command");
       assert.equal(Object.isFrozen(parsed.providers), true);
+    },
+  );
+
+  it.each(PROVIDER_COMMANDS)(
+    "accepts every built-in provider for %s",
+    (command) => {
+      // GIVEN: One provider-aware command selects all public provider IDs.
+      const argv = [command, "--provider", "kimi,gemini,copilot,codex,claude"];
+
+      // WHEN: The parser resolves the comma-separated provider selection.
+      const parsed = parseCliArguments(argv, "/workspace/repository");
+
+      // THEN: All adapters are returned in stable registry order.
+      assert.ok(parsed.kind === "command");
+      assert.deepEqual(parsed.providers, [
+        CLAUDE,
+        CODEX,
+        COPILOT,
+        GEMINI,
+        KIMI,
+      ]);
     },
   );
 
@@ -69,7 +96,7 @@ describe("parseCliArguments", () => {
         kind: "command",
         command,
         rootDir: cwd,
-        providers: [CLAUDE, CODEX],
+        providers: [],
       });
       assert.equal(Object.isFrozen(parsed), true);
     },
@@ -87,7 +114,7 @@ describe("parseCliArguments", () => {
       kind: "command",
       command: CliCommand.Validate,
       rootDir: "/workspace/fixture",
-      providers: [CLAUDE, CODEX],
+      providers: [],
     });
   });
 
@@ -103,7 +130,7 @@ describe("parseCliArguments", () => {
       kind: "command",
       command: CliCommand.Init,
       rootDir: "/workspace/plugin",
-      providers: [CLAUDE, CODEX],
+      providers: [],
     });
   });
 
