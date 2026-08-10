@@ -41,7 +41,7 @@ The CLI override replaces the manifest list; it does not add to it:
 plugin-compiler compile --provider copilot,gemini,kimi
 ```
 
-Use `--no-providers` for an explicit empty override. The Node.js interface uses
+Use `--no-providers` for an explicit empty override. The programmatic API uses
 the same rule: omit `providers` for manifest defaults, pass a list to replace
 them, or pass `[]` for shared skills only.
 
@@ -54,6 +54,6 @@ hyphens, beginning with a letter.
 An adapter must declare stable exact-file paths. Complete-tree ownership is
 rejected so a provider cannot claim an open-ended repository directory.
 
-Next: use provider constants through the
-[Node.js interface](/reference/node-interface), or review the
+Next: use provider constants through
+[Programmatic Usage](/guide/programmatic-usage), or review the
 [compile and verification workflow](/guide/quick-start).

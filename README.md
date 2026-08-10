@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/introduction">Guide</a> ·
+  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/introduction">Docs</a> ·
   <a href="https://agent-plugin-compiler.phamtunglam.com/guide/quick-start">Quick Start</a> ·
   <a href="https://agent-plugin-compiler.phamtunglam.com/reference/">Reference</a>
 </p>
@@ -299,15 +299,15 @@ Pass `providers` to override the manifest selection, or register your own
 `ProviderAdapter` to emit a host the compiler does not ship.
 
 Types, options, and a custom adapter example →
-[Node.js interface](https://agent-plugin-compiler.phamtunglam.com/reference/node-interface).
+[Programmatic usage](https://agent-plugin-compiler.phamtunglam.com/guide/programmatic-usage).
 
 ## Documentation
 
 - [Manifest](https://agent-plugin-compiler.phamtunglam.com/reference/manifest) —
   every field of `plugin/plugin.yml`
-- [Authored source](https://agent-plugin-compiler.phamtunglam.com/guide/authored-source)
+- [Authored source](https://agent-plugin-compiler.phamtunglam.com/reference/authored-source)
   — how skills, dependencies, and lifecycle values are declared
-- [Compile and verify](https://agent-plugin-compiler.phamtunglam.com/guide/quick-start#_4-compile-and-verify)
+- [Compile and verify](https://agent-plugin-compiler.phamtunglam.com/guide/quick-start#compile-and-verify)
   — generated skills, provider manifests, and compiler ownership
 - [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)
   — internal design, for contributors

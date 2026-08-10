@@ -24,7 +24,7 @@ plugin/
 The schema is closed: unknown properties are rejected. Identifiers use lowercase
 kebab-case; plugin, category, and skill IDs are limited to 64 characters.
 
-See the [manifest reference](/reference/manifest) for the complete field
+See the [Manifest reference](/reference/manifest) for the complete field
 contract.
 
 ## Skill source responsibilities
@@ -67,5 +67,6 @@ Dependencies may be nested. Validation rejects missing targets, duplicates,
 self-references, cycles, and invalid lifecycle relationships before output is
 written.
 
-Next: [compile and inspect the generated result](/guide/quick-start), or inspect
-the full [manifest contract](/reference/manifest).
+Next: [compile and inspect the generated result](/guide/quick-start), configure
+[advanced visibility and status rules](/guide/advanced-usage), or inspect the
+full [Manifest contract](/reference/manifest).

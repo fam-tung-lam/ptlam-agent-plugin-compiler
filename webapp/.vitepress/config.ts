@@ -4,6 +4,29 @@ const productionUrl = "https://agent-plugin-compiler.phamtunglam.com";
 const repositoryUrl =
   "https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler";
 
+const docsSidebar = [
+  {
+    text: "Guide",
+    items: [
+      { text: "Introduction", link: "/guide/introduction" },
+      { text: "Installation", link: "/guide/installation" },
+      { text: "Quick Start", link: "/guide/quick-start" },
+      { text: "Advanced Usage", link: "/guide/advanced-usage" },
+      { text: "Programmatic Usage", link: "/guide/programmatic-usage" },
+    ],
+  },
+  {
+    text: "Reference",
+    items: [
+      { text: "Overview", link: "/reference/" },
+      { text: "Authored Plugin Source", link: "/reference/authored-source" },
+      { text: "CLI", link: "/reference/cli" },
+      { text: "Manifest", link: "/reference/manifest" },
+      { text: "Providers", link: "/reference/providers" },
+    ],
+  },
+];
+
 export default defineConfig({
   lang: "en-US",
   title: "Agent Plugin Compiler",
@@ -11,22 +34,6 @@ export default defineConfig({
     "Compile one authored agent plugin into deterministic provider-specific output.",
   base: "/",
   cleanUrls: true,
-  markdown: {
-    config(markdown) {
-      const renderFence = markdown.renderer.rules.fence;
-      if (!renderFence) return;
-
-      markdown.renderer.rules.fence = (tokens, index, ...rest) => {
-        const token = tokens[index];
-        if (token.info.trim() !== "mermaid") {
-          return renderFence(tokens, index, ...rest);
-        }
-
-        const definition = encodeURIComponent(token.content);
-        return `<ClientOnly><MermaidDiagram definition="${definition}"></MermaidDiagram></ClientOnly>`;
-      };
-    },
-  },
   sitemap: {
     hostname: productionUrl,
   },
@@ -70,37 +77,10 @@ export default defineConfig({
       dark: "/logo.svg",
       alt: "Agent Plugin Compiler",
     },
-    nav: [
-      { text: "Guide", link: "/guide/introduction" },
-      { text: "Reference", link: "/reference/" },
-    ],
+    nav: [{ text: "Docs", link: "/guide/introduction" }],
     sidebar: {
-      "/guide/": [
-        {
-          text: "Guide",
-          items: [
-            { text: "Introduction", link: "/guide/introduction" },
-            { text: "Installation", link: "/guide/installation" },
-            { text: "Quick Start", link: "/guide/quick-start" },
-            {
-              text: "Authored Plugin Source",
-              link: "/guide/authored-source",
-            },
-          ],
-        },
-      ],
-      "/reference/": [
-        {
-          text: "Reference",
-          items: [
-            { text: "Overview", link: "/reference/" },
-            { text: "CLI", link: "/reference/cli" },
-            { text: "Manifest", link: "/reference/manifest" },
-            { text: "Providers", link: "/reference/providers" },
-            { text: "Node.js Interface", link: "/reference/node-interface" },
-          ],
-        },
-      ],
+      "/guide/": docsSidebar,
+      "/reference/": docsSidebar,
     },
     search: {
       provider: "local",

@@ -5,12 +5,13 @@ This reference documents the public contract of Agent Plugin Compiler
 
 ## Contract surfaces
 
-| Surface             | Reference                                      |
-| ------------------- | ---------------------------------------------- |
-| Executable commands | [CLI](/reference/cli)                          |
-| Authored data       | [Manifest v1](/reference/manifest)             |
-| Generated hosts     | [Providers](/reference/providers)              |
-| Programmatic use    | [Node.js interface](/reference/node-interface) |
+| Surface             | Documentation                                        |
+| ------------------- | ---------------------------------------------------- |
+| Authored layout     | [Authored Plugin Source](/reference/authored-source) |
+| Executable commands | [CLI](/reference/cli)                                |
+| Authored data       | [Manifest v1](/reference/manifest)                   |
+| Generated hosts     | [Providers](/reference/providers)                    |
+| Programmatic use    | [Programmatic Usage](/guide/programmatic-usage)      |
 
 ## Sources of truth
 

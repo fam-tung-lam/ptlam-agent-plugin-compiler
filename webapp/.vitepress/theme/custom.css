@@ -601,24 +601,6 @@ body {
   max-width: 100%;
 }
 
-.vp-doc .mermaid {
-  overflow-x: auto;
-  margin: 20px 0;
-  border: 1px solid color-mix(in srgb, var(--apc-violet) 18%, var(--apc-line));
-  border-radius: 14px;
-  padding: 22px;
-  background: var(--apc-surface-raised);
-  box-shadow: 0 14px 36px rgb(0 0 0 / 8%);
-}
-
-.vp-doc .mermaid svg {
-  display: block;
-  margin: 0 auto;
-  min-width: 280px;
-  max-width: 100%;
-  height: auto;
-}
-
 .vp-doc table {
   margin: 22px 0;
   border: 1px solid var(--apc-line);
@@ -810,17 +792,6 @@ body {
   .vp-doc div[class*="language-"] {
     margin: 18px 0;
     border-radius: 11px;
-  }
-
-  .vp-doc .mermaid {
-    margin: 18px 0;
-    border-radius: 11px;
-    padding: 14px 8px;
-  }
-
-  .vp-doc .mermaid svg {
-    min-width: 0;
-    width: 100%;
   }
 
   .vp-doc table {

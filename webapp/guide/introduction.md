@@ -3,7 +3,7 @@
 Agent Plugin Compiler turns dependency-aware skill sources into checked,
 self-contained output that users can install with confidence.
 
-## The problem it solves
+## The problem
 
 Suppose a plugin publishes two skills:
 
@@ -22,7 +22,11 @@ This creates two recurring problems:
    archived, or deleted, hard-coded instructions in `skill-a` can become stale.
 
 Relying on humans or AI agents to keep every repeated reference synchronized is
-not a reliable publication process. The compiler makes dependencies explicit,
+not a reliable publication process.
+
+## The solution
+
+Agent Plugin Compiler makes dependencies explicit in one authored plugin,
 validates missing, circular, and invalid edges, and embeds every required skill
 inside the public skill that needs it.
 
@@ -53,8 +57,22 @@ skills/
 ```
 
 In both cases, a user can install `skill-a` by itself and receive everything it
-needs. The same validated plugin model also generates deterministic manifests
-for every selected provider.
+needs. The same validated plugin model also generates deterministic host
+manifests from one source of truth.
+
+## Supported platforms
+
+The compiler includes built-in output adapters for:
+
+- Claude plugins;
+- Codex plugins;
+- GitHub Copilot CLI plugins;
+- Gemini CLI extensions;
+- Kimi Code CLI plugins.
+
+Select any combination in `plugin/plugin.yml` or override the selection for one
+compile. The shared self-contained `skills/**` output is generated independently
+of the selected host manifests.
 
 ## When it is a good fit
 
@@ -76,41 +94,14 @@ The compiler gives the complete plugin one explicit source:
 - `skills/**` contains generated, self-contained public skills;
 - provider adapters emit the selected host manifests.
 
-## The authoring loop
-
-```mermaid
-flowchart TB
-  Initialize["Initialize source"]
-  Edit["Edit authored source"]
-  Validate["Validate dependencies"]
-  Compile["Compile output"]
-  Check["Check drift"]
-  Publish["Publish plugin"]
-
-  Initialize --> Edit
-  Edit --> Validate
-  Validate --> Compile
-  Compile --> Check
-  Check --> Publish
-```
-
-1. `init` creates missing starter paths without replacing existing content.
-2. You edit only the authored manifest and skill sources.
-3. `validate` checks the manifest, source files, Markdown links, and dependency
-   graph without inspecting generated output.
-4. `compile` reconciles compiler-owned output and verifies the result from a
-   fresh filesystem snapshot.
-5. `check` compares current output with the desired plan without writing.
-
-## Authored and generated files stay separate
-
 Treat `plugin/**` as source and compiler-managed output as a build result. Do
 not fix a generated skill or provider manifest by hand: update the authored
-source and run `compile` again.
+source and compile again.
 
 The compiler owns the complete root `skills/` tree and exact manifest paths for
 the built-in providers. Files outside those declared paths remain outside its
 write plan.
 
-Next: [install the compiler](/guide/installation), or inspect the
-[contract overview](/reference/).
+Next: [install the compiler](/guide/installation), explore
+[advanced lifecycle controls](/guide/advanced-usage), or inspect the
+[authored source contract](/reference/authored-source).
