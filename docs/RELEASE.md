@@ -7,45 +7,71 @@ Release.
 ## Release at a glance
 
 ```mermaid
+---
+config:
+  htmlLabels: false
+---
 flowchart LR
-  subgraph Developer["Developer"]
-    Change["Prepare release changes"]
-    PR["Open pull request"]
-    Fix["Fix reported errors"]
-    Merge["Merge when CI passes"]
-    Approval{"Approve release?"}
-  end
+    subgraph Developer["`developer`"]
+        PrepareReleaseChanges["`prepare release changes`"]
 
-  subgraph GitHubActions["GitHub Actions"]
-    PRCI["Validate pull request"]
-    PRResult{"Did pull request CI pass?"}
-    MainCI["Validate merged commit"]
-    VersionChanged{"Did the package version change?"}
-    Build["Use tested package"]
-    Publish["Publish package"]
-    Verify["Verify release"]
-  end
+        OpenPullRequest["`open pull request`"]
 
-  subgraph GitHub["GitHub"]
-    BranchGate["Protect main"]
-    ReleaseGate["Wait for approval"]
-    Cancelled["Cancel release"]
-    NoRelease["Finish without a release"]
-    Metadata["Store Git tag and GitHub Release"]
-  end
+        FixReportedErrors["`fix reported errors`"]
 
-  subgraph npm["npm"]
-    Registry["Store package and provenance"]
-  end
+        MergePullRequest["`
+            merge pull request
+            (after CI passes)
+        `"]
 
-  Change --> PR --> PRCI --> PRResult
-  PRResult -- "No" --> Fix --> PRCI
-  PRResult -- "Yes" --> BranchGate --> Merge --> MainCI --> VersionChanged
-  VersionChanged -- "No" --> NoRelease
-  VersionChanged -- "Yes" --> ReleaseGate
-  ReleaseGate --> Approval
-  Approval -- "No" --> Cancelled
-  Approval -- "Yes" --> Build --> Publish --> Registry --> Verify --> Metadata
+        ApproveRelease{"`approve release?`"}
+    end
+
+    subgraph GitHubActions["`GitHub Actions`"]
+        ValidatePullRequest["`validate pull request`"]
+
+        PullRequestPassed{"`did pull request CI pass?`"}
+
+        ValidateMergedCommit["`validate merged commit`"]
+
+        PackageVersionChanged{"`did the package version change?`"}
+
+        UseTestedPackage["`use tested package`"]
+
+        PublishPackage["`publish package`"]
+
+        VerifyRelease["`verify release`"]
+    end
+
+    subgraph GitHub["`GitHub`"]
+        ProtectMain["`protect main`"]
+
+        WaitForApproval["`wait for approval`"]
+
+        CancelRelease["`cancel release`"]
+
+        FinishWithoutRelease["`finish without a release`"]
+
+        StoreReleaseMetadata["`
+            store Git tag and GitHub Release
+            (release metadata)
+        `"]
+    end
+
+    subgraph Npm["`npm`"]
+        StorePackage["`
+            store package and provenance
+            (npm registry)
+        `"]
+    end
+
+    PrepareReleaseChanges ------> OpenPullRequest ------> ValidatePullRequest ------> PullRequestPassed
+    PullRequestPassed ------>|"`no`"| FixReportedErrors ------> ValidatePullRequest
+    PullRequestPassed ------>|"`yes`"| ProtectMain ------> MergePullRequest ------> ValidateMergedCommit ------> PackageVersionChanged
+    PackageVersionChanged ------>|"`no`"| FinishWithoutRelease
+    PackageVersionChanged ------>|"`yes`"| WaitForApproval ------> ApproveRelease
+    ApproveRelease ------>|"`no`"| CancelRelease
+    ApproveRelease ------>|"`yes`"| UseTestedPackage ------> PublishPackage ------> StorePackage ------> VerifyRelease ------> StoreReleaseMetadata
 ```
 
 The developer prepares, reviews, merges, and approves the release. Everything
@@ -138,56 +164,91 @@ After the release pull request is merged, CI/CD:
 9. creates the matching GitHub prerelease or stable Release.
 
 ```mermaid
+---
+config:
+  htmlLabels: false
+---
 flowchart TD
-  subgraph Developer["Developer"]
-    Merge["Merge release pull request"]
-    Approval{"Approve release?"}
-    Fix["Fix the reported error in a new pull request"]
-  end
+    subgraph Developer["`developer`"]
+        MergeReleasePullRequest["`merge release pull request`"]
 
-  subgraph GitHubActions["GitHub Actions"]
-    Validate["Validate commit and test tarball"]
-    CIPassed{"Did CI pass?"}
-    Detect["Detect version change"]
-    VersionChanged{"Did the package version change?"}
-    Load["Load the tested tarball"]
-    Published{"Does this version already exist?"}
-    SameTarball{"Does it contain the same tarball?"}
-    NeedsPublish{"Does npm need a new publication?"}
-    Publish["Publish tarball through OIDC"]
-    Verify["Verify package and provenance"]
-    Verified{"Did verification pass?"}
-  end
+        ApproveRelease{"`approve release?`"}
 
-  subgraph GitHub["GitHub"]
-    Gate["Wait for npm-release approval"]
-    Failure["Stop and show the error in workflow logs"]
-    NoRelease["Finish without a release"]
-    Cancelled["Cancel release"]
-    Metadata["Create Git tag and GitHub Release"]
-  end
+        FixReportedError["`
+            fix reported error
+            (new pull request)
+        `"]
+    end
 
-  subgraph npm["npm"]
-    Registry["Store package and provenance"]
-  end
+    subgraph GitHubActions["`GitHub Actions`"]
+        ValidateCommit["`
+            validate commit and tarball
+            (tested release candidate)
+        `"]
 
-  Merge --> Validate --> CIPassed
-  CIPassed -- "No" --> Failure --> Fix
-  CIPassed -- "Yes" --> Detect --> VersionChanged
-  VersionChanged -- "No" --> NoRelease
-  VersionChanged -- "Yes" --> Load --> Published
-  Published -- "No" --> Gate
-  Published -- "Yes" --> SameTarball
-  SameTarball -- "No" --> Failure
-  SameTarball -- "Yes" --> Gate
-  Gate --> Approval
-  Approval -- "No" --> Cancelled
-  Approval -- "Yes" --> NeedsPublish
-  NeedsPublish -- "Yes" --> Publish --> Registry --> Verify
-  NeedsPublish -- "No" --> Verify
-  Verify --> Verified
-  Verified -- "No" --> Failure
-  Verified -- "Yes" --> Metadata
+        ContinuousIntegrationPassed{"`did CI pass?`"}
+
+        DetectVersionChange["`detect version change`"]
+
+        PackageVersionChanged{"`did the package version change?`"}
+
+        LoadTestedTarball["`load tested tarball`"]
+
+        VersionPublished{"`does this version already exist?`"}
+
+        TarballMatches{"`does it contain the same tarball?`"}
+
+        PublicationRequired{"`does npm need a new publication?`"}
+
+        PublishTarball["`
+            publish tarball
+            (npm OIDC)
+        `"]
+
+        VerifyPackage["`verify package and provenance`"]
+
+        VerificationPassed{"`did verification pass?`"}
+    end
+
+    subgraph GitHub["`GitHub`"]
+        WaitForReleaseApproval["`wait for npm-release approval`"]
+
+        StopRelease["`
+            stop release
+            (show workflow error)
+        `"]
+
+        FinishWithoutRelease["`finish without a release`"]
+
+        CancelRelease["`cancel release`"]
+
+        CreateReleaseMetadata["`create Git tag and GitHub Release`"]
+    end
+
+    subgraph Npm["`npm`"]
+        StorePackage["`
+            store package and provenance
+            (npm registry)
+        `"]
+    end
+
+    MergeReleasePullRequest ------> ValidateCommit ------> ContinuousIntegrationPassed
+    ContinuousIntegrationPassed ------>|"`no`"| StopRelease ------> FixReportedError
+    ContinuousIntegrationPassed ------>|"`yes`"| DetectVersionChange ------> PackageVersionChanged
+    PackageVersionChanged ------>|"`no`"| FinishWithoutRelease
+    PackageVersionChanged ------>|"`yes`"| LoadTestedTarball ------> VersionPublished
+    VersionPublished ------>|"`no`"| WaitForReleaseApproval
+    VersionPublished ------>|"`yes`"| TarballMatches
+    TarballMatches ------>|"`no`"| StopRelease
+    TarballMatches ------>|"`yes`"| WaitForReleaseApproval
+    WaitForReleaseApproval ------> ApproveRelease
+    ApproveRelease ------>|"`no`"| CancelRelease
+    ApproveRelease ------>|"`yes`"| PublicationRequired
+    PublicationRequired ------>|"`yes`"| PublishTarball ------> StorePackage ------> VerifyPackage
+    PublicationRequired ------>|"`no`"| VerifyPackage
+    VerifyPackage ------> VerificationPassed
+    VerificationPassed ------>|"`no`"| StopRelease
+    VerificationPassed ------>|"`yes`"| CreateReleaseMetadata
 ```
 
 Prereleases use the npm tag `next` and create a GitHub prerelease. Stable
