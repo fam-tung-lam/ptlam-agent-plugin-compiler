@@ -11,6 +11,7 @@ function client(
   overrides: Partial<GitHubReleaseClient> = {},
 ): GitHubReleaseClient {
   return {
+    async completeDraftRelease() {},
     async createAnnotatedTag() {
       return { sha: "tag-object" };
     },
@@ -25,6 +26,7 @@ function client(
     async getTagReference() {
       return undefined;
     },
+    async verifyAsset() {},
     ...overrides,
   };
 }
@@ -44,17 +46,31 @@ describe("create GitHub release", () => {
       async createTagReference() {
         calls.push("tag-reference");
       },
+      async verifyAsset() {
+        calls.push("verify-asset");
+      },
     });
 
     // WHEN: CD creates the release.
     const tagName = await createOrVerifyGitHubRelease(
-      { packageVersion: "1.0.0", prerelease: false, releaseSha: "release" },
+      {
+        assetPath: "package.tgz",
+        notesPath: "release-notes.md",
+        packageVersion: "1.0.0",
+        prerelease: false,
+        releaseSha: "release",
+      },
       github,
     );
 
     // THEN: The immutable tag exists before the GitHub Release.
     assert.equal(tagName, "v1.0.0");
-    assert.deepEqual(calls, ["tag-object", "tag-reference", "release"]);
+    assert.deepEqual(calls, [
+      "tag-object",
+      "tag-reference",
+      "release",
+      "verify-asset",
+    ]);
   });
 
   it("rejects an existing tag on another commit", async () => {
@@ -70,7 +86,13 @@ describe("create GitHub release", () => {
 
     // WHEN: CD attempts a safe resume.
     const creating = createOrVerifyGitHubRelease(
-      { packageVersion: "1.0.0", prerelease: false, releaseSha: "release" },
+      {
+        assetPath: "package.tgz",
+        notesPath: "release-notes.md",
+        packageVersion: "1.0.0",
+        prerelease: false,
+        releaseSha: "release",
+      },
       github,
     );
 
@@ -80,17 +102,17 @@ describe("create GitHub release", () => {
 
   it("accepts existing compatible tag and release metadata", async () => {
     // GIVEN: GitHub already has the expected annotated tag and stable release.
-    const unexpectedCreations: string[] = [];
+    const calls: string[] = [];
     const github = client({
       async createAnnotatedTag() {
-        unexpectedCreations.push("tag-object");
+        calls.push("unexpected tag-object");
         return { sha: "new-tag-object" };
       },
       async createRelease() {
-        unexpectedCreations.push("release");
+        calls.push("unexpected release");
       },
       async createTagReference() {
-        unexpectedCreations.push("tag-reference");
+        calls.push("unexpected tag-reference");
       },
       async getAnnotatedTag() {
         return {
@@ -104,16 +126,65 @@ describe("create GitHub release", () => {
       async getTagReference() {
         return { object: { sha: "tag-object", type: "tag" } };
       },
+      async verifyAsset() {
+        calls.push("verify-asset");
+      },
     });
 
     // WHEN: CD resumes metadata creation for the same release.
     const tagName = await createOrVerifyGitHubRelease(
-      { packageVersion: "1.0.0", prerelease: false, releaseSha: "release" },
+      {
+        assetPath: "package.tgz",
+        notesPath: "release-notes.md",
+        packageVersion: "1.0.0",
+        prerelease: false,
+        releaseSha: "release",
+      },
       github,
     );
 
     // THEN: Existing metadata is accepted without creating or moving anything.
     assert.equal(tagName, "v1.0.0");
-    assert.deepEqual(unexpectedCreations, []);
+    assert.deepEqual(calls, ["verify-asset"]);
+  });
+
+  it("completes a compatible draft before verifying its asset", async () => {
+    // GIVEN: A previous attempt left a compatible draft release.
+    const calls: string[] = [];
+    const github = client({
+      async completeDraftRelease() {
+        calls.push("complete-draft");
+      },
+      async getAnnotatedTag() {
+        return {
+          object: { sha: "release", type: "commit" },
+          tag: "v1.0.0-alpha.1",
+        };
+      },
+      async getRelease() {
+        return { draft: true, prerelease: true };
+      },
+      async getTagReference() {
+        return { object: { sha: "tag-object", type: "tag" } };
+      },
+      async verifyAsset() {
+        calls.push("verify-asset");
+      },
+    });
+
+    // WHEN: CD safely resumes the release.
+    await createOrVerifyGitHubRelease(
+      {
+        assetPath: "package.tgz",
+        notesPath: "release-notes.md",
+        packageVersion: "1.0.0-alpha.1",
+        prerelease: true,
+        releaseSha: "release",
+      },
+      github,
+    );
+
+    // THEN: The draft is published before its immutable asset is verified.
+    assert.deepEqual(calls, ["complete-draft", "verify-asset"]);
   });
 });

@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0-alpha.4] - 2026-08-10
+
 ### Added
 
 - Added `plugin-compiler init [--root <path>]` to create missing authored paths
@@ -100,7 +102,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.3...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.4...HEAD
+[0.1.0-alpha.4]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.3...v0.1.0-alpha.4
 [0.1.0-alpha.3]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]:

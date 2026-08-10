@@ -1,3 +1,7 @@
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+import { extractReleaseNotes } from "./release-notes.ts";
 import {
   appendGitHubOutput,
   appendGitHubSummary,
@@ -32,11 +36,22 @@ export interface GitHubReleaseClient {
     tagName: string,
     targetSha: string,
   ): Promise<{ readonly sha: string }>;
-  createRelease(tagName: string, prerelease: boolean): Promise<void>;
+  completeDraftRelease(
+    tagName: string,
+    notesPath: string,
+    assetPath: string,
+  ): Promise<void>;
+  createRelease(
+    tagName: string,
+    prerelease: boolean,
+    notesPath: string,
+    assetPath: string,
+  ): Promise<void>;
   createTagReference(tagName: string, tagObjectSha: string): Promise<void>;
   getAnnotatedTag(tagObjectSha: string): Promise<AnnotatedGitTag>;
   getRelease(tagName: string): Promise<GitHubReleaseRecord | undefined>;
   getTagReference(tagName: string): Promise<GitTagReference | undefined>;
+  verifyAsset(tagName: string, assetPath: string): Promise<void>;
 }
 
 export async function createOrVerifyGitHubRelease(
@@ -44,6 +59,8 @@ export async function createOrVerifyGitHubRelease(
     readonly packageVersion: string;
     readonly prerelease: boolean;
     readonly releaseSha: string;
+    readonly notesPath: string;
+    readonly assetPath: string;
   },
   client: GitHubReleaseClient,
 ): Promise<string> {
@@ -68,12 +85,24 @@ export async function createOrVerifyGitHubRelease(
 
   const release = await client.getRelease(tagName);
   if (release === undefined) {
-    await client.createRelease(tagName, input.prerelease);
-  } else if (release.draft || release.prerelease !== input.prerelease) {
+    await client.createRelease(
+      tagName,
+      input.prerelease,
+      input.notesPath,
+      input.assetPath,
+    );
+  } else if (release.prerelease !== input.prerelease) {
     throw new Error(
       `Existing GitHub Release ${tagName} has incompatible state.`,
     );
+  } else if (release.draft) {
+    await client.completeDraftRelease(
+      tagName,
+      input.notesPath,
+      input.assetPath,
+    );
   }
+  await client.verifyAsset(tagName, input.assetPath);
   return tagName;
 }
 
@@ -107,6 +136,32 @@ function commandClient(
     throw new Error("Unreachable GitHub API state.");
   }
   return {
+    async completeDraftRelease(tagName, notesPath, assetPath) {
+      requireSuccess(
+        await runner.run("gh", [
+          "release",
+          "upload",
+          tagName,
+          assetPath,
+          "--clobber",
+        ]),
+        `Upload release asset for ${tagName}`,
+      );
+      requireSuccess(
+        await runner.run("gh", [
+          "release",
+          "edit",
+          tagName,
+          "--verify-tag",
+          "--title",
+          tagName,
+          "--notes-file",
+          notesPath,
+          "--draft=false",
+        ]),
+        `Publish draft release ${tagName}`,
+      );
+    },
     async createAnnotatedTag(tagName, targetSha) {
       const result = requireSuccess(
         await runner.run("gh", [
@@ -133,13 +188,15 @@ function commandClient(
         throw new Error("Tag response has no sha.");
       return { sha: object["sha"] };
     },
-    async createRelease(tagName, prerelease) {
+    async createRelease(tagName, prerelease, notesPath, assetPath) {
       const arguments_ = [
         "release",
         "create",
         tagName,
+        assetPath,
         "--verify-tag",
-        "--generate-notes",
+        "--notes-file",
+        notesPath,
         "--title",
         tagName,
       ];
@@ -195,6 +252,12 @@ function commandClient(
       const object = parseObject(value, "Git tag reference");
       return { object: parseGitObject(object["object"]) };
     },
+    async verifyAsset(tagName, assetPath) {
+      requireSuccess(
+        await runner.run("gh", ["release", "verify-asset", tagName, assetPath]),
+        `Verify release asset for ${tagName}`,
+      );
+    },
   };
 }
 
@@ -204,8 +267,22 @@ runScript(import.meta.url, async () => {
     throw new Error("PRERELEASE must be true or false.");
   }
   const packageVersion = requireEnvironment(process.env, "PACKAGE_VERSION");
+  const runnerTemp = requireEnvironment(process.env, "RUNNER_TEMP");
+  const notesPath = path.join(runnerTemp, "release-notes.md");
+  await writeFile(
+    notesPath,
+    extractReleaseNotes(await readFile("CHANGELOG.md", "utf8"), packageVersion),
+    "utf8",
+  );
+  const tarballName = requireEnvironment(process.env, "TARBALL_NAME");
+  const assetPath = path.join(
+    requireEnvironment(process.env, "CANDIDATE_DIR"),
+    tarballName,
+  );
   const tagName = await createOrVerifyGitHubRelease(
     {
+      assetPath,
+      notesPath,
       packageVersion,
       prerelease: prerelease === "true",
       releaseSha: requireEnvironment(process.env, "RELEASE_SHA"),
@@ -224,6 +301,6 @@ runScript(import.meta.url, async () => {
   const publishedNow = requireEnvironment(process.env, "PUBLISHED_NOW");
   await appendGitHubSummary(
     requireEnvironment(process.env, "GITHUB_STEP_SUMMARY"),
-    `## Release complete\n\n- npm: \`${packageName}@${packageVersion}\`\n- npm tag: \`${npmTag}\`\n- Git tag: \`${tagName}\`\n- Commit: \`${releaseSha}\`\n- Published now: \`${publishedNow}\`\n`,
+    `## Release complete\n\n- npm: \`${packageName}@${packageVersion}\`\n- npm tag: \`${npmTag}\`\n- Git tag: \`${tagName}\`\n- Asset: \`${tarballName}\` (verified)\n- Commit: \`${releaseSha}\`\n- Published now: \`${publishedNow}\`\n`,
   );
 });

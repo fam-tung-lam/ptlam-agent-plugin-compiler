@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import { requireGreaterSemVer } from "./compare-semver.ts";
+import { validateReleaseChangelog } from "./release-notes.ts";
 import {
   type CommandRunner,
   requireEnvironment,
@@ -33,6 +34,7 @@ function packageIdentity(manifest: PackageManifest, label: string) {
 
 export async function validateReleaseVersion(
   currentManifest: PackageManifest,
+  currentChangelog: string,
   baseSha: string,
   repository: ReleaseVersionRepository,
 ): Promise<boolean> {
@@ -52,6 +54,7 @@ export async function validateReleaseVersion(
   if ((await repository.findTag(`v${current.version}`)) !== undefined) {
     throw new Error(`v${current.version} already exists in Git.`);
   }
+  validateReleaseChangelog(currentChangelog, previous.version, current.version);
   return true;
 }
 
@@ -105,6 +108,7 @@ runScript(import.meta.url, async () => {
   ) as PackageManifest;
   const changed = await validateReleaseVersion(
     manifest,
+    await readFile("CHANGELOG.md", "utf8"),
     baseSha,
     commandRepository(systemCommandRunner),
   );
