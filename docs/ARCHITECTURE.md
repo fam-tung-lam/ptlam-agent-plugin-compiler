@@ -86,7 +86,7 @@ flowchart TD
 
 ```mermaid
 ---
-title: How generate moves data through the compiler
+title: How compile moves data through the compiler
 config:
   htmlLabels: false
 ---
@@ -100,9 +100,9 @@ sequenceDiagram
     participant Providers as providers
     participant CompilerPlanning as compiler/planning
 
-    Note over TerminalUser, CompilerPlanning: One generate request uses one validated Plugin and one WritePlan.
+    Note over TerminalUser, CompilerPlanning: One compile request uses one validated Plugin and one WritePlan.
 
-    TerminalUser ->> CommandLineInterface: REQUESTS generate
+    TerminalUser ->> CommandLineInterface: REQUESTS compile
     CommandLineInterface ->>+ CompilerFacade: CALLS compile
     CompilerFacade ->>+ Filesystem: REQUESTS PluginSnapshot
     Filesystem -->>- CompilerFacade: RETURNS PluginSnapshot
@@ -465,7 +465,7 @@ flowchart LR
     BuildWritePlan ------> ReadGeneratedSnapshot ------> CompareWritePlan ------> CheckResult
 ```
 
-### compile (`generate` in `cli`)
+### compile
 
 ```mermaid
 ---
@@ -473,8 +473,8 @@ config:
   htmlLabels: false
 ---
 flowchart LR
-    GenerateCommand["`
-        generate
+    CompileCommand["`
+        compile
         (cli command)
     `"]
     ReadPluginSnapshot["`
@@ -522,7 +522,7 @@ flowchart LR
         (verified, drift, WriteResult, and warnings)
     `"]
 
-    GenerateCommand ------> ReadPluginSnapshot ------> CreatePlugin
+    CompileCommand ------> ReadPluginSnapshot ------> CreatePlugin
     CreatePlugin ------> ResolveProviders
     ResolveProviders ------> RenderSharedFragment
     ResolveProviders ------> RenderProviderFragments
@@ -534,12 +534,12 @@ flowchart LR
     WriteResult ------> CompileResult
 ```
 
-| Operation                       | Repository writes                | Result                                                                           | Success condition                                         |
-| ------------------------------- | -------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                                    | Base paths exist; a new manifest has matching examples    |
-| `validate`                      | None                             | `ValidateResult` with `Plugin`, effective providers, source, and warnings        | Authored source and selection satisfy validation          |
-| `check`                         | None                             | `CheckResult` with selection, `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
-| `compile` (`generate` in `cli`) | Applies the complete `WritePlan` | `CompileResult` with selection, `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
+| Operation  | Repository writes                | Result                                                                           | Success condition                                         |
+| ---------- | -------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `init`     | Creates missing authored paths   | `InitResult` with created and unchanged paths                                    | Base paths exist; a new manifest has matching examples    |
+| `validate` | None                             | `ValidateResult` with `Plugin`, effective providers, source, and warnings        | Authored source and selection satisfy validation          |
+| `check`    | None                             | `CheckResult` with selection, `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
+| `compile`  | Applies the complete `WritePlan` | `CompileResult` with selection, `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
 
 - Init creates only missing authored paths and never replaces existing content.
 - Validate, check, and compile read and validate authored source before using

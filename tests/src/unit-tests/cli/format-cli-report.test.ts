@@ -120,8 +120,8 @@ describe("formatCliResult", () => {
     ]);
   });
 
-  it("formats verified generation with changed and unchanged paths", () => {
-    // GIVEN: Generation changes the shared tree and leaves one provider current.
+  it("formats verified compilation with changed and unchanged paths", () => {
+    // GIVEN: Compilation changes the shared tree and leaves one provider current.
     const result = createCompileResult({
       plugin,
       providers: [],
@@ -134,9 +134,9 @@ describe("formatCliResult", () => {
       drift: [],
     });
 
-    // WHEN: The verified generation result is formatted.
+    // WHEN: The verified compilation result is formatted.
     const report = formatCliResult(
-      { command: CliCommand.Generate, result },
+      { command: CliCommand.Compile, result },
       overrideScope,
     );
 
@@ -144,7 +144,7 @@ describe("formatCliResult", () => {
     assert.equal(report.exitCode, CliExitCode.Success);
     assert.deepEqual(report.stdout, [
       "Scope: /repository; providers: none; provider source: override.",
-      "Generation completed and post-write verification passed.",
+      "Compilation completed and post-write verification passed.",
       "- skills: changed",
       "- .claude-plugin/plugin.json: unchanged",
     ]);
@@ -167,12 +167,12 @@ describe("formatCliResult", () => {
       "  init      Create missing authored plugin source paths",
       "  validate  Validate the authored plugin manifest, skills, and graph",
       "  check     Check compiler-managed output against the authored sources",
-      "  generate  Generate and verify all compiler-managed output",
+      "  compile   Compile and verify all compiler-managed output",
       "",
       "Options:",
       "  -h, --help  Display help for this command",
       "",
-      "Provider selection for validate, check, and generate:",
+      "Provider selection for validate, check, and compile:",
       "  --provider <id>[,<id>...]",
       "  --no-providers",
       "  Possible values: claude, codex, copilot, gemini, kimi",
@@ -204,8 +204,8 @@ describe("formatCliResult", () => {
       supportsProviders: true,
     },
     {
-      command: CliCommand.Generate,
-      introduction: "Generate and verify all compiler-managed output files.",
+      command: CliCommand.Compile,
+      introduction: "Compile and verify all compiler-managed output files.",
       supportsProviders: true,
     },
   ])(

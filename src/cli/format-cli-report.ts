@@ -30,9 +30,9 @@ const COMMAND_HELP: Readonly<
     introduction:
       "Check compiler-managed output against the authored plugin sources.",
   },
-  [CliCommand.Generate]: {
-    summary: "Generate and verify all compiler-managed output",
-    introduction: "Generate and verify all compiler-managed output files.",
+  [CliCommand.Compile]: {
+    summary: "Compile and verify all compiler-managed output",
+    introduction: "Compile and verify all compiler-managed output files.",
   },
 });
 
@@ -50,7 +50,7 @@ function rootHelpLines(): readonly string[] {
     "Options:",
     "  -h, --help  Display help for this command",
     "",
-    "Provider selection for validate, check, and generate:",
+    "Provider selection for validate, check, and compile:",
     "  --provider <id>[,<id>...]",
     "  --no-providers",
     `  Possible values: ${AVAILABLE_PROVIDERS.join(", ")}`,
@@ -252,7 +252,7 @@ export function formatCliResult(
               ...driftLines(executed.result.drift),
             ],
           });
-    case CliCommand.Generate: {
+    case CliCommand.Compile: {
       const writeLines = [
         ...executed.result.writeResult.changedPaths.map(
           (outputPath) => `- ${outputPath}: changed`,
@@ -266,7 +266,7 @@ export function formatCliResult(
             exitCode: CliExitCode.Success,
             stdout: [
               resultScopeLine(scope, executed.result),
-              "Generation completed and post-write verification passed.",
+              "Compilation completed and post-write verification passed.",
               ...writeLines,
             ],
             stderr: warnings,
@@ -277,7 +277,7 @@ export function formatCliResult(
             stderr: [
               ...warnings,
               resultScopeLine(scope, executed.result),
-              `Generation completed but verification found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
+              `Compilation completed but verification found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
               ...driftLines(executed.result.drift),
             ],
           });

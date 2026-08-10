@@ -6,7 +6,7 @@
   "scripts": {
     "plugin:validate": "plugin-compiler validate",
     "plugin:check": "plugin-compiler check",
-    "plugin:compile": "plugin-compiler generate",
+    "plugin:compile": "plugin-compiler compile",
     "plugin:verify": "npm run plugin:validate && npm run plugin:check"
   },
   "devDependencies": {

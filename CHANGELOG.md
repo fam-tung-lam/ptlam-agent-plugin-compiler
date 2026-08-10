@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Breaking: renamed the CLI command `plugin-compiler generate` to
+  `plugin-compiler compile`. Replace `generate` with `compile` in scripts and
+  direct CLI usage.
+
 ## [0.1.0-beta.1] - 2026-08-10
 
 ### Changed
