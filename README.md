@@ -47,19 +47,26 @@ Compiler replaces those repeated manual steps with one build-time source of
 truth:
 
 ```mermaid
+---
+config:
+  htmlLabels: false
+---
 flowchart LR
-  Manifest["plugin/plugin.yml"]
-  Sources["plugin/skills/**"]
-  Compiler["Agent Plugin Compiler"]
-  Skill["/skills"]
-  Claude[".claude-plugin/**"]
-  Codex[".codex-plugin/plugin.json"]
+    PluginManifest["`plugin/plugin.yml`"]
+    SkillSources["`plugin/skills/**`"]
+    AgentPluginCompiler["`Agent Plugin Compiler`"]
+    SharedSkills["`
+        skills/**
+        (self-contained public skills)
+    `"]
+    ClaudePlugin["`.claude-plugin/**`"]
+    CodexPlugin["`.codex-plugin/plugin.json`"]
 
-  Manifest -->|is passed to| Compiler
-  Sources -->|is passed to| Compiler
-  Compiler -->|"produces skills folder where each skill is self-contained"| Skill
-  Compiler -->|produces| Claude
-  Compiler -->|produces| Codex
+    PluginManifest ------>|"`is passed to`"| AgentPluginCompiler
+    SkillSources ------>|"`is passed to`"| AgentPluginCompiler
+    AgentPluginCompiler ------>|"`produces`"| SharedSkills
+    AgentPluginCompiler ------>|"`produces`"| ClaudePlugin
+    AgentPluginCompiler ------>|"`produces`"| CodexPlugin
 ```
 
 1. Declare skills in `plugin/skills/` and dependencies in `plugin/plugin.yml`.
