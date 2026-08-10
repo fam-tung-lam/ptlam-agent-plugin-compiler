@@ -24,6 +24,11 @@ function operations({
   readonly validate?: CompilerOperations["validate"];
 } = {}): CompilerOperations {
   return {
+    init: async () => ({
+      createdPaths: [],
+      existingPaths: [],
+      warnings: [],
+    }),
     validate,
     check: async () => {
       throw new Error("Unexpected check call");
@@ -37,6 +42,10 @@ function operations({
 describe("runPluginCompilerCli", () => {
   it.each([
     { argv: ["--help"], expectedUsage: "plugin-compiler [OPTIONS] <COMMAND>" },
+    {
+      argv: ["init", "--help"],
+      expectedUsage: "plugin-compiler init [OPTIONS]",
+    },
     {
       argv: ["generate", "-h"],
       expectedUsage: "plugin-compiler generate [OPTIONS]",
@@ -65,6 +74,30 @@ describe("runPluginCompilerCli", () => {
       assert.ok(stdout.join("\n").includes(expectedUsage));
     },
   );
+
+  it("presents init usage failures with only init options", async () => {
+    // GIVEN: Init receives an unsupported provider option and compiler construction is forbidden.
+    const stderr: string[] = [];
+
+    // WHEN: The invalid request runs through the CLI boundary.
+    const exitCode = await runPluginCompilerCli({
+      argv: ["init", "--provider", "codex"],
+      currentWorkingDirectory: "/repository",
+      createCompiler: () => {
+        throw new Error("Usage failures must not construct the compiler");
+      },
+      output: {
+        stdout: () => undefined,
+        stderr: (line) => stderr.push(line),
+      },
+    });
+
+    // THEN: The diagnostic carries focused init help without provider selection.
+    assert.equal(exitCode, CliExitCode.Usage);
+    assert.match(stderr.join("\n"), /init accepts only --root <path>/u);
+    assert.match(stderr.join("\n"), /Usage: plugin-compiler init \[OPTIONS\]/u);
+    assert.doesNotMatch(stderr.join("\n"), /--provider <id>/u);
+  });
 
   it("passes an explicit provider selection to the compiler", async () => {
     // GIVEN: A compiler factory records the parsed operation scope.

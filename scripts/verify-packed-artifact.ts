@@ -266,10 +266,23 @@ async function main(): Promise<void> {
     if (!help.stdout.includes("Usage: plugin-compiler [OPTIONS] <COMMAND>")) {
       fail(`Installed CLI returned unexpected help output:\n${help.stdout}`);
     }
-    for (const command of ["validate", "check", "generate"]) {
+    for (const command of ["init", "validate", "check", "generate"]) {
       if (!help.stdout.includes(`  ${command}`)) {
         fail(`Installed CLI help omits ${command}:\n${help.stdout}`);
       }
+    }
+
+    const initHelp = await run(binary, ["init", "--help"], consumerRoot);
+    requireSuccess(initHelp, "Installed plugin-compiler init --help");
+    if (
+      !initHelp.stdout.includes("Usage: plugin-compiler init [OPTIONS]") ||
+      !initHelp.stdout.includes("--root <path>") ||
+      initHelp.stdout.includes("--provider <id>") ||
+      initHelp.stdout.includes("Commands:")
+    ) {
+      fail(
+        `Installed CLI returned unexpected init help output:\n${initHelp.stdout}`,
+      );
     }
 
     const generateHelp = await run(

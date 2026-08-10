@@ -132,6 +132,12 @@ export function parseCliArguments(
       continue;
     }
     if (argument === "--provider") {
+      if (commandValue === CliCommand.Init) {
+        throw new CliUsageError(
+          "init accepts only --root <path>.",
+          commandValue,
+        );
+      }
       if (providerSeen) {
         throw new CliUsageError(
           "--provider may be specified only once.",

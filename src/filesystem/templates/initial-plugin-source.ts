@@ -1,0 +1,175 @@
+import { createProjectPath, type ProjectPath } from "../../core/index.js";
+
+/**
+ * One example skill created with a new authored plugin manifest.
+ *
+ * @internal
+ */
+export interface InitialSkillSource {
+  /** Directory that owns the example skill. */
+  readonly directoryPath: ProjectPath;
+  /** Canonical authored skill file. */
+  readonly filePath: ProjectPath;
+  /** Initial Markdown source without generated frontmatter. */
+  readonly content: string;
+}
+
+/** Commented schema-valid manifest used for a newly initialized plugin. */
+export const INITIAL_PLUGIN_MANIFEST = `# This file defines the authored metadata, categories, and skill graph for the
+# agent plugin. The compiler reads it together with plugin/skills/**.
+#
+# Run "plugin-compiler validate" after making changes to check the manifest and
+# authored skill sources before generating provider-specific output.
+
+# The manifest schema version selects the supported plugin data contract.
+schema_version: 1
+
+# Plugin identifiers use lowercase kebab-case and may contain at most 64
+# characters.
+# TODO: Replace this example identifier with the plugin identifier.
+name: example-agent-plugin
+
+# This description explains the complete plugin to users and marketplaces.
+# TODO: Replace this example description.
+description: "TODO: Describe what this plugin provides."
+
+# Versions follow Semantic Versioning and must remain quoted so YAML does not
+# reinterpret the value.
+# TODO: Set the initial plugin version.
+version: "0.1.0"
+
+# Author metadata identifies the person or organization maintaining the plugin.
+author:
+  # TODO: Replace this example author name.
+  name: Plugin Author
+  # Optional author fields can be enabled when available.
+  # email: maintainer@example.com
+  # url: https://example.com
+
+# Homepage and repository must be complete HTTPS URLs.
+# TODO: Replace these example URLs.
+homepage: https://example.com/example-agent-plugin
+repository: https://github.com/example/example-agent-plugin
+
+# TODO: Confirm the license used by the plugin.
+license: MIT
+
+# Keywords help users discover the complete plugin.
+# TODO: Replace or extend these example keywords.
+keywords:
+  - agent
+  - skills
+
+# Marketplace metadata controls how the plugin appears in provider catalogs.
+marketplace:
+  # Marketplace identifiers also use lowercase kebab-case.
+  # TODO: Replace this example marketplace identifier.
+  name: example-agent-plugin
+
+  # The marketplace description explains the collection containing this plugin.
+  # TODO: Replace this example marketplace description.
+  description: "TODO: Describe the marketplace collection."
+
+  # The plugin description is the shorter marketplace listing text.
+  # TODO: Replace this example plugin listing description.
+  plugin_description: "TODO: Describe this plugin listing."
+
+  # TODO: Select the most appropriate lowercase kebab-case category.
+  category: development
+
+  # Marketplace keywords can differ from the plugin-level keywords.
+  # TODO: Replace or extend these example marketplace keywords.
+  keywords:
+    - agent
+    - skills
+
+# Categories group related skills. Every skill category_id must reference one
+# category id declared here.
+categories:
+  # Engineering category example.
+  # TODO: Rename, replace, or extend this category.
+  - id: engineering
+    name: Engineering
+    description: Skills for software engineering workflows.
+
+  # Productivity category example.
+  # TODO: Rename, replace, or extend this category.
+  - id: productivity
+    name: Productivity
+    description: Skills for everyday productivity workflows.
+
+# Skills declare the public catalog, lifecycle, visibility, and dependencies.
+# Each id must have a matching plugin/skills/<id>/SKILL.md source file.
+skills:
+  # Required/internal skill example. Internal skills can support public skills
+  # without being published as standalone catalog entries.
+  # TODO: Replace this example with a real reusable dependency.
+  - id: inspect-repository
+    description: Inspect a repository and collect verified implementation facts.
+    category_id: engineering
+    visibility: internal # Possible values: internal, public.
+    status: active # Possible values: draft, active, deprecated, archived.
+    # A deprecated skill requires a deprecation block. An archived skill
+    # requires an archive block. Draft and active skills use neither block.
+    required_skills: []
+
+  # Standalone public skill example. An empty required_skills list means that
+  # the skill has no dependencies.
+  # TODO: Replace this example with a real standalone skill.
+  - id: write-commit-message
+    description: Write a concise conventional commit message.
+    category_id: engineering
+    visibility: public # Possible values: internal, public.
+    status: active # Possible values: draft, active, deprecated, archived.
+    # A deprecated skill requires a deprecation block. An archived skill
+    # requires an archive block. Draft and active skills use neither block.
+    required_skills: []
+
+  # Public skill with a required internal skill. Every dependency records why
+  # it is needed and how the parent skill should use it.
+  # TODO: Replace this example while preserving the dependency shape when useful.
+  - id: prepare-change-plan
+    description: Prepare an implementation plan from verified repository facts.
+    category_id: engineering
+    visibility: public # Possible values: internal, public.
+    status: active # Possible values: draft, active, deprecated, archived.
+    # A deprecated skill requires a deprecation block. An archived skill
+    # requires an archive block. Draft and active skills use neither block.
+    required_skills:
+      - skill_id: inspect-repository
+        reason: The plan must reflect the repository's actual structure.
+        instructions: Inspect the repository and pass the verified facts forward.
+`;
+
+/** Matching source files that keep the starter manifest immediately valid. */
+export const INITIAL_SKILL_SOURCES: readonly InitialSkillSource[] =
+  Object.freeze([
+    Object.freeze({
+      directoryPath: createProjectPath("plugin/skills/inspect-repository"),
+      filePath: createProjectPath("plugin/skills/inspect-repository/SKILL.md"),
+      content: `# Inspect repository
+
+Inspect the repository and collect verified facts needed by another skill.
+`,
+    }),
+    Object.freeze({
+      directoryPath: createProjectPath("plugin/skills/write-commit-message"),
+      filePath: createProjectPath(
+        "plugin/skills/write-commit-message/SKILL.md",
+      ),
+      content: `# Write a commit message
+
+Write a concise conventional commit message for a completed change.
+`,
+    }),
+    Object.freeze({
+      directoryPath: createProjectPath("plugin/skills/prepare-change-plan"),
+      filePath: createProjectPath("plugin/skills/prepare-change-plan/SKILL.md"),
+      content: `# Prepare a change plan
+
+Create a focused implementation plan from verified repository facts.
+
+<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->
+`,
+    }),
+  ]);

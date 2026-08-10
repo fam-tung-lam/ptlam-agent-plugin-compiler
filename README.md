@@ -100,7 +100,21 @@ npm install --save-dev --save-exact \
 
 ## Quick start
 
-### 1. Create the authored plugin source
+### 1. Initialize the authored plugin source
+
+Run `init` from the plugin repository root:
+
+```bash
+npm exec -- plugin-compiler init
+```
+
+For a new plugin, the command creates a schema-valid, fully commented
+`plugin/plugin.yml` with two example categories and three matching example
+skills: an internal dependency, a standalone public skill, and a public skill
+that uses the dependency. It is safe to run repeatedly: existing paths and
+manifest content remain unchanged.
+
+### 2. Customize the authored plugin source
 
 ```text
 plugin/
@@ -108,11 +122,16 @@ plugin/
 └── skills/
     ├── inspect-repository/
     │   └── SKILL.md
-    └── prepare-change-plan/
+    ├── prepare-change-plan/
+    │   └── SKILL.md
+    └── write-commit-message/
         └── SKILL.md
 ```
 
-Create `plugin/plugin.yml`:
+The generated manifest explains every section, marks values to replace with
+`TODO` comments, documents the allowed visibility and lifecycle values, and
+includes complete standalone and required-skill examples. A customized version
+can look like this:
 
 ```yaml
 schema_version: 1
@@ -164,9 +183,16 @@ skills:
         reason: The plan must reflect the repository's actual structure.
         instructions:
           Inspect the repository and pass the verified facts forward.
+
+  - id: write-commit-message
+    description: Write a concise conventional commit message.
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills: []
 ```
 
-Create `plugin/skills/inspect-repository/SKILL.md`:
+Customize `plugin/skills/inspect-repository/SKILL.md`:
 
 ```markdown
 # Inspect a repository
@@ -179,7 +205,7 @@ Inspect the repository and collect the facts needed to plan a change.
 2. Report the current structure and constraints.
 ```
 
-Create `plugin/skills/prepare-change-plan/SKILL.md`:
+Customize `plugin/skills/prepare-change-plan/SKILL.md`:
 
 ```markdown
 # Prepare a change plan
@@ -192,6 +218,14 @@ Create a focused implementation plan from verified repository facts.
 2. Keep the plan small and testable.
 ```
 
+Customize `plugin/skills/write-commit-message/SKILL.md`:
+
+```markdown
+# Write a commit message
+
+Write a concise conventional commit message for a completed change.
+```
+
 - `<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->` is an optional placement marker.
   When present, the compiler replaces it with the declared dependency
   instructions. When omitted, those instructions appear after the top-level
@@ -199,7 +233,7 @@ Create a focused implementation plan from verified repository facts.
   top-level title, they appear at the beginning.
 - Do not add YAML frontmatter here; the compiler generates it.
 
-### 2. Run the compiler
+### 3. Run the compiler
 
 `generate` replaces the compiler-owned root `skills/` tree and provider manifest
 files.
@@ -231,14 +265,16 @@ skills/
 
 | Command                                                                | Purpose                                      |
 | ---------------------------------------------------------------------- | -------------------------------------------- |
+| `plugin-compiler init [--root <path>]`                                 | Create missing authored source paths         |
 | `plugin-compiler validate [--root <path>] [--provider <id>[,<id>...]]` | Validate the manifest, skills, and graph     |
 | `plugin-compiler generate [--root <path>] [--provider <id>[,<id>...]]` | Generate and verify all managed output files |
 | `plugin-compiler check [--root <path>] [--provider <id>[,<id>...]]`    | Report output that does not match the source |
 | `plugin-compiler -h` or `plugin-compiler --help`                       | Show the command overview and global options |
 | `plugin-compiler <command> -h` or `--help`                             | Show usage and options for one command       |
 
-Without `--root`, the compiler uses the current working directory. Specify
-`--provider` once and separate multiple provider IDs with commas:
+Without `--root`, every command uses the current working directory. `init`
+accepts only this shared option. For other commands, specify `--provider` once
+and separate multiple provider IDs with commas:
 
 ```bash
 plugin-compiler generate --provider claude,codex
@@ -246,8 +282,9 @@ plugin-compiler generate --provider claude,codex
 
 Without any provider flags, the compiler selects Claude and Codex.
 
-Root help lists the available commands. Help after `validate`, `check`, or
-`generate` stays focused on that command and its options.
+Root help lists the available commands. Help after `init`, `validate`, `check`,
+or `generate` stays focused on that command and its options. The `init` help
+lists only `--root` because initialization does not select providers.
 
 ## Node.js API
 

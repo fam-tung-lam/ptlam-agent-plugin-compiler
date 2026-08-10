@@ -3,9 +3,22 @@ import {
   createWriteResult,
   type DriftEntry,
   type Plugin,
+  type ProjectPath,
   type WriteResult,
   type WriteResultInput,
 } from "../core/index.js";
+
+/**
+ * Result of initializing the minimal authored plugin layout.
+ */
+export interface InitResult {
+  /** Paths created by this invocation. */
+  readonly createdPaths: readonly ProjectPath[];
+  /** Paths that already existed and were left unchanged. */
+  readonly existingPaths: readonly ProjectPath[];
+  /** Non-fatal initialization diagnostics. */
+  readonly warnings: readonly string[];
+}
 
 /**
  * Result of validating authored plugin sources.
@@ -66,6 +79,35 @@ export interface ValidateResultInput {
   readonly plugin: Plugin;
   /** Non-fatal validation diagnostics. */
   readonly warnings: readonly string[];
+}
+
+/**
+ * Input used internally to construct an immutable initialization result.
+ *
+ * @internal
+ */
+export interface InitResultInput {
+  /** Paths created by this invocation. */
+  readonly createdPaths: readonly ProjectPath[];
+  /** Paths that already existed and were left unchanged. */
+  readonly existingPaths: readonly ProjectPath[];
+  /** Non-fatal initialization diagnostics. */
+  readonly warnings: readonly string[];
+}
+
+/**
+ * Snapshot authored-source initialization facts.
+ *
+ * @param input - Created paths, existing paths, and warnings to snapshot.
+ * @returns An immutable initialization result.
+ * @internal
+ */
+export function createInitResult(input: InitResultInput): InitResult {
+  return Object.freeze({
+    createdPaths: Object.freeze([...input.createdPaths]),
+    existingPaths: Object.freeze([...input.existingPaths]),
+    warnings: Object.freeze([...input.warnings]),
+  });
 }
 
 /**

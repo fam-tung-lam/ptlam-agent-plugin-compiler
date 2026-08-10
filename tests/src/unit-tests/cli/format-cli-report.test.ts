@@ -11,6 +11,7 @@ import {
 import {
   createCheckResult,
   createCompileResult,
+  createInitResult,
   createValidateResult,
 } from "../../../../src/compiler/index.ts";
 import {
@@ -32,6 +33,32 @@ const scope = Object.freeze({
 });
 
 describe("formatCliResult", () => {
+  it("formats created and unchanged initialization paths without providers", () => {
+    // GIVEN: Initialization creates two paths and preserves one existing path.
+    const result = createInitResult({
+      createdPaths: [
+        createProjectPath("plugin/skills"),
+        createProjectPath("plugin/plugin.yml"),
+      ],
+      existingPaths: [createProjectPath("plugin")],
+      warnings: [],
+    });
+
+    // WHEN: The init result is formatted for the terminal.
+    const report = formatCliResult({ command: CliCommand.Init, result }, scope);
+
+    // THEN: Output reports filesystem facts without irrelevant providers.
+    assert.equal(report.exitCode, CliExitCode.Success);
+    assert.deepEqual(report.stdout, [
+      "Scope: /repository.",
+      "Plugin source initialized.",
+      "- plugin/skills: created",
+      "- plugin/plugin.yml: created",
+      "- plugin: unchanged",
+    ]);
+    assert.deepEqual(report.stderr, []);
+  });
+
   it("formats validation scope, counts, and warnings", () => {
     // GIVEN: Validation succeeds with one warning for both repository providers.
     const result = createValidateResult({
@@ -126,6 +153,7 @@ describe("formatCliResult", () => {
       "Usage: plugin-compiler [OPTIONS] <COMMAND>",
       "",
       "Commands:",
+      "  init      Create missing authored plugin source paths",
       "  validate  Validate the authored plugin manifest, skills, and graph",
       "  check     Check compiler-managed output against the authored sources",
       "  generate  Generate and verify all compiler-managed output",
@@ -140,22 +168,31 @@ describe("formatCliResult", () => {
 
   it.each([
     {
+      command: CliCommand.Init,
+      introduction:
+        "Create missing authored plugin source paths without replacing existing content.",
+      supportsProviders: false,
+    },
+    {
       command: CliCommand.Validate,
       introduction:
         "Validate the authored plugin manifest, skills, and dependency graph.",
+      supportsProviders: true,
     },
     {
       command: CliCommand.Check,
       introduction:
         "Check compiler-managed output against the authored plugin sources.",
+      supportsProviders: true,
     },
     {
       command: CliCommand.Generate,
       introduction: "Generate and verify all compiler-managed output files.",
+      supportsProviders: true,
     },
   ])(
     "formats focused $command help with command options",
-    ({ command, introduction }) => {
+    ({ command, introduction, supportsProviders }) => {
       // GIVEN: The user requests help for one recognized compiler command.
 
       // WHEN: Command-specific help is formatted.
@@ -171,9 +208,13 @@ describe("formatCliResult", () => {
         "Options:",
         "      --root <path>              Plugin repository root",
         "                                 [default: current working directory]",
-        "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
-        "                                 [possible values: claude, codex]",
-        "                                 [default: claude, codex]",
+        ...(supportsProviders
+          ? [
+              "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
+              "                                 [possible values: claude, codex]",
+              "                                 [default: claude, codex]",
+            ]
+          : []),
         "  -h, --help                     Display help for this command",
       ]);
       assert.doesNotMatch(help.stdout.join("\n"), /Commands:/u);

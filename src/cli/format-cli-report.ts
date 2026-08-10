@@ -15,6 +15,11 @@ const COMMAND_HELP: Readonly<
     }
   >
 > = Object.freeze({
+  [CliCommand.Init]: {
+    summary: "Create missing authored plugin source paths",
+    introduction:
+      "Create missing authored plugin source paths without replacing existing content.",
+  },
   [CliCommand.Validate]: {
     summary: "Validate the authored plugin manifest, skills, and graph",
     introduction:
@@ -59,9 +64,13 @@ function commandHelpLines(command: CliCommand): readonly string[] {
     "Options:",
     "      --root <path>              Plugin repository root",
     "                                 [default: current working directory]",
-    "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
-    `                                 [possible values: ${defaultProviders}]`,
-    `                                 [default: ${defaultProviders}]`,
+    ...(command === CliCommand.Init
+      ? []
+      : [
+          "      --provider <id>[,<id>...]  Select providers as a comma-separated list",
+          `                                 [possible values: ${defaultProviders}]`,
+          `                                 [default: ${defaultProviders}]`,
+        ]),
     "  -h, --help                     Display help for this command",
   ]);
 }
@@ -80,6 +89,10 @@ function countLabel(
 
 function scopeLine(scope: CompilerScope): string {
   return `Scope: ${scope.rootDir}; providers: ${scope.providers.join(", ")}.`;
+}
+
+function rootLine(scope: CompilerScope): string {
+  return `Scope: ${scope.rootDir}.`;
 }
 
 function warningLines(warnings: readonly string[]): string[] {
@@ -171,6 +184,21 @@ export function formatCliResult(
 ): CliReport {
   const warnings = warningLines(executed.result.warnings);
   switch (executed.command) {
+    case CliCommand.Init:
+      return createReport({
+        exitCode: CliExitCode.Success,
+        stdout: [
+          rootLine(scope),
+          executed.result.createdPaths.length === 0
+            ? "Plugin source is already initialized."
+            : "Plugin source initialized.",
+          ...executed.result.createdPaths.map((path) => `- ${path}: created`),
+          ...executed.result.existingPaths.map(
+            (path) => `- ${path}: unchanged`,
+          ),
+        ],
+        stderr: warnings,
+      });
     case CliCommand.Validate:
       return createReport({
         exitCode: CliExitCode.Success,

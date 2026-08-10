@@ -118,14 +118,14 @@ sequenceDiagram
     CommandLineInterface -->> TerminalUser: REPORTS result
 ```
 
-| Area         | Interface seen by callers                                  | Responsibility                                    | Allowed outgoing module imports                             |
-| ------------ | ---------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- |
-| `schemas`    | Versioned JSON files                                       | Define the manifest data contract                 | None                                                        |
-| `core`       | Immutable cross-module types, interfaces, and constructors | Give the compiler one shared domain vocabulary    | None                                                        |
-| `compiler`   | `AgentPluginCompiler.validate`, `.check`, and `.compile`   | Coordinate a complete operation behind one facade | `core`, private compiler modules, `providers`, `filesystem` |
-| `providers`  | Concrete adapters and `ProviderAdapterRegistry`            | Implement and resolve host-specific rendering     | `core`                                                      |
-| `filesystem` | Source reader, generated-state reader, and plan writer     | Own all repository I/O and safe writes            | `core`                                                      |
-| `cli`        | Commands, arguments, reports, and exit codes               | Translate terminal input and output               | `compiler`, `providers`                                     |
+| Area         | Interface seen by callers                                         | Responsibility                                    | Allowed outgoing module imports                             |
+| ------------ | ----------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- |
+| `schemas`    | Versioned JSON files                                              | Define the manifest data contract                 | None                                                        |
+| `core`       | Immutable cross-module types, interfaces, and constructors        | Give the compiler one shared domain vocabulary    | None                                                        |
+| `compiler`   | `AgentPluginCompiler.init`, `.validate`, `.check`, and `.compile` | Coordinate a complete operation behind one facade | `core`, private compiler modules, `providers`, `filesystem` |
+| `providers`  | Concrete adapters and `ProviderAdapterRegistry`                   | Implement and resolve host-specific rendering     | `core`                                                      |
+| `filesystem` | Source initializer, readers, and generated plan writer            | Own all repository I/O and safe writes            | `core`                                                      |
+| `cli`        | Commands, arguments, reports, and exit codes                      | Translate terminal input and output               | `compiler`, `providers`                                     |
 
 | Source module         | May import                                                  | Must not import                                                        |
 | --------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -159,8 +159,8 @@ sequenceDiagram
 - `filesystem` imports only `core`. Domain algorithms never read from disk.
 - `scripts/check-module-boundaries.ts` checks these rules in the normal
   repository gates.
-- The package validates and compiles a repository; it does not install or
-  publish plugins.
+- The package initializes, validates, and compiles a repository; it does not
+  install or publish plugins.
 
 The `compiler` facade is the deep module at the center of the package. Its small
 interface hides validation, rendering, planning, provider selection, repository
@@ -290,7 +290,45 @@ The seam is open inside the process and has two real adapters. It is not a
 separate package or process ABI, and it needs neither an abstract base class nor
 a global registry.
 
-## Validate, check, and compile flows
+## Init, validate, check, and compile flows
+
+### init
+
+```mermaid
+---
+config:
+  htmlLabels: false
+---
+flowchart LR
+    InitCommand["`
+        init
+        (cli command)
+    `"]
+    EnsureDirectories["`
+        filesystem
+        (ensure plugin/ and plugin/skills/)
+    `"]
+    InspectManifest["`
+        filesystem
+        (inspect plugin/plugin.yml)
+    `"]
+    EnsureExampleSkills["`
+        filesystem
+        (ensure matching example skill sources)
+    `"]
+    WriteManifest["`
+        filesystem
+        (create commented plugin/plugin.yml)
+    `"]
+    InitResult["`
+        InitResult
+        (created and unchanged paths)
+    `"]
+
+    InitCommand ------> EnsureDirectories ------> InspectManifest
+    InspectManifest ------>|"`missing`"| EnsureExampleSkills ------> WriteManifest ------> InitResult
+    InspectManifest ------>|"`already exists`"| InitResult
+```
 
 ### validate
 
@@ -443,12 +481,14 @@ flowchart LR
 
 | Operation                       | Repository writes                | Result                                                                | Success condition                                         |
 | ------------------------------- | -------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- |
+| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                         | Base paths exist; a new manifest has matching examples    |
 | `validate`                      | None                             | `ValidateResult` with `Plugin` and warnings                           | Authored source satisfies schema and domain rules         |
 | `check`                         | None                             | `CheckResult` with `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
 | `compile` (`generate` in `cli`) | Applies the complete `WritePlan` | `CompileResult` with `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
 
-- Every operation reads and validates authored source before using generated
-  state.
+- Init creates only missing authored paths and never replaces existing content.
+- Validate, check, and compile read and validate authored source before using
+  generated state.
 - Check and compile build the same shared and provider fragments and the same
   `WritePlan`.
 - `filesystem` reads only paths owned by that plan; unrelated and human-owned

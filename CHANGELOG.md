@@ -10,9 +10,13 @@ and this project adheres to
 
 ### Added
 
+- Added `plugin-compiler init [--root <path>]` to create missing authored paths
+  without changing existing content. A new manifest is a schema-valid commented
+  template with matching standalone, dependency, and dependent example skill
+  sources.
 - Added structured root help for the CLI command overview and focused `-h` or
-  `--help` output for `validate`, `check`, and `generate`, including each
-  command's usage and options.
+  `--help` output for `init`, `validate`, `check`, and `generate`, including
+  each command's usage and options.
 
 ### Changed
 

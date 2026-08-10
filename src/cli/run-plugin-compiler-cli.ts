@@ -22,6 +22,8 @@ async function executeCommand(
   compiler: CompilerOperations,
 ): Promise<ExecutedCliCommand> {
   switch (command) {
+    case CliCommand.Init:
+      return { command, result: await compiler.init() };
     case CliCommand.Validate:
       return { command, result: await compiler.validate() };
     case CliCommand.Check:

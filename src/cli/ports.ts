@@ -1,6 +1,7 @@
 import type {
   CheckResult,
   CompileResult,
+  InitResult,
   ValidateResult,
 } from "../compiler/index.js";
 import type { ProviderId } from "../providers/index.js";
@@ -23,6 +24,11 @@ export interface CompilerScope {
  * @internal
  */
 export interface CompilerOperations {
+  /**
+   * @returns Authored-source initialization facts.
+   * @throws If repository initialization fails.
+   */
+  init(): Promise<InitResult>;
   /**
    * @returns Authored-source validation.
    * @throws If source reading or validation fails.

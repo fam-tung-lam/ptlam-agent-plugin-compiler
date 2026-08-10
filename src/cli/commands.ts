@@ -1,6 +1,7 @@
 import type {
   CheckResult,
   CompileResult,
+  InitResult,
   ValidateResult,
 } from "../compiler/index.js";
 import { CLAUDE, CODEX, type ProviderId } from "../providers/index.js";
@@ -11,6 +12,8 @@ import { CLAUDE, CODEX, type ProviderId } from "../providers/index.js";
  * @internal
  */
 export enum CliCommand {
+  /** Create the minimal authored plugin source layout. */
+  Init = "init",
   /** Validate authored plugin sources. */
   Validate = "validate",
   /** Compare generated state with the desired plan. */
@@ -35,6 +38,12 @@ export const DEFAULT_PROVIDERS: readonly ProviderId[] = Object.freeze([
  * @internal
  */
 export type ExecutedCliCommand =
+  | {
+      /** The operation that produced the result. */
+      readonly command: CliCommand.Init;
+      /** Initialization result returned by the compiler. */
+      readonly result: InitResult;
+    }
   | {
       /** The operation that produced the result. */
       readonly command: CliCommand.Validate;

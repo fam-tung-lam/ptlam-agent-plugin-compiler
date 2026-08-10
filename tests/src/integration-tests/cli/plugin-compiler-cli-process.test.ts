@@ -28,10 +28,13 @@ interface ProcessResult {
   readonly stderr: string;
 }
 
-function runCli(argv: readonly string[]): Promise<ProcessResult> {
+function runCli(
+  argv: readonly string[],
+  currentWorkingDirectory = repositoryRoot,
+): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [cliPath, ...argv], {
-      cwd: repositoryRoot,
+      cwd: currentWorkingDirectory,
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stdout = "";
@@ -111,6 +114,73 @@ ${invalidManifest ? "unexpected: true\n" : ""}`,
 }
 
 describe("plugin compiler CLI process", () => {
+  it("initializes missing source paths and preserves them on repeated runs", async () => {
+    // GIVEN: An empty real directory will become an authored plugin repository.
+    const rootDir = await mkdtemp(
+      path.join(tmpdir(), "ptlam-plugin-cli-init-"),
+    );
+    onTestFinished(() => rm(rootDir, { recursive: true, force: true }));
+
+    // WHEN: Init targets the directory through --root before the default-root commands run there.
+    const first = await runCli(["init", "--root", rootDir]);
+    const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+    const initialManifest = await readFile(manifestPath, "utf8");
+    const validation = await runCli(["validate"], rootDir);
+    const generation = await runCli(["generate"], rootDir);
+    await writeFile(manifestPath, "user-owned: true\n", "utf8");
+    const second = await runCli(["init"], rootDir);
+
+    // THEN: The starter is documented, immediately usable, and never replaces user content.
+    assert.equal(first.exitCode, CliExitCode.Success);
+    assert.match(first.stdout, /Plugin source initialized/u);
+    assert.match(initialManifest, /# TODO: Replace this example identifier/u);
+    assert.match(
+      initialManifest,
+      /visibility: public # Possible values: internal, public\./u,
+    );
+    assert.match(
+      initialManifest,
+      /status: active # Possible values: draft, active, deprecated, archived\./u,
+    );
+    assert.match(initialManifest, /# Standalone public skill example/u);
+    assert.match(initialManifest, /# Required\/internal skill example/u);
+    assert.match(initialManifest, /skill_id: inspect-repository/u);
+    assert.equal(
+      (await lstat(path.join(rootDir, "plugin"))).isDirectory(),
+      true,
+    );
+    assert.equal(
+      (await lstat(path.join(rootDir, "plugin", "skills"))).isDirectory(),
+      true,
+    );
+    assert.equal(validation.exitCode, CliExitCode.Success);
+    assert.match(validation.stdout, /Validated example-agent-plugin@0\.1\.0/u);
+    assert.match(validation.stdout, /3 skills in 2 categories/u);
+    assert.equal(generation.exitCode, CliExitCode.Success);
+    assert.equal(
+      (
+        await lstat(
+          path.join(
+            rootDir,
+            "skills",
+            "prepare-change-plan",
+            "skills",
+            "inspect-repository",
+            "SKILL.md",
+          ),
+        )
+      ).isFile(),
+      true,
+    );
+    assert.equal(second.exitCode, CliExitCode.Success);
+    assert.match(second.stdout, /already initialized/u);
+    assert.equal(await readFile(manifestPath, "utf8"), "user-owned: true\n");
+    assert.equal(first.stderr, "");
+    assert.equal(validation.stderr, "");
+    assert.equal(generation.stderr, "");
+    assert.equal(second.stderr, "");
+  });
+
   it.each(["--help", "-h"])(
     "renders the command overview through the executable entrypoint with %s",
     async (helpFlag) => {
@@ -125,7 +195,8 @@ describe("plugin compiler CLI process", () => {
         result.stdout,
         /Usage: plugin-compiler \[OPTIONS\] <COMMAND>/u,
       );
-      assert.match(result.stdout, /Commands:\n {2}validate/u);
+      assert.match(result.stdout, /Commands:\n {2}init\s/u);
+      assert.match(result.stdout, /\n {2}validate\s/u);
       assert.match(result.stdout, /\n {2}check\s/u);
       assert.match(result.stdout, /\n {2}generate\s/u);
       assert.equal(result.stderr, "");
@@ -144,14 +215,18 @@ describe("plugin compiler CLI process", () => {
       // WHEN: A child process requests focused command help.
       const result = await runCli([command, helpFlag]);
 
-      // THEN: Help succeeds with shared command options and without the root command list.
+      // THEN: Help succeeds with the command's options and without the root command list.
       assert.equal(result.exitCode, CliExitCode.Success);
       assert.match(
         result.stdout,
         new RegExp(`Usage: plugin-compiler ${command} \\[OPTIONS\\]`, "u"),
       );
       assert.match(result.stdout, /--root <path>/u);
-      assert.match(result.stdout, /--provider <id>/u);
+      if (command === CliCommand.Init) {
+        assert.doesNotMatch(result.stdout, /--provider <id>/u);
+      } else {
+        assert.match(result.stdout, /--provider <id>/u);
+      }
       assert.match(result.stdout, /-h, --help/u);
       assert.doesNotMatch(result.stdout, /Commands:/u);
       assert.equal(result.stderr, "");
