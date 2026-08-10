@@ -12,14 +12,6 @@
       deterministic output for five agent providers.
     </p>
 
-    <div class="apc-compiler-flow__chrome" aria-hidden="true">
-      <span>COMPILATION PIPELINE</span>
-      <span class="apc-compiler-flow__status">
-        <span class="apc-compiler-flow__status-dot" />
-        DETERMINISTIC
-      </span>
-    </div>
-
     <div class="apc-compiler-flow__diagram" aria-hidden="true">
       <div class="apc-flow-manifest">
         <svg viewBox="0 0 32 32">
@@ -29,9 +21,9 @@
         <span>Plugin manifest</span>
       </div>
 
-      <svg class="apc-flow-arrow apc-flow-arrow--input" viewBox="0 0 72 20">
-        <path class="apc-flow-arrow__line" d="M1 10h62" />
-        <path class="apc-flow-arrow__tip" d="m59 6 5 4-5 4" />
+      <svg class="apc-flow-arrow apc-flow-arrow--input" viewBox="0 0 70 20">
+        <path class="apc-flow-arrow__line" d="M0 10h70" />
+        <path class="apc-flow-arrow__tip" d="m64 6 6 4-6 4" />
       </svg>
 
       <div class="apc-flow-compiler">
@@ -39,40 +31,39 @@
         <span>Plugin compiler</span>
       </div>
 
+      <svg
+        class="apc-flow-arrow apc-flow-arrow--output"
+        viewBox="0 0 84 134"
+        preserveAspectRatio="none"
+      >
+        <path class="apc-flow-arrow__line" d="M0 67h28" />
+        <path class="apc-flow-arrow__line" d="M28 11v112" />
+        <path class="apc-flow-arrow__line" d="M28 11h56" />
+        <path class="apc-flow-arrow__line" d="M28 39h56" />
+        <path class="apc-flow-arrow__line" d="M28 67h56" />
+        <path class="apc-flow-arrow__line" d="M28 95h56" />
+        <path class="apc-flow-arrow__line" d="M28 123h56" />
+        <path class="apc-flow-arrow__tip" d="m78 7 6 4-6 4" />
+        <path class="apc-flow-arrow__tip" d="m78 35 6 4-6 4" />
+        <path class="apc-flow-arrow__tip" d="m78 63 6 4-6 4" />
+        <path class="apc-flow-arrow__tip" d="m78 91 6 4-6 4" />
+        <path class="apc-flow-arrow__tip" d="m78 119 6 4-6 4" />
+      </svg>
+
       <div class="apc-flow-providers">
         <div class="apc-flow-provider-row">
-          <svg class="apc-flow-arrow" viewBox="0 0 44 16">
-            <path class="apc-flow-arrow__line" d="M1 8h34" />
-            <path class="apc-flow-arrow__tip" d="m31 4 5 4-5 4" />
-          </svg>
           <span>Claude</span>
         </div>
         <div class="apc-flow-provider-row">
-          <svg class="apc-flow-arrow" viewBox="0 0 44 16">
-            <path class="apc-flow-arrow__line" d="M1 8h34" />
-            <path class="apc-flow-arrow__tip" d="m31 4 5 4-5 4" />
-          </svg>
           <span>Codex</span>
         </div>
         <div class="apc-flow-provider-row">
-          <svg class="apc-flow-arrow" viewBox="0 0 44 16">
-            <path class="apc-flow-arrow__line" d="M1 8h34" />
-            <path class="apc-flow-arrow__tip" d="m31 4 5 4-5 4" />
-          </svg>
           <span>Copilot</span>
         </div>
         <div class="apc-flow-provider-row">
-          <svg class="apc-flow-arrow" viewBox="0 0 44 16">
-            <path class="apc-flow-arrow__line" d="M1 8h34" />
-            <path class="apc-flow-arrow__tip" d="m31 4 5 4-5 4" />
-          </svg>
           <span>Gemini</span>
         </div>
         <div class="apc-flow-provider-row">
-          <svg class="apc-flow-arrow" viewBox="0 0 44 16">
-            <path class="apc-flow-arrow__line" d="M1 8h34" />
-            <path class="apc-flow-arrow__tip" d="m31 4 5 4-5 4" />
-          </svg>
           <span>Kimi</span>
         </div>
       </div>
