@@ -12,8 +12,8 @@ and this project adheres to
 
 ### Changed
 
-- Promoted the current compiler contract from alpha to beta without changing
-  its public CLI, Node.js API, or generated output.
+- Promoted the current compiler contract from alpha to beta without changing its
+  public CLI, Node.js API, or generated output.
 
 ## [0.1.0-alpha.4] - 2026-08-10
 
