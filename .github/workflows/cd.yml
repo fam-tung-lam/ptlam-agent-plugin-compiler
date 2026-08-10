@@ -168,13 +168,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
+      actions: read
       contents: write
     env:
+      CANDIDATE_DIR: ${{ runner.temp }}/release-candidate
       PACKAGE_NAME: ${{ needs.detect.outputs.package_name }}
       PACKAGE_VERSION: ${{ needs.detect.outputs.package_version }}
       NPM_TAG: ${{ needs.detect.outputs.npm_tag }}
       PRERELEASE: ${{ needs.detect.outputs.prerelease }}
       RELEASE_SHA: ${{ needs.detect.outputs.release_sha }}
+      TARBALL_NAME: ${{ needs.detect.outputs.tarball_name }}
       PUBLISHED_NOW: ${{ needs.detect.outputs.needs_publish }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -188,6 +191,13 @@ jobs:
         uses: ./.github/actions/setup-node
         with:
           node-version: 24.19.0
+
+      - name: Download the tested release candidate
+        uses: ./.github/actions/download-release-candidate
+        with:
+          run-id: ${{ needs.detect.outputs.ci_run_id }}
+          destination: ${{ env.CANDIDATE_DIR }}
+          token: ${{ github.token }}
 
       - name: Create or verify GitHub release metadata
         run: >-
