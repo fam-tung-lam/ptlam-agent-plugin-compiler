@@ -67,5 +67,5 @@ Dependencies may be nested. Validation rejects missing targets, duplicates,
 self-references, cycles, and invalid lifecycle relationships before output is
 written.
 
-Next: understand [generated output](/guide/generated-output), or inspect the
-full [manifest contract](/reference/manifest).
+Next: [compile and inspect the generated result](/guide/quick-start), or inspect
+the full [manifest contract](/reference/manifest).

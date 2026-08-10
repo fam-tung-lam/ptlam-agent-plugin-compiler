@@ -199,6 +199,7 @@ body {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid color-mix(in srgb, var(--apc-violet) 18%, var(--apc-line));
+  border-radius: 19px 19px 0 0;
   padding: 10px 14px 9px;
   font-family: var(--apc-font-mono);
   font-size: 7px;
@@ -390,7 +391,7 @@ body {
 
 .apc-capabilities {
   position: relative;
-  margin: 0 auto;
+  margin: 32px auto 0;
   padding: 0 64px;
   max-width: 1280px;
 }
@@ -670,6 +671,10 @@ body {
 }
 
 @media (min-width: 960px) {
+  .VPHome .VPHero.VPHomeHero.has-image {
+    padding-top: 172px;
+  }
+
   .apc-compiler-flow {
     top: 58%;
   }

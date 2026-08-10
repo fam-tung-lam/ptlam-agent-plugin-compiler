@@ -307,8 +307,8 @@ Types, options, and a custom adapter example →
   every field of `plugin/plugin.yml`
 - [Authored source](https://agent-plugin-compiler.phamtunglam.com/guide/authored-source)
   — how skills, dependencies, and lifecycle values are declared
-- [Generated output](https://agent-plugin-compiler.phamtunglam.com/guide/generated-output)
-  — what the compiler owns and how ownership is enforced
+- [Compile and verify](https://agent-plugin-compiler.phamtunglam.com/guide/quick-start#_4-compile-and-verify)
+  — generated skills, provider manifests, and compiler ownership
 - [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)
   — internal design, for contributors
 - [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)

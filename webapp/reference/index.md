@@ -1,7 +1,7 @@
 # Reference Overview
 
 This reference documents the public contract of Agent Plugin Compiler
-`0.1.0-beta.1`.
+`0.1.0-beta.2`.
 
 ## Contract surfaces
 

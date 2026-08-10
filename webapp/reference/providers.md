@@ -56,4 +56,4 @@ rejected so a provider cannot claim an open-ended repository directory.
 
 Next: use provider constants through the
 [Node.js interface](/reference/node-interface), or review the
-[generated output model](/guide/generated-output).
+[compile and verification workflow](/guide/quick-start).

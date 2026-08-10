@@ -86,7 +86,6 @@ export default defineConfig({
               text: "Authored Plugin Source",
               link: "/guide/authored-source",
             },
-            { text: "Generated Output", link: "/guide/generated-output" },
           ],
         },
       ],

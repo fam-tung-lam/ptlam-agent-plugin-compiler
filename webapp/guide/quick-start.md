@@ -104,8 +104,55 @@ source diagnostics together.
 npm exec -- plugin-compiler compile
 ```
 
-The compiler writes the shared `skills/` tree and the provider manifests
-selected by `plugin/plugin.yml`, then verifies the new state.
+The compiler reconciles the complete root `skills/` tree and the exact manifest
+paths selected by `plugin/plugin.yml`, then verifies the new state. These files
+are build results: update `plugin/**` and compile again instead of editing them
+by hand.
+
+### Inspect the self-contained skills
+
+The starter source compiles to this shared tree:
+
+```text
+skills/
+├── README.md
+├── prepare-change-plan/
+│   ├── SKILL.md
+│   └── skills/
+│       └── inspect-repository/
+│           └── SKILL.md
+└── write-commit-message/
+    └── SKILL.md
+```
+
+`prepare-change-plan` can be installed by itself because its internal
+`inspect-repository` dependency is nested inside it. If a required skill is
+public, it is nested where needed and also emitted as its own root skill.
+`skills/README.md` catalogs the published roots.
+
+### Inspect the selected host manifests
+
+The same validated plugin model produces the built-in host files:
+
+| Provider | Managed manifest paths                                          |
+| -------- | --------------------------------------------------------------- |
+| Claude   | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
+| Codex    | `.codex-plugin/plugin.json`                                     |
+| Copilot  | `plugin.json`                                                   |
+| Gemini   | `gemini-extension.json`                                         |
+| Kimi     | `kimi.plugin.json`                                              |
+
+Without an override, `compile` uses the manifest's `providers` list. Replace it
+for one run with a comma-separated selection:
+
+```bash
+npm exec -- plugin-compiler compile --provider claude,codex
+```
+
+Compile shared skills without host manifests with `--no-providers`. The two
+provider options are mutually exclusive. Changing the selection removes stale
+built-in manifest files from their declared exact paths while leaving unrelated
+repository files outside the write plan.
 
 ## 5. Detect later drift
 
@@ -116,5 +163,6 @@ npm exec -- plugin-compiler check
 `check` is read-only. It exits successfully when every managed output matches
 the authored source and fails with path-level drift when it does not.
 
-Next: learn the [authored source rules](/guide/authored-source) and the
-[generated ownership model](/guide/generated-output).
+Next: learn the [authored source rules](/guide/authored-source), compare
+[provider contracts](/reference/providers), or use the
+[Node.js interface](/reference/node-interface).
