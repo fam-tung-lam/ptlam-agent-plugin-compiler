@@ -26,7 +26,7 @@ export enum CliCommand {
   /** Compare generated state with the desired plan. */
   Check = "check",
   /** Compile and verify generated state. */
-  Generate = "generate",
+  Compile = "compile",
 }
 
 /** Built-in provider IDs accepted by the CLI. @internal */
@@ -64,7 +64,7 @@ export type ExecutedCliCommand =
     }
   | {
       /** The operation that produced the result. */
-      readonly command: CliCommand.Generate;
+      readonly command: CliCommand.Compile;
       /** Compilation result returned by the compiler. */
       readonly result: CompileResult;
     };

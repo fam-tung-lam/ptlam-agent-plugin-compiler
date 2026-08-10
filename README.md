@@ -79,7 +79,7 @@ flowchart LR
    skill sources under `plugin/skills/`.
 2. The compiler validates those relationships, puts each required skill inside
    the skill that needs it
-3. Generate the shared skill catalog and only the provider manifests you select.
+3. Compile the shared skill catalog and only the provider manifests you select.
 
 Can be used through CLI commands or the `AgentPluginCompiler` Node.js API.
 
@@ -237,13 +237,13 @@ Write a concise conventional commit message for a completed change.
 
 ### 3. Run the compiler
 
-`generate` replaces the compiler-owned root `skills/` tree and reconciles every
+`compile` replaces the compiler-owned root `skills/` tree and reconciles every
 registered provider manifest with the effective provider selection. With no
 provider option, the compiler uses `plugin/plugin.yml`:
 
 ```bash
 npm exec -- plugin-compiler validate
-npm exec -- plugin-compiler generate
+npm exec -- plugin-compiler compile
 npm exec -- plugin-compiler check
 ```
 
@@ -270,12 +270,12 @@ skills/
 | ------------------------------------------------ | -------------------------------------------- |
 | `plugin-compiler init [--root <path>]`           | Create missing authored source paths         |
 | `plugin-compiler validate [options]`             | Validate the manifest, skills, and graph     |
-| `plugin-compiler generate [options]`             | Generate and verify all managed output files |
+| `plugin-compiler compile [options]`              | Compile and verify all managed output files  |
 | `plugin-compiler check [options]`                | Report output that does not match the source |
 | `plugin-compiler -h` or `plugin-compiler --help` | Show the command overview and global options |
 | `plugin-compiler <command> -h` or `--help`       | Show usage and options for one command       |
 
-`validate`, `generate`, and `check` accept:
+`validate`, `compile`, and `check` accept:
 
 ```text
 [--root <path>] [--provider <id>[,<id>...] | --no-providers]
@@ -294,7 +294,7 @@ one precedence rule:
 Specify `--provider` once and separate multiple provider IDs with commas:
 
 ```bash
-plugin-compiler generate --provider claude,codex
+plugin-compiler compile --provider claude,codex
 ```
 
 Possible built-in values are `claude`, `codex`, `copilot`, `gemini`, and `kimi`.
@@ -303,7 +303,7 @@ the effective provider list and whether it came from the manifest or an
 override.
 
 Root help lists the available commands. Help after `init`, `validate`, `check`,
-or `generate` stays focused on that command and its options. Both `-h` and
+or `compile` stays focused on that command and its options. Both `-h` and
 `--help` show every possible provider ID, the manifest default, replacement
 semantics, and the explicit shared-only option. The `init` help lists only
 `--root` because initialization does not select providers.

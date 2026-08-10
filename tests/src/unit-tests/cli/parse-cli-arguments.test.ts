@@ -18,7 +18,7 @@ import {
 const PROVIDER_COMMANDS = Object.freeze([
   CliCommand.Validate,
   CliCommand.Check,
-  CliCommand.Generate,
+  CliCommand.Compile,
 ]);
 
 describe("parseCliArguments", () => {
@@ -155,6 +155,7 @@ describe("parseCliArguments", () => {
   it.each([
     { argv: [], expected: "A command is required" },
     { argv: ["legacy"], expected: "Unknown command" },
+    { argv: ["generate"], expected: "Unknown command" },
     { argv: ["check", "--provider"], expected: "requires an identifier" },
     {
       argv: ["check", "--provider", "Claude!"],
@@ -184,7 +185,7 @@ describe("parseCliArguments", () => {
       argv: ["check", "--no-providers", "--no-providers"],
       expected: "only once",
     },
-    { argv: ["generate", "--root"], expected: "requires a path" },
+    { argv: ["compile", "--root"], expected: "requires a path" },
     {
       argv: ["check", "--root", "one", "--root", "two"],
       expected: "only once",
