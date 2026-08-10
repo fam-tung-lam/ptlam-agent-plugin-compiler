@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-08-10
+
 ### Changed
 
 - Breaking: renamed the CLI command `plugin-compiler generate` to
@@ -115,7 +117,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.1...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.2...HEAD
+[0.1.0-beta.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.4...v0.1.0-beta.1
 [0.1.0-alpha.4]:
