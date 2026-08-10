@@ -26,7 +26,14 @@
     ".github/scripts/**/*.ts",
     "scripts/**/*.ts",
     "src/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "webapp/**/*.ts"
   ],
-  "exclude": ["coverage", "dist", "node_modules"]
+  "exclude": [
+    "coverage",
+    "dist",
+    "node_modules",
+    "webapp/.vitepress/cache",
+    "webapp/.vitepress/dist"
+  ]
 }

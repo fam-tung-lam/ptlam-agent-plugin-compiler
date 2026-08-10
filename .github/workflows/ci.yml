@@ -58,6 +58,9 @@ jobs:
       - name: Run documentation checks
         run: npm run markdown:check
 
+      - name: Build the public WebApp
+        run: npm run webapp:build
+
       - name: Run tests
         run: npm run test:coverage
 

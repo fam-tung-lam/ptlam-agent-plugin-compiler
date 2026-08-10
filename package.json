@@ -59,7 +59,10 @@
     "markdown:lint:fix": "markdownlint-cli2 --fix",
     "test": "npm run build && vitest run",
     "test:coverage": "npm run build && vitest run --coverage",
-    "test:package": "node --experimental-strip-types scripts/verify-packed-artifact.ts"
+    "test:package": "node --experimental-strip-types scripts/verify-packed-artifact.ts",
+    "webapp:build": "vitepress build webapp",
+    "webapp:dev": "vitepress dev webapp",
+    "webapp:preview": "vitepress preview webapp"
   },
   "dependencies": {
     "ajv": "8.20.0",
@@ -76,6 +79,7 @@
     "markdownlint-cli2": "0.23.2",
     "typescript": "7.0.2",
     "vite": "6.4.3",
+    "vitepress": "1.6.4",
     "vitest": "4.1.10"
   }
 }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Agent Plugin Compiler</title>
+  <desc id="desc">Authored plugin nodes flow through a compiler gate into generated output nodes.</desc>
+  <defs>
+    <linearGradient id="surface" x1="10" y1="7" x2="86" y2="89" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#21173F"/>
+      <stop offset="1" stop-color="#102B36"/>
+    </linearGradient>
+    <linearGradient id="gate" x1="36" y1="28" x2="62" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8ABFF"/>
+      <stop offset="1" stop-color="#68D8CE"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="88" height="88" rx="24" fill="url(#surface)"/>
+  <path d="M22 30H35L43 40M22 48H38M22 66H35L43 56M73 30H64L56 40M73 48H58M73 66H64L56 56" fill="none" stroke="#7F72B3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="15" y="24" width="13" height="13" rx="4" fill="#A993FF"/>
+  <rect x="15" y="42" width="13" height="13" rx="4" fill="#8E79F0"/>
+  <rect x="15" y="60" width="13" height="13" rx="4" fill="#755DCF"/>
+  <path d="M48 26L62 48 48 70 34 48 48 26Z" fill="url(#gate)"/>
+  <path d="M45 39L39 48 45 57M51 39L57 48 51 57" fill="none" stroke="#172039" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="68" y="25" width="13" height="13" rx="4" fill="#68D8CE"/>
+  <rect x="68" y="43" width="13" height="13" rx="4" fill="#4FC6BC"/>
+  <rect x="68" y="61" width="13" height="13" rx="4" fill="#31AFA5"/>
+</svg>
