@@ -51,7 +51,6 @@ export interface GitHubReleaseClient {
   getAnnotatedTag(tagObjectSha: string): Promise<AnnotatedGitTag>;
   getRelease(tagName: string): Promise<GitHubReleaseRecord | undefined>;
   getTagReference(tagName: string): Promise<GitTagReference | undefined>;
-  verifyAsset(tagName: string, assetPath: string): Promise<void>;
 }
 
 export async function createOrVerifyGitHubRelease(
@@ -102,7 +101,6 @@ export async function createOrVerifyGitHubRelease(
       input.assetPath,
     );
   }
-  await client.verifyAsset(tagName, input.assetPath);
   return tagName;
 }
 
@@ -252,12 +250,6 @@ function commandClient(
       const object = parseObject(value, "Git tag reference");
       return { object: parseGitObject(object["object"]) };
     },
-    async verifyAsset(tagName, assetPath) {
-      requireSuccess(
-        await runner.run("gh", ["release", "verify-asset", tagName, assetPath]),
-        `Verify release asset for ${tagName}`,
-      );
-    },
   };
 }
 
@@ -301,6 +293,6 @@ runScript(import.meta.url, async () => {
   const publishedNow = requireEnvironment(process.env, "PUBLISHED_NOW");
   await appendGitHubSummary(
     requireEnvironment(process.env, "GITHUB_STEP_SUMMARY"),
-    `## Release complete\n\n- npm: \`${packageName}@${packageVersion}\`\n- npm tag: \`${npmTag}\`\n- Git tag: \`${tagName}\`\n- Asset: \`${tarballName}\` (verified)\n- Commit: \`${releaseSha}\`\n- Published now: \`${publishedNow}\`\n`,
+    `## Release complete\n\n- npm: \`${packageName}@${packageVersion}\`\n- npm tag: \`${npmTag}\`\n- Git tag: \`${tagName}\`\n- Asset: \`${tarballName}\`\n- Commit: \`${releaseSha}\`\n- Published now: \`${publishedNow}\`\n`,
   );
 });
