@@ -171,7 +171,6 @@ jobs:
       actions: read
       contents: write
     env:
-      CANDIDATE_DIR: ${{ runner.temp }}/release-candidate
       PACKAGE_NAME: ${{ needs.detect.outputs.package_name }}
       PACKAGE_VERSION: ${{ needs.detect.outputs.package_version }}
       NPM_TAG: ${{ needs.detect.outputs.npm_tag }}
@@ -200,6 +199,8 @@ jobs:
           token: ${{ github.token }}
 
       - name: Create or verify GitHub release metadata
+        env:
+          CANDIDATE_DIR: ${{ runner.temp }}/release-candidate
         run: >-
           node --experimental-strip-types
           .github/scripts/create-github-release.ts
