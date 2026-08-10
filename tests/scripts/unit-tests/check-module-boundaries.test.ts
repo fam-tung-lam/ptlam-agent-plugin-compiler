@@ -5,10 +5,17 @@ import path from "node:path";
 
 import { afterEach, describe, it } from "vitest";
 
-import { checkModuleBoundaries } from "./check-module-boundaries.ts";
+import { checkModuleBoundaries } from "../../../scripts/check-module-boundaries.ts";
 
 const fixtureRoots: string[] = [];
 
+/**
+ * Creates an isolated source tree for one module-boundary scenario.
+ *
+ * @param files - Source contents keyed by paths relative to the fixture `src/`.
+ * @returns The absolute fixture source root.
+ * @throws If the temporary fixture cannot be created or written.
+ */
 async function makeSourceFixture(
   files: Readonly<Record<string, string>>,
 ): Promise<string> {
@@ -37,6 +44,7 @@ afterEach(async () => {
 
 describe("module boundary checker", () => {
   it("accepts the target dependency graph through public module indexes", async () => {
+    // GIVEN: A fixture follows every allowed module dependency and index seam.
     const sourceRoot = await makeSourceFixture({
       "cli/command.ts": [
         'import "../compiler/index.js";',
@@ -65,17 +73,26 @@ describe("module boundary checker", () => {
       "providers/provider.ts": 'import "../core/index.js";',
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), []);
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: No boundary violation is reported.
+    assert.deepEqual(violations, []);
   });
 
   it("reports every disallowed dependency edge with the allowed targets", async () => {
+    // GIVEN: Independent source files cross three forbidden module edges.
     const sourceRoot = await makeSourceFixture({
       "core/plugin/plugin.ts": 'import "../../filesystem/index.js";',
       "filesystem/read.ts": 'import "../providers/index.js";',
       "providers/provider.ts": 'import "../compiler/index.js";',
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), [
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: Every violation names the edge and its allowed alternatives.
+    assert.deepEqual(violations, [
       {
         file: "core/plugin/plugin.ts",
         message:
@@ -98,11 +115,16 @@ describe("module boundary checker", () => {
   });
 
   it("rejects cross-module imports that bypass the target index", async () => {
+    // GIVEN: A cross-module import bypasses the provider index.
     const sourceRoot = await makeSourceFixture({
       "cli/command.ts": 'import "../providers/provider-adapter.js";',
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), [
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: The diagnostic points callers to the public module index.
+    assert.deepEqual(violations, [
       {
         file: "cli/command.ts",
         message:
@@ -113,11 +135,16 @@ describe("module boundary checker", () => {
   });
 
   it("rejects compiler internals imported from outside compiler", async () => {
+    // GIVEN: CLI code imports a private compiler planning module.
     const sourceRoot = await makeSourceFixture({
       "cli/command.ts": 'import "../compiler/planning/index.js";',
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), [
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: The private compiler seam is rejected.
+    assert.deepEqual(violations, [
       {
         file: "cli/command.ts",
         message:
@@ -128,6 +155,7 @@ describe("module boundary checker", () => {
   });
 
   it("rejects code imports from schemas while allowing direct JSON", async () => {
+    // GIVEN: Validation imports the schema as both JSON data and JavaScript.
     const sourceRoot = await makeSourceFixture({
       "compiler/validation/parse.ts": [
         'const schema = require("../../schemas/v1/schema.json");',
@@ -136,7 +164,11 @@ describe("module boundary checker", () => {
       ].join("\n"),
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), [
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: Only the executable schema import is rejected.
+    assert.deepEqual(violations, [
       {
         file: "compiler/validation/parse.ts",
         message:
@@ -147,11 +179,16 @@ describe("module boundary checker", () => {
   });
 
   it("allows direct imports within one module", async () => {
+    // GIVEN: Provider files import one another within the same module.
     const sourceRoot = await makeSourceFixture({
       "providers/claude-provider.ts": 'import "./render-json.js";',
       "providers/render-json.ts": "export const renderJson = JSON.stringify;",
     });
 
-    assert.deepEqual(await checkModuleBoundaries(sourceRoot), []);
+    // WHEN: The source graph is checked.
+    const violations = await checkModuleBoundaries(sourceRoot);
+
+    // THEN: Internal module organization remains unrestricted.
+    assert.deepEqual(violations, []);
   });
 });

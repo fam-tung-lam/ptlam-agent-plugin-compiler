@@ -14,12 +14,21 @@ import { validateMarkdownLinks } from "./validate-markdown-links.js";
 const SOURCE_SKILLS_PATH = "plugin/skills";
 const RESERVED_NESTED_SKILLS_PATH = "skills";
 
+/** Skill construction inputs and diagnostics recovered from authored source facts. */
 export interface SkillSourceValidationResult {
+  /** Immutable skill inputs with source bodies and defensively copied resources. */
   readonly skills: readonly SkillInput[];
+  /** Fatal authored-layout, resource, and Markdown diagnostics. */
   readonly errors: readonly string[];
 }
 
-/** Validate logical authored skill facts without inspecting physical paths. */
+/**
+ * Matches manifest skills to logical authored entries without filesystem I/O.
+ *
+ * @param source - Immutable authored manifest and skill-tree facts.
+ * @param manifestSkills - Parsed manifest skills to match with source directories.
+ * @returns Immutable skill construction inputs and accumulated validation errors.
+ */
 export function validateSkillSources(
   source: PluginSource,
   manifestSkills: readonly SkillManifest[],

@@ -14,7 +14,13 @@ import {
 
 const COMMANDS = new Set<string>(Object.values(CliCommand));
 
+/**
+ * Invalid command-line syntax or provider selection.
+ *
+ * @internal
+ */
 export class CliUsageError extends Error {
+  /** Stable discriminator for usage failures. */
   override readonly name = "CliUsageError";
 }
 
@@ -49,7 +55,16 @@ function resolveRequestedProviderIds(
   }
 }
 
-/** Parse one command, repository root, and explicit provider selection. */
+/**
+ * Parse one command, repository root, and provider selection.
+ *
+ * @param argv - Command-line tokens without the executable and script path.
+ * @param currentWorkingDirectory - Base directory used to resolve `--root`.
+ * @param registry - Registry used to validate requested provider identifiers.
+ * @returns Immutable help input or a resolved command scope.
+ * @throws {@link CliUsageError} when syntax, identifiers, or selection are invalid.
+ * @internal
+ */
 export function parseCliArguments(
   argv: readonly string[],
   currentWorkingDirectory: string,

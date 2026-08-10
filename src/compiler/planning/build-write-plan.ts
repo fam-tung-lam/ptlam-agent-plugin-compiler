@@ -15,10 +15,16 @@ const ROOT_README = "README.md";
 const SHARED_SKILLS_ROOT = "skills";
 const SKILLS_CATALOG = "skills/README.md";
 
+/** Reports every ownership, artifact, and shared-tree invariant rejected by planning. */
 export class WritePlanValidationError extends Error {
+  /** Stable error class name. */
   override readonly name = "WritePlanValidationError";
+  /** Deduplicated diagnostics in deterministic order. */
   readonly errors: readonly string[];
 
+  /**
+   * @param errors - Planning diagnostics to normalize and snapshot.
+   */
   constructor(errors: Iterable<string>) {
     const normalized = Object.freeze(
       [...new Set(errors)].filter(Boolean).sort(compareCodePoints),
@@ -258,7 +264,13 @@ function validateSharedSkillsFragment(
   }
 }
 
-/** Validate ownership and collisions, then build one canonical write plan. */
+/**
+ * Validates fragments and combines them into the canonical write plan.
+ *
+ * @param input - Shared and provider plan fragments to validate and combine.
+ * @returns An immutable plan with deterministic fragment, ownership, and artifact order.
+ * @throws {WritePlanValidationError} If ownership overlaps, paths or artifacts are invalid, owners repeat, or the shared skills tree contract is incomplete.
+ */
 export function buildWritePlan(input: WritePlanInput): WritePlan {
   const fragments = materializeFragments(input);
   const errors: string[] = [];

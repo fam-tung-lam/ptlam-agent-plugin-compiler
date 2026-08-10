@@ -97,7 +97,15 @@ function fragments(plan: WritePlan): PlanFragment[] {
   return [...plan.fragments];
 }
 
-/** Read only complete-tree and exact-file ownership declared by one plan. */
+/**
+ * Read generated entries only from ownership declared by a write plan.
+ *
+ * @param rootDir - Repository root to inspect without following symbolic links.
+ * @param plan - Plan whose complete-tree and exact-file ownership bounds the read.
+ * @returns An immutable snapshot of existing owned entries.
+ * @throws If the root is invalid, an owned path is unsafe, or an entry has an unsupported kind.
+ * @internal
+ */
 export async function readGeneratedSnapshot(
   rootDir: string,
   plan: WritePlan,

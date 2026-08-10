@@ -37,8 +37,14 @@ function presentReport(report: CliReport, output: CliOutputAdapters): void {
 }
 
 /**
- * Run one CLI command. Compiler failures become reports; output-adapter
- * failures deliberately propagate to the embedding process.
+ * Run one CLI request through injected compiler and output adapters.
+ *
+ * Compiler failures become reports so only output-adapter failures propagate.
+ *
+ * @param input - CLI request and its environment adapters.
+ * @returns The exit code after the complete report is presented.
+ * @throws If an output adapter fails.
+ * @internal
  */
 export async function runPluginCompilerCli({
   argv,
@@ -46,9 +52,13 @@ export async function runPluginCompilerCli({
   createCompiler,
   output,
 }: {
+  /** Command tokens without executable and script path. */
   readonly argv: readonly string[];
+  /** Base directory for resolving `--root`. */
   readonly currentWorkingDirectory: string;
+  /** Compiler factory for the resolved scope. */
   readonly createCompiler: CreateCompilerOperations;
+  /** Line-oriented stdout and stderr adapters. */
   readonly output: CliOutputAdapters;
 }): Promise<number> {
   let parsed: ParsedCliArguments;

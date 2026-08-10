@@ -26,6 +26,7 @@ import {
 const require = createRequire(import.meta.url);
 const pluginManifestSchema = require("../../schemas/v1/plugin-manifest.schema.json");
 
+/** Canonical project-relative location used in manifest diagnostics. */
 export const SOURCE_MANIFEST_PATH = "plugin/plugin.yml";
 
 const validateManifestSchema = new Ajv2020({
@@ -65,11 +66,25 @@ type JsonPluginManifest = Omit<PluginManifest, "categories" | "skills"> & {
   readonly skills: readonly JsonSkillManifest[];
 };
 
+/** Result of strict YAML, JSON-schema, identifier, and public-metadata parsing. */
 export type ManifestParsingResult =
-  | { readonly manifest: PluginManifest; readonly errors: readonly [] }
-  | { readonly errors: readonly string[] };
+  | {
+      /** Immutable manifest when parsing succeeds. */
+      readonly manifest: PluginManifest;
+      /** Empty tuple discriminating successful parsing. */
+      readonly errors: readonly [];
+    }
+  | {
+      /** Immutable diagnostics when parsing fails. */
+      readonly errors: readonly string[];
+    };
 
-/** Strictly parse and validate manifest text without reading a repository. */
+/**
+ * Parses manifest text without performing filesystem I/O.
+ *
+ * @param source - UTF-8 manifest text from the canonical authored path.
+ * @returns Either an immutable branded manifest or immutable parsing diagnostics.
+ */
 export function parsePluginManifest(source: string): ManifestParsingResult {
   const parsed = parseStrictYaml(source, SOURCE_MANIFEST_PATH);
   if (!("value" in parsed)) return parsed;

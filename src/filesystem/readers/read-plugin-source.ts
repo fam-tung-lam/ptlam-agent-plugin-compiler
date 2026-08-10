@@ -190,7 +190,16 @@ async function walkSkillsDirectory(
   }
 }
 
-/** Read bounded authored source facts without parsing or business validation. */
+/**
+ * Read bounded authored source facts without parsing or business validation.
+ *
+ * Recoverable manifest and skill-tree failures are returned as diagnostics.
+ *
+ * @param rootDir - Repository root containing `plugin/plugin.yml` and `plugin/skills`.
+ * @returns An immutable source snapshot with ordered filesystem diagnostics.
+ * @throws If the repository root is missing, linked, or not a directory.
+ * @internal
+ */
 export async function readPluginSource(
   rootDir: string,
 ): Promise<PluginSnapshot> {

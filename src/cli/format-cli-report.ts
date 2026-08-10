@@ -26,7 +26,9 @@ function warningLines(warnings: readonly string[]): string[] {
 }
 
 interface FormattableDrift {
+  /** Repository-relative drift path. */
   readonly path: string;
+  /** Stable drift reason rendered for terminal users. */
   readonly reason: string;
 }
 
@@ -50,6 +52,13 @@ function createReport({
   });
 }
 
+/**
+ * Format help or a usage error.
+ *
+ * @param error - Usage error text; omit it for successful help output.
+ * @returns An immutable terminal report.
+ * @internal
+ */
 export function formatUsageReport(error?: string): CliReport {
   return createReport({
     exitCode: error === undefined ? CliExitCode.Success : CliExitCode.Usage,
@@ -59,6 +68,14 @@ export function formatUsageReport(error?: string): CliReport {
   });
 }
 
+/**
+ * Format a compiler failure for one resolved scope.
+ *
+ * @param error - Value thrown by compiler construction or execution.
+ * @param scope - Repository and provider scope of the failed operation.
+ * @returns An immutable failure report.
+ * @internal
+ */
 export function formatOperationError(
   error: unknown,
   scope: CompilerScope,
@@ -70,7 +87,14 @@ export function formatOperationError(
   });
 }
 
-/** Format immutable compiler results without invoking output adapters. */
+/**
+ * Format one immutable compiler result without invoking output adapters.
+ *
+ * @param executed - Completed operation and its result.
+ * @param scope - Repository and provider scope of the operation.
+ * @returns An immutable success or drift report.
+ * @internal
+ */
 export function formatCliResult(
   executed: ExecutedCliCommand,
   scope: CompilerScope,

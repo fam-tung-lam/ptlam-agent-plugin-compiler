@@ -5,7 +5,16 @@ import path from "node:path";
 import type { ProjectPath } from "../../core/index.js";
 import { assertSafePath } from "../safety/assert-safe-path.js";
 
-/** Replace one standalone owned file through an exclusive temporary sibling. */
+/**
+ * Replace one standalone owned file through an exclusive temporary sibling.
+ *
+ * @param repositoryRoot - Absolute real repository directory.
+ * @param projectPath - Owned repository-relative file path.
+ * @param content - Complete replacement bytes.
+ * @returns When the temporary file has been renamed into place.
+ * @throws If the target is unsafe or any filesystem operation fails.
+ * @internal
+ */
 export async function atomicWrite(
   repositoryRoot: string,
   projectPath: ProjectPath,

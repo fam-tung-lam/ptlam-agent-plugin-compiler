@@ -75,11 +75,39 @@ async function buildPlan(
   });
 }
 
-/** Orchestrate validation, read-only checking, and verified compilation. */
+/**
+ * Validates authored plugin sources and manages generated outputs for selected providers.
+ *
+ * One instance keeps a fixed repository, provider selection, and adapter registry. Use
+ * {@link validate} for authored-source checks, {@link check} for a read-only generated-state
+ * comparison, and {@link compile} to write and verify generated files.
+ *
+ * @example
+ * ```ts
+ * import {
+ *   AgentPluginCompiler,
+ *   CODEX,
+ * } from "@fam-tung-lam/ptlam-agent-plugin-compiler";
+ *
+ * const compiler = new AgentPluginCompiler({
+ *   rootDir: "/path/to/plugin",
+ *   providers: [CODEX],
+ * });
+ * const result = await compiler.compile();
+ * if (!result.verified) console.error(result.drift);
+ * ```
+ */
 export class AgentPluginCompiler {
   private readonly options: CompilerOptions;
   private readonly providers: readonly ProviderAdapter[];
 
+  /**
+   * Creates a compiler with a fixed repository and provider selection.
+   *
+   * @param input - Repository path and provider IDs for this instance.
+   * @param registry - Per-instance adapter registry; defaults to Claude and Codex adapters.
+   * @throws {TypeError} If the repository path is empty or a selected provider is unknown or duplicated.
+   */
   constructor(
     input: CompilerOptionsInput,
     registry = ProviderAdapterRegistry.withBuiltIns(),
@@ -89,12 +117,33 @@ export class AgentPluginCompiler {
     Object.freeze(this);
   }
 
-  /** Read and validate authored sources without inspecting compiled outputs. */
+  /**
+   * Reads and validates authored sources without inspecting generated outputs.
+   *
+   * @returns The immutable domain plugin and non-fatal warnings.
+   * @throws {Error} If the repository cannot be read or authored sources are invalid.
+   *
+   * @example
+   * ```ts
+   * const { plugin, warnings } = await compiler.validate();
+   * ```
+   */
   async validate(): Promise<ValidateResult> {
     return createValidateResult(await loadPlugin(this.options.rootDir));
   }
 
-  /** Compare the complete selected write plan without writing. */
+  /**
+   * Compares managed generated paths with the complete selected write plan without writing.
+   *
+   * @returns The validated plugin, warnings, current status, and deterministic drift.
+   * @throws {Error} If sources or generated state cannot be read, validation fails, or a provider produces an invalid plan fragment.
+   *
+   * @example
+   * ```ts
+   * const result = await compiler.check();
+   * if (!result.upToDate) console.log(result.drift);
+   * ```
+   */
   async check(): Promise<CheckResult> {
     const validation = await loadPlugin(this.options.rootDir);
     const plan = await buildPlan(validation.plugin, this.providers);
@@ -103,7 +152,18 @@ export class AgentPluginCompiler {
     return createCheckResult({ ...validation, drift });
   }
 
-  /** Write one validated plan, reread it, and report post-write verification. */
+  /**
+   * Applies the complete selected write plan and verifies it from a fresh filesystem snapshot.
+   *
+   * @returns The validated plugin, write facts, warnings, and post-write verification state.
+   * @throws {Error} If validation, rendering, planning, filesystem writing, or verification cannot complete.
+   *
+   * @example
+   * ```ts
+   * const result = await compiler.compile();
+   * console.log(result.writeResult.changedPaths);
+   * ```
+   */
   async compile(): Promise<CompileResult> {
     const validation = await loadPlugin(this.options.rootDir);
     const plan = await buildPlan(validation.plugin, this.providers);

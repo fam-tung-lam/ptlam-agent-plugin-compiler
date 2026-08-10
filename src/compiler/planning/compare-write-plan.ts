@@ -10,7 +10,9 @@ import {
   type WritePlan,
 } from "../../core/index.js";
 
+/** Reports an ambiguous plan or snapshot that cannot be compared deterministically. */
 export class WritePlanComparisonError extends Error {
+  /** Stable error class name. */
   override readonly name = "WritePlanComparisonError";
 }
 
@@ -46,7 +48,14 @@ function indexEntries(
   return indexed;
 }
 
-/** Compare expected plan artifacts with an immutable generated snapshot. */
+/**
+ * Compares expected artifacts with factual state only within plan-owned paths.
+ *
+ * @param request.plan - Canonical plan containing expected artifacts and ownership.
+ * @param request.snapshot - Factual generated state to compare with the plan.
+ * @returns Immutable, path-ordered drift; disabled-provider paths are excluded.
+ * @throws {WritePlanComparisonError} If either input contains duplicate artifact paths.
+ */
 export function compareWritePlan({
   plan,
   snapshot,

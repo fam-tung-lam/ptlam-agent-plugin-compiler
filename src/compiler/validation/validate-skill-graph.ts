@@ -8,12 +8,21 @@ import {
 } from "../../core/index.js";
 import { SOURCE_MANIFEST_PATH } from "./parse-plugin-manifest.js";
 
+/** Diagnostics produced by validating manifest relationships and lifecycle policy. */
 export interface SkillGraphValidationResult {
+  /** Fatal graph diagnostics that prevent domain construction. */
   readonly errors: readonly string[];
+  /** Non-fatal graph diagnostics retained in public operation results. */
   readonly warnings: readonly string[];
 }
 
-/** Validate IDs, references, lifecycle policy, cycles, and reachability. */
+/**
+ * Validates category and skill relationships without reading authored files.
+ *
+ * @param categories - Manifest categories referenced by skills.
+ * @param skills - Manifest skills whose IDs, dependencies, lifecycle, and reachability are checked.
+ * @returns Immutable fatal errors and non-fatal warnings.
+ */
 export function validateSkillGraph(
   categories: readonly PluginCategory[],
   skills: readonly SkillManifest[],

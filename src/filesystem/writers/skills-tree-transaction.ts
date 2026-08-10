@@ -103,7 +103,16 @@ function artifactsMatch(
   });
 }
 
-/** Build and byte-verify a complete replacement tree before any committed write. */
+/**
+ * Build and byte-verify a complete replacement tree before installation.
+ *
+ * @param repositoryRoot - Absolute real repository directory.
+ * @param root - Owned complete-tree root.
+ * @param artifacts - Complete desired artifact set below the root.
+ * @returns The absolute temporary directory containing the verified tree.
+ * @throws If artifacts escape the root, verification differs, or staging fails.
+ * @internal
+ */
 export async function stageGeneratedTree(
   repositoryRoot: string,
   root: ProjectPath,
@@ -143,7 +152,16 @@ export async function stageGeneratedTree(
   }
 }
 
-/** Swap one staged complete tree and restore its predecessor on install failure. */
+/**
+ * Install one staged tree and restore its predecessor on swap failure.
+ *
+ * @param repositoryRoot - Absolute real repository directory.
+ * @param root - Owned complete-tree root to replace.
+ * @param stagedPath - Absolute verified staging directory.
+ * @returns When installation and backup cleanup complete.
+ * @throws If the target is unsafe, installation fails, recovery is incomplete, or backup cleanup fails.
+ * @internal
+ */
 export async function installStagedTree(
   repositoryRoot: string,
   root: ProjectPath,

@@ -11,12 +11,21 @@ import { PluginValidationError } from "./plugin-validation-error.js";
 import { validateSkillGraph } from "./validate-skill-graph.js";
 import { validateSkillSources } from "./validate-skill-sources.js";
 
+/** Successful authored-source validation output. */
 export interface ValidateAuthoredPluginResult {
+  /** Immutable domain plugin with loaded skill source and resources. */
   readonly plugin: Plugin;
+  /** Non-fatal graph diagnostics. */
   readonly warnings: readonly string[];
 }
 
-/** Parse and validate one immutable set of authored-source facts. */
+/**
+ * Validates a filesystem-independent snapshot of all authored plugin facts.
+ *
+ * @param source - Immutable manifest and skill-tree facts read by the filesystem layer.
+ * @returns The immutable domain plugin and non-fatal graph warnings.
+ * @throws {PluginValidationError} If the manifest path, manifest data, skill graph, or authored skill sources are invalid.
+ */
 export function validateAuthoredPlugin(
   source: PluginSource,
 ): ValidateAuthoredPluginResult {
