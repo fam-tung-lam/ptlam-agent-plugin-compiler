@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added structured root help for the CLI command overview and focused `-h` or
+  `--help` output for `validate`, `check`, and `generate`, including each
+  command's usage and options.
+
 ### Changed
 
 - **Breaking:** Replaced repeated `--provider` flags with one comma-separated

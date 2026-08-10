@@ -65,15 +65,21 @@ export async function runPluginCompilerCli({
   try {
     parsed = parseCliArguments(argv, currentWorkingDirectory);
   } catch (error) {
-    const report = formatUsageReport(
-      error instanceof CliUsageError ? error.message : String(error),
-    );
+    const report =
+      error instanceof CliUsageError
+        ? formatUsageReport({
+            ...(error.command === undefined ? {} : { command: error.command }),
+            error: error.message,
+          })
+        : formatUsageReport({ error: String(error) });
     presentReport(report, output);
     return report.exitCode;
   }
 
   if (parsed.kind === "help") {
-    const report = formatUsageReport();
+    const report = formatUsageReport(
+      parsed.command === undefined ? {} : { command: parsed.command },
+    );
     presentReport(report, output);
     return report.exitCode;
   }

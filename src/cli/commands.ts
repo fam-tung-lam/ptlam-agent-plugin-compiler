@@ -63,6 +63,8 @@ export type ParsedCliArguments =
   | {
       /** Selects help rendering without compiler construction. */
       readonly kind: "help";
+      /** Command whose focused help was requested; omit for root help. */
+      readonly command?: CliCommand;
     }
   | {
       /** Selects compiler command execution. */

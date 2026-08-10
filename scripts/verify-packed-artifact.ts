@@ -263,11 +263,32 @@ async function main(): Promise<void> {
     );
     const help = await run(binary, ["--help"], consumerRoot);
     requireSuccess(help, "Installed plugin-compiler --help");
-    if (!help.stdout.startsWith("Usage: plugin-compiler")) {
+    if (!help.stdout.includes("Usage: plugin-compiler [OPTIONS] <COMMAND>")) {
       fail(`Installed CLI returned unexpected help output:\n${help.stdout}`);
     }
-    if (!help.stdout.includes("--provider <id>")) {
-      fail(`Installed CLI help omits provider selection:\n${help.stdout}`);
+    for (const command of ["validate", "check", "generate"]) {
+      if (!help.stdout.includes(`  ${command}`)) {
+        fail(`Installed CLI help omits ${command}:\n${help.stdout}`);
+      }
+    }
+
+    const generateHelp = await run(
+      binary,
+      ["generate", "--help"],
+      consumerRoot,
+    );
+    requireSuccess(generateHelp, "Installed plugin-compiler generate --help");
+    if (
+      !generateHelp.stdout.includes(
+        "Usage: plugin-compiler generate [OPTIONS]",
+      ) ||
+      !generateHelp.stdout.includes("--root <path>") ||
+      !generateHelp.stdout.includes("--provider <id>") ||
+      generateHelp.stdout.includes("Commands:")
+    ) {
+      fail(
+        `Installed CLI returned unexpected generate help output:\n${generateHelp.stdout}`,
+      );
     }
 
     process.stdout.write(

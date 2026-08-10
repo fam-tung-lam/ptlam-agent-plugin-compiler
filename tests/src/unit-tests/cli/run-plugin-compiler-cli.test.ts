@@ -35,6 +35,37 @@ function operations({
 }
 
 describe("runPluginCompilerCli", () => {
+  it.each([
+    { argv: ["--help"], expectedUsage: "plugin-compiler [OPTIONS] <COMMAND>" },
+    {
+      argv: ["generate", "-h"],
+      expectedUsage: "plugin-compiler generate [OPTIONS]",
+    },
+  ])(
+    "presents $expectedUsage without constructing the compiler",
+    async ({ argv, expectedUsage }) => {
+      // GIVEN: Compiler construction would fail if help crossed the parsing boundary.
+      const stdout: string[] = [];
+
+      // WHEN: The user requests root or command-specific help.
+      const exitCode = await runPluginCompilerCli({
+        argv,
+        currentWorkingDirectory: "/repository",
+        createCompiler: () => {
+          throw new Error("Help must not construct the compiler");
+        },
+        output: {
+          stdout: (line) => stdout.push(line),
+          stderr: () => undefined,
+        },
+      });
+
+      // THEN: Help succeeds through the output adapter without compiler work.
+      assert.equal(exitCode, CliExitCode.Success);
+      assert.ok(stdout.join("\n").includes(expectedUsage));
+    },
+  );
+
   it("passes an explicit provider selection to the compiler", async () => {
     // GIVEN: A compiler factory records the parsed operation scope.
     let receivedScope: unknown;
