@@ -1,7 +1,7 @@
 # Reference Overview
 
 This reference documents the public contract of Agent Plugin Compiler
-`0.1.0-alpha.4`.
+`0.1.0-beta.1`.
 
 ## Contract surfaces
 
@@ -28,8 +28,8 @@ your installed version and verify behavior with focused `--help` output.
 
 ## Stability note
 
-The package is currently an alpha prerelease. Pin it exactly, review release
-notes before upgrading, and regenerate output with the upgraded version before
+The package is currently a beta prerelease. Pin it exactly, review release notes
+before upgrading, and regenerate output with the upgraded version before
 accepting the change.
 
 Start with the [CLI reference](/reference/cli), or follow the
