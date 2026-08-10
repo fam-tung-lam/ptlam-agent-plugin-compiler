@@ -68,5 +68,5 @@ self-references, cycles, and invalid lifecycle relationships before output is
 written.
 
 Next: [compile and inspect the generated result](/guide/quick-start), configure
-[advanced visibility and status rules](/guide/advanced-usage), or inspect the
-full [Manifest contract](/reference/manifest).
+[visibility and status rules](/guide/quick-start#configure-publication), or
+inspect the full [Manifest contract](/reference/manifest).

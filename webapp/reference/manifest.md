@@ -90,5 +90,5 @@ Only `reason` is required in an archive block. Draft and active skills define
 neither lifecycle detail block.
 
 Next: read the [Authored Plugin Source](/reference/authored-source), configure
-[advanced visibility and status rules](/guide/advanced-usage), or see how fields
-map into [provider output](/reference/providers).
+[visibility and status rules](/guide/quick-start#configure-publication), or see
+how fields map into [provider output](/reference/providers).

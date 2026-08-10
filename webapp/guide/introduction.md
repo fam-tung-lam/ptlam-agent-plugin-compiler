@@ -102,6 +102,6 @@ The compiler owns the complete root `skills/` tree and exact manifest paths for
 the built-in providers. Files outside those declared paths remain outside its
 write plan.
 
-Next: [install the compiler](/guide/installation), explore
-[advanced lifecycle controls](/guide/advanced-usage), or inspect the
+Next: [install the compiler](/guide/installation), configure
+[skill publication](/guide/quick-start#configure-publication), or inspect the
 [authored source contract](/reference/authored-source).

@@ -11,7 +11,6 @@ const docsSidebar = [
       { text: "Introduction", link: "/guide/introduction" },
       { text: "Installation", link: "/guide/installation" },
       { text: "Quick Start", link: "/guide/quick-start" },
-      { text: "Advanced Usage", link: "/guide/advanced-usage" },
       { text: "Programmatic Usage", link: "/guide/programmatic-usage" },
     ],
   },
