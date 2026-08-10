@@ -18,8 +18,8 @@
         </div>
         <h3>Author the complete plugin</h3>
         <p>
-          Keep metadata in <code>plugin/plugin.yml</code> and instructions,
-          assets, and supporting files under <code>plugin/skills/**</code>.
+          Keep metadata and dependencies in <code>plugin/plugin.yml</code>, with
+          every authored skill under <code>plugin/skills/**</code>.
         </p>
       </article>
 
@@ -65,8 +65,8 @@
         </div>
         <h3>Emit exact host contracts</h3>
         <p>
-          Project the same validated model into the selected Claude, Codex,
-          Copilot, Gemini, and Kimi manifest formats.
+          Project the same validated model into each selected provider’s exact
+          manifest format.
         </p>
       </article>
     </div>
