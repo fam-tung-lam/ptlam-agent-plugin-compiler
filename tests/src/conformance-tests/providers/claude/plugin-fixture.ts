@@ -1,4 +1,5 @@
 import {
+  CLAUDE,
   createCategoryId,
   createPlugin,
   createProjectPath,
@@ -13,6 +14,7 @@ export function makeClaudeConformancePlugin(): Plugin {
   const engineering = createCategoryId("engineering");
   return createPlugin({
     schema_version: PluginSchemaVersion.V1,
+    providers: [CLAUDE],
     name: "fixture-skills",
     description: "Fixture plugin description.",
     version: "1.2.3",
@@ -25,13 +27,6 @@ export function makeClaudeConformancePlugin(): Plugin {
     repository: "https://example.test/repository",
     license: "MIT",
     keywords: ["agent-skills", "fixtures"],
-    marketplace: {
-      name: "fixture-marketplace",
-      description: "Fixture marketplace.",
-      plugin_description: "Installable fixture skills.",
-      category: "development",
-      keywords: ["agent-skills", "testing"],
-    },
     categories: [
       {
         id: engineering,

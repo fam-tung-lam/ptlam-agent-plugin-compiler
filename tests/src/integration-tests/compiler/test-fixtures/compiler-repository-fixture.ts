@@ -12,6 +12,7 @@ export const DISABLED_CLAUDE_MARKETPLACE_BYTES =
 
 const validManifest = {
   schema_version: 1,
+  providers: ["codex"],
   name: "fixture-skills",
   description: "Fixture plugin.",
   version: "1.2.3",
@@ -24,13 +25,6 @@ const validManifest = {
   repository: "https://example.test/repository",
   license: "MIT",
   keywords: ["agent-skills"],
-  marketplace: {
-    name: "fixture-marketplace",
-    description: "Fixture marketplace.",
-    plugin_description: "Installable fixture skills.",
-    category: "development",
-    keywords: ["agent-skills"],
-  },
   categories: [
     {
       id: "engineering",

@@ -25,8 +25,8 @@ import {
 interface ExactTarget {
   /** Owned standalone file path. */
   readonly path: ProjectPath;
-  /** Desired file artifact. */
-  readonly artifact: FileArtifact;
+  /** Desired file artifact, or undefined when the path must be absent. */
+  readonly artifact: FileArtifact | undefined;
 }
 
 interface TreeTarget {
@@ -59,12 +59,11 @@ function collectTargets(plan: WritePlan): {
         );
         const artifact = matches[0];
         if (
-          matches.length !== 1 ||
-          artifact === undefined ||
-          artifact.kind !== ArtifactKind.File
+          matches.length > 1 ||
+          (artifact !== undefined && artifact.kind !== ArtifactKind.File)
         ) {
           throw new Error(
-            `${path}: exact ownership requires one file artifact`,
+            `${path}: exact ownership permits at most one file artifact`,
           );
         }
         exact.push({ path, artifact });
@@ -106,11 +105,12 @@ function entryAt(
   return entries.find((entry) => entry.path === path);
 }
 
-function fileIsCurrent(
+function exactTargetIsCurrent(
   entries: readonly Artifact[],
   target: ExactTarget,
 ): boolean {
   const current = entryAt(entries, target.path);
+  if (target.artifact === undefined) return current === undefined;
   return (
     current?.kind === ArtifactKind.File &&
     current.content.equals(target.artifact.content)
@@ -149,6 +149,21 @@ async function preflightTargets(
   }
 }
 
+async function applyExactTarget(
+  repositoryRoot: string,
+  target: ExactTarget,
+): Promise<void> {
+  if (target.artifact !== undefined) {
+    await atomicWrite(repositoryRoot, target.path, target.artifact.content);
+    return;
+  }
+
+  const inspection = await assertSafePath(repositoryRoot, target.path, "file");
+  if (inspection.stats !== null) {
+    await rm(inspection.absolutePath, { force: true });
+  }
+}
+
 /**
  * Apply one write plan while preserving exact-file and complete-tree ownership.
  *
@@ -167,7 +182,7 @@ export async function writePlan(
   await preflightTargets(repositoryRoot, exact, trees);
   const current = await readGeneratedSnapshot(repositoryRoot, plan);
   const changedExact = exact.filter(
-    (target) => !fileIsCurrent(current.entries, target),
+    (target) => !exactTargetIsCurrent(current.entries, target),
   );
   const changedTrees = trees.filter(
     (target) => !treeIsCurrent(current.entries, target),
@@ -182,7 +197,7 @@ export async function writePlan(
       );
     }
     for (const target of changedExact) {
-      await atomicWrite(repositoryRoot, target.path, target.artifact.content);
+      await applyExactTarget(repositoryRoot, target);
     }
     for (const target of changedTrees) {
       const stagedPath = stagedTrees.get(target.root);

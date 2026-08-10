@@ -155,9 +155,6 @@ function validateFragment(
     return;
   }
 
-  const ownedPaths = [...fragment.ownership.paths]
-    .sort(compareProjectPaths)
-    .map(String);
   const ownedPathSet = new Set<string>();
   for (const ownedPath of fragment.ownership.paths) {
     validateLogicalPath(
@@ -181,13 +178,6 @@ function validateFragment(
     if (!ownedPathSet.has(String(artifact.path))) {
       errors.push(
         `fragment ${JSON.stringify(fragment.ownerId)} emits undeclared exact path ${String(artifact.path)}`,
-      );
-    }
-  }
-  for (const ownedPath of ownedPaths) {
-    if (!artifactByPath.has(ownedPath)) {
-      errors.push(
-        `fragment ${JSON.stringify(fragment.ownerId)} does not emit owned exact path ${ownedPath}`,
       );
     }
   }

@@ -19,7 +19,13 @@ const plugin = Object.freeze({
 }) as unknown as Plugin;
 
 function operations({
-  validate = async () => createValidateResult({ plugin, warnings: [] }),
+  validate = async () =>
+    createValidateResult({
+      plugin,
+      providers: [CODEX],
+      providerSelectionSource: "manifest",
+      warnings: [],
+    }),
 }: {
   readonly validate?: CompilerOperations["validate"];
 } = {}): CompilerOperations {
@@ -75,29 +81,39 @@ describe("runPluginCompilerCli", () => {
     },
   );
 
-  it("presents init usage failures with only init options", async () => {
-    // GIVEN: Init receives an unsupported provider option and compiler construction is forbidden.
-    const stderr: string[] = [];
+  it.each(["--provider", "--no-providers"])(
+    "presents init usage failures for %s with only init options",
+    async (providerFlag) => {
+      // GIVEN: Init receives an unsupported provider option and compiler construction is forbidden.
+      const stderr: string[] = [];
 
-    // WHEN: The invalid request runs through the CLI boundary.
-    const exitCode = await runPluginCompilerCli({
-      argv: ["init", "--provider", "codex"],
-      currentWorkingDirectory: "/repository",
-      createCompiler: () => {
-        throw new Error("Usage failures must not construct the compiler");
-      },
-      output: {
-        stdout: () => undefined,
-        stderr: (line) => stderr.push(line),
-      },
-    });
+      // WHEN: The invalid request runs through the CLI boundary.
+      const exitCode = await runPluginCompilerCli({
+        argv:
+          providerFlag === "--provider"
+            ? ["init", providerFlag, "codex"]
+            : ["init", providerFlag],
+        currentWorkingDirectory: "/repository",
+        createCompiler: () => {
+          throw new Error("Usage failures must not construct the compiler");
+        },
+        output: {
+          stdout: () => undefined,
+          stderr: (line) => stderr.push(line),
+        },
+      });
 
-    // THEN: The diagnostic carries focused init help without provider selection.
-    assert.equal(exitCode, CliExitCode.Usage);
-    assert.match(stderr.join("\n"), /init accepts only --root <path>/u);
-    assert.match(stderr.join("\n"), /Usage: plugin-compiler init \[OPTIONS\]/u);
-    assert.doesNotMatch(stderr.join("\n"), /--provider <id>/u);
-  });
+      // THEN: The diagnostic carries focused init help without provider selection.
+      assert.equal(exitCode, CliExitCode.Usage);
+      assert.match(stderr.join("\n"), /init accepts only --root <path>/u);
+      assert.match(
+        stderr.join("\n"),
+        /Usage: plugin-compiler init \[OPTIONS\]/u,
+      );
+      assert.doesNotMatch(stderr.join("\n"), /--provider <id>/u);
+      assert.doesNotMatch(stderr.join("\n"), /--no-providers/u);
+    },
+  );
 
   it("passes an explicit provider selection to the compiler", async () => {
     // GIVEN: A compiler factory records the parsed operation scope.
@@ -125,7 +141,38 @@ describe("runPluginCompilerCli", () => {
     });
   });
 
-  it("creates validate operations with no provider adapters by default", async () => {
+  it("passes an explicit empty provider selection to the compiler", async () => {
+    // GIVEN: A compiler factory records the parsed operation scope.
+    let receivedScope: unknown;
+
+    // WHEN: Validation explicitly selects no provider adapters.
+    const exitCode = await runPluginCompilerCli({
+      argv: ["validate", "--no-providers"],
+      currentWorkingDirectory: "/repository",
+      createCompiler: (scope) => {
+        receivedScope = scope;
+        return operations();
+      },
+      output: {
+        stdout: () => undefined,
+        stderr: () => undefined,
+      },
+    });
+
+    // THEN: The compiler receives an explicit immutable empty override.
+    assert.equal(exitCode, CliExitCode.Success);
+    assert.deepEqual(receivedScope, {
+      rootDir: "/repository",
+      providers: [],
+    });
+    assert.ok(
+      typeof receivedScope === "object" &&
+        receivedScope !== null &&
+        Object.isFrozen((receivedScope as { providers: unknown }).providers),
+    );
+  });
+
+  it("preserves an omitted provider override for manifest resolution", async () => {
     // GIVEN: A compiler factory records scope and terminal adapters collect output.
     let receivedScope: unknown;
     const stdout: string[] = [];
@@ -145,13 +192,14 @@ describe("runPluginCompilerCli", () => {
       },
     });
 
-    // THEN: The compiler receives the root and an empty provider selection.
+    // THEN: The compiler receives only the root and reports the manifest selection.
     assert.equal(exitCode, CliExitCode.Success);
     assert.deepEqual(receivedScope, {
       rootDir: "/repository",
-      providers: [],
     });
     assert.match(stdout.join("\n"), /Validated fixture-skills/u);
+    assert.match(stdout.join("\n"), /providers: codex/u);
+    assert.match(stdout.join("\n"), /provider source: manifest/u);
     assert.deepEqual(stderr, []);
   });
 

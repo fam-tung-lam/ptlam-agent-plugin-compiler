@@ -1,20 +1,19 @@
 {
-  "name": "simple-agent-plugins",
+  "name": "simple-agent-plugin",
   "owner": {
     "name": "Example Maintainer",
     "email": "maintainer@example.com",
     "url": "https://example.com"
   },
-  "description": "Minimal agent plugin examples.",
+  "description": "A minimal plugin that demonstrates skill dependencies.",
   "plugins": [
     {
       "name": "simple-agent-plugin",
       "source": "./",
-      "description": "Plan repository changes and write commit messages.",
-      "category": "development",
+      "description": "A minimal plugin that demonstrates skill dependencies.",
       "keywords": [
         "agent",
-        "development",
+        "example",
         "skills"
       ]
     }

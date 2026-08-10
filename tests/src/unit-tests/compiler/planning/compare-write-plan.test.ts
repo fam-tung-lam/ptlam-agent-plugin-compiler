@@ -14,9 +14,10 @@ import { createGeneratedSnapshot } from "../../../../../src/core/generated/gener
 import { createProjectPath } from "../../../../../src/core/index.ts";
 
 describe("compareWritePlan", () => {
-  it("reports deterministic owned drift while ignoring disabled-provider state", () => {
-    // GIVEN: A plan owns the complete skills tree and one enabled provider file.
+  it("reports desired-absence drift while ignoring unowned state", () => {
+    // GIVEN: A plan owns selected and desired-absent provider files plus the complete skills tree.
     const providerPath = createProjectPath(".claude-plugin/plugin.json");
+    const desiredAbsentPath = createProjectPath(".codex-plugin/plugin.json");
     const plan = buildWritePlan({
       fragments: [
         {
@@ -51,6 +52,14 @@ describe("compareWritePlan", () => {
             },
           ],
         },
+        {
+          ownerId: "codex",
+          ownership: {
+            kind: OwnershipKind.ExactFiles,
+            paths: [desiredAbsentPath],
+          },
+          artifacts: [],
+        },
       ],
     });
     const snapshot = createGeneratedSnapshot({
@@ -70,8 +79,13 @@ describe("compareWritePlan", () => {
         },
         {
           kind: ArtifactKind.File,
-          path: createProjectPath(".codex-plugin/plugin.json"),
-          content: Buffer.from("disabled provider\n"),
+          path: desiredAbsentPath,
+          content: Buffer.from("unexpected provider\n"),
+        },
+        {
+          kind: ArtifactKind.File,
+          path: createProjectPath(".unowned/plugin.json"),
+          content: Buffer.from("unowned provider\n"),
         },
       ],
     });
@@ -79,11 +93,15 @@ describe("compareWritePlan", () => {
     // WHEN: Expected artifacts are compared with factual state.
     const drift = compareWritePlan({ plan, snapshot });
 
-    // THEN: Enabled missing/stale and complete-tree extras drift; disabled paths do not.
+    // THEN: Desired-absent, selected, and complete-tree drift is reported; unowned paths are ignored.
     assert.deepEqual(drift, [
       {
         path: ".claude-plugin/plugin.json",
         reason: DriftReason.Missing,
+      },
+      {
+        path: ".codex-plugin/plugin.json",
+        reason: DriftReason.Unexpected,
       },
       {
         path: "skills/README.md",
@@ -96,7 +114,7 @@ describe("compareWritePlan", () => {
     ]);
     assert.equal(Object.isFrozen(drift), true);
     assert.equal(
-      drift.some((entry) => String(entry.path).includes("codex")),
+      drift.some((entry) => String(entry.path).includes("unowned")),
       false,
     );
   });

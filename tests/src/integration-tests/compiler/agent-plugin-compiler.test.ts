@@ -39,30 +39,77 @@ function codexCompiler(rootDir: string): AgentPluginCompiler {
 
 describe("AgentPluginCompiler", () => {
   it("compiles only the shared skills tree for an empty provider selection", async () => {
-    // GIVEN: A valid repository selects no provider adapters.
+    // GIVEN: A valid repository explicitly overrides its manifest with no providers.
     const rootDir = await createCompilerRepository();
     const compiler = new AgentPluginCompiler({ rootDir, providers: [] });
 
     // WHEN: The public facade compiles and verifies the selected plan.
     const result = await compiler.compile();
 
-    // THEN: Shared skills are written while existing unselected provider bytes remain untouched.
+    // THEN: Shared skills are written and every registered provider manifest is absent.
     assert.equal(result.verified, true);
-    assert.deepEqual(result.writeResult.changedPaths, ["skills"]);
+    assert.deepEqual(result.providers, []);
+    assert.equal(result.providerSelectionSource, "override");
+    assert.deepEqual(result.writeResult.changedPaths, [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
+      "skills",
+    ]);
     assert.equal(
       (await lstat(path.join(rootDir, "skills"))).isDirectory(),
       true,
     );
-    assert.equal(
-      await readFile(
-        path.join(rootDir, ".claude-plugin", "plugin.json"),
-        "utf8",
-      ),
-      DISABLED_CLAUDE_BYTES,
+    await assert.rejects(
+      lstat(path.join(rootDir, ".claude-plugin", "plugin.json")),
+      { code: "ENOENT" },
+    );
+    await assert.rejects(
+      lstat(path.join(rootDir, ".claude-plugin", "marketplace.json")),
+      { code: "ENOENT" },
     );
     await assert.rejects(lstat(path.join(rootDir, ".codex-plugin")), {
       code: "ENOENT",
     });
+  });
+
+  it("uses the authored provider selection when no override is supplied", async () => {
+    // GIVEN: A valid manifest selects Codex and the compiler receives only a root directory.
+    const rootDir = await createCompilerRepository();
+    const compiler = new AgentPluginCompiler({ rootDir });
+
+    // WHEN: The public facade compiles without an explicit provider override.
+    const result = await compiler.compile();
+
+    // THEN: The manifest selection is reported and becomes the complete provider state.
+    assert.deepEqual(result.providers, [CODEX]);
+    assert.equal(result.providerSelectionSource, "manifest");
+    assert.equal(
+      (
+        await lstat(path.join(rootDir, ".codex-plugin", "plugin.json"))
+      ).isFile(),
+      true,
+    );
+    await assert.rejects(
+      lstat(path.join(rootDir, ".claude-plugin", "plugin.json")),
+      { code: "ENOENT" },
+    );
+  });
+
+  it("rejects an unknown authored provider through the instance registry", async () => {
+    // GIVEN: A valid manifest names a provider that the built-in registry does not contain.
+    const rootDir = await createCompilerRepository();
+    const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+      providers: string[];
+    };
+    manifest.providers = ["future"];
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+    // WHEN: Validation resolves the manifest-owned selection.
+    const validation = new AgentPluginCompiler({ rootDir }).validate();
+
+    // THEN: The existing registry error identifies the unavailable provider.
+    await assert.rejects(validation, /unknown provider "future"/u);
   });
 
   it("uses an injected registry for an external provider", async () => {
@@ -99,6 +146,8 @@ describe("AgentPluginCompiler", () => {
 
     // THEN: The external artifact is verified without enabling either built-in.
     assert.equal(result.verified, true);
+    assert.deepEqual(result.providers, [providerId]);
+    assert.equal(result.providerSelectionSource, "override");
     assert.equal(
       await readFile(path.join(rootDir, outputPath), "utf8"),
       "external\n",
@@ -108,15 +157,107 @@ describe("AgentPluginCompiler", () => {
     });
   });
 
-  it("checks the common tree and enabled provider without writing", async () => {
-    // GIVEN: Common and Codex outputs are absent while disabled Claude bytes exist.
+  it("reconciles an unselected custom adapter's stable exact file", async () => {
+    // GIVEN: A custom provider owns one stale exact file beside an unrelated sibling.
+    const rootDir = await createCompilerRepository();
+    const providerId = createProviderId("external");
+    const outputPath = createProjectPath(".external-plugin/plugin.json");
+    const adapter = Object.freeze({
+      id: providerId,
+      compile: () =>
+        createPlanFragment({
+          ownerId: providerId,
+          ownership: {
+            kind: OwnershipKind.ExactFiles,
+            paths: [outputPath],
+          },
+          artifacts: [
+            {
+              kind: ArtifactKind.File,
+              path: outputPath,
+              content: Buffer.from("external\n", "utf8"),
+            },
+          ],
+        }),
+    }) satisfies ProviderAdapter;
+    const providerRoot = path.join(rootDir, ".external-plugin");
+    await mkdir(providerRoot);
+    await writeFile(path.join(rootDir, outputPath), "stale\n");
+    const siblingPath = path.join(providerRoot, "notes.txt");
+    await writeFile(siblingPath, "preserve\n");
+    const compiler = new AgentPluginCompiler(
+      { rootDir, providers: [] },
+      new ProviderAdapterRegistry([adapter]),
+    );
+
+    // WHEN: Compilation reconciles the registry with the explicit empty override.
+    const result = await compiler.compile();
+
+    // THEN: The custom exact file is removed while its unowned sibling survives.
+    assert.equal(result.verified, true);
+    assert.equal(
+      result.writeResult.changedPaths.some(
+        (entry) => String(entry) === outputPath,
+      ),
+      true,
+    );
+    await assert.rejects(lstat(path.join(rootDir, outputPath)), {
+      code: "ENOENT",
+    });
+    assert.equal(await readFile(siblingPath, "utf8"), "preserve\n");
+  });
+
+  it("rejects complete-tree ownership from a provider adapter", async () => {
+    // GIVEN: A custom adapter violates the stable exact-file provider contract.
+    const rootDir = await createCompilerRepository();
+    const providerId = createProviderId("external");
+    const outputRoot = createProjectPath("external-output");
+    const adapter = Object.freeze({
+      id: providerId,
+      compile: () =>
+        createPlanFragment({
+          ownerId: providerId,
+          ownership: {
+            kind: OwnershipKind.CompleteTree,
+            root: outputRoot,
+          },
+          artifacts: [
+            {
+              kind: ArtifactKind.Directory,
+              path: outputRoot,
+            },
+          ],
+        }),
+    }) satisfies ProviderAdapter;
+    const compiler = new AgentPluginCompiler(
+      { rootDir, providers: [providerId] },
+      new ProviderAdapterRegistry([adapter]),
+    );
+
+    // WHEN: The provider contribution is planned.
+    const compilation = compiler.compile();
+
+    // THEN: The public contract fails before any generated output is mutated.
+    await assert.rejects(
+      compilation,
+      /Provider adapter "external" must declare exact-file ownership/u,
+    );
+    await assert.rejects(lstat(path.join(rootDir, "skills")), {
+      code: "ENOENT",
+    });
+  });
+
+  it("checks the complete desired provider state without writing", async () => {
+    // GIVEN: Common and Codex outputs are absent while unselected Claude bytes exist.
     const rootDir = await createCompilerRepository();
 
     // WHEN: The selected write plan is checked.
     const result = await codexCompiler(rootDir).check();
 
-    // THEN: Check is read-only and excludes every disabled-provider path.
+    // THEN: Check is read-only and reports both missing selected and stale unselected paths.
     assert.equal(result.upToDate, false);
+    assert.deepEqual(result.providers, [CODEX]);
+    assert.equal(result.providerSelectionSource, "override");
     await assert.rejects(lstat(path.join(rootDir, "skills")), {
       code: "ENOENT",
     });
@@ -135,7 +276,7 @@ describe("AgentPluginCompiler", () => {
       result.drift.some((entry) =>
         String(entry.path).startsWith(".claude-plugin"),
       ),
-      false,
+      true,
     );
     assert.equal(
       await readFile(
@@ -159,8 +300,8 @@ describe("AgentPluginCompiler", () => {
     assert.equal(Object.isFrozen(result.drift), true);
   });
 
-  it("compiles and verifies only the common tree and enabled provider", async () => {
-    // GIVEN: A valid repository has stale selected outputs and disabled Claude bytes.
+  it("compiles and verifies the complete effective provider state", async () => {
+    // GIVEN: A valid repository has a missing selected output and stale unselected Claude bytes.
     const rootDir = await createCompilerRepository();
     const compiler = codexCompiler(rootDir);
 
@@ -169,31 +310,35 @@ describe("AgentPluginCompiler", () => {
     const second = await compiler.compile();
     const checked = await compiler.check();
 
-    // THEN: The first write changes exact selected ownership and later becomes current.
+    // THEN: The first write creates selected output, removes stale output, and becomes current.
     assert.equal(first.verified, true);
     assert.deepEqual(first.writeResult.changedPaths, [
+      ".claude-plugin/marketplace.json",
+      ".claude-plugin/plugin.json",
       ".codex-plugin/plugin.json",
       "skills",
     ]);
     assert.deepEqual(second.writeResult.changedPaths, []);
-    assert.deepEqual(second.writeResult.unchangedPaths, [
-      ".codex-plugin/plugin.json",
-      "skills",
-    ]);
-    assert.equal(checked.upToDate, true);
     assert.equal(
-      await readFile(
-        path.join(rootDir, ".claude-plugin", "plugin.json"),
-        "utf8",
+      second.writeResult.unchangedPaths.some(
+        (entry) => String(entry) === ".codex-plugin/plugin.json",
       ),
-      DISABLED_CLAUDE_BYTES,
+      true,
     );
     assert.equal(
-      await readFile(
-        path.join(rootDir, ".claude-plugin", "marketplace.json"),
-        "utf8",
+      second.writeResult.unchangedPaths.some(
+        (entry) => String(entry) === "skills",
       ),
-      DISABLED_CLAUDE_MARKETPLACE_BYTES,
+      true,
+    );
+    assert.equal(checked.upToDate, true);
+    await assert.rejects(
+      lstat(path.join(rootDir, ".claude-plugin", "plugin.json")),
+      { code: "ENOENT" },
+    );
+    await assert.rejects(
+      lstat(path.join(rootDir, ".claude-plugin", "marketplace.json")),
+      { code: "ENOENT" },
     );
     assert.equal(
       (await lstat(path.join(rootDir, "README.md"))).isSymbolicLink(),
@@ -201,6 +346,7 @@ describe("AgentPluginCompiler", () => {
     );
     assert.equal(Object.isFrozen(first.writeResult), true);
     assert.equal(Object.isFrozen(first.writeResult.changedPaths), true);
+    assert.equal(Object.isFrozen(first.providers), true);
   });
 
   it("reports a wrong-kind managed path as drift", async () => {

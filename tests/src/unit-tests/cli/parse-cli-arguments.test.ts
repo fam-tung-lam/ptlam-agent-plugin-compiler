@@ -44,6 +44,27 @@ describe("parseCliArguments", () => {
   );
 
   it.each(PROVIDER_COMMANDS)(
+    "parses an explicit empty provider override for %s",
+    (command) => {
+      // GIVEN: One provider-aware command explicitly disables provider adapters.
+      const argv = [command, "--no-providers"];
+
+      // WHEN: The parser resolves the explicit empty selection.
+      const parsed = parseCliArguments(argv, "/workspace/repository");
+
+      // THEN: The command carries an immutable empty provider override.
+      assert.deepEqual(parsed, {
+        kind: "command",
+        command,
+        rootDir: "/workspace/repository",
+        providers: [],
+      });
+      assert.ok(parsed.kind === "command");
+      assert.equal(Object.isFrozen(parsed.providers), true);
+    },
+  );
+
+  it.each(PROVIDER_COMMANDS)(
     "accepts every built-in provider for %s",
     (command) => {
       // GIVEN: One provider-aware command selects all public provider IDs.
@@ -91,12 +112,11 @@ describe("parseCliArguments", () => {
       // WHEN: Arguments are parsed without an explicit root option.
       const parsed = parseCliArguments([command], cwd);
 
-      // THEN: The command uses the resolved current repository root.
+      // THEN: The command uses the root without inventing a provider override.
       assert.deepEqual(parsed, {
         kind: "command",
         command,
         rootDir: cwd,
-        providers: [],
       });
       assert.equal(Object.isFrozen(parsed), true);
     },
@@ -114,7 +134,6 @@ describe("parseCliArguments", () => {
       kind: "command",
       command: CliCommand.Validate,
       rootDir: "/workspace/fixture",
-      providers: [],
     });
   });
 
@@ -125,12 +144,11 @@ describe("parseCliArguments", () => {
     // WHEN: The shared root option is parsed for initialization.
     const parsed = parseCliArguments(argv, "/workspace/current");
 
-    // THEN: Init receives the normalized target and default internal provider scope.
+    // THEN: Init receives only the normalized target.
     assert.deepEqual(parsed, {
       kind: "command",
       command: CliCommand.Init,
       rootDir: "/workspace/plugin",
-      providers: [],
     });
   });
 
@@ -154,12 +172,25 @@ describe("parseCliArguments", () => {
       argv: ["check", "--provider", "codex,"],
       expected: "Invalid provider identifier",
     },
+    {
+      argv: ["check", "--provider", "codex", "--no-providers"],
+      expected: "mutually exclusive",
+    },
+    {
+      argv: ["check", "--no-providers", "--provider", "codex"],
+      expected: "mutually exclusive",
+    },
+    {
+      argv: ["check", "--no-providers", "--no-providers"],
+      expected: "only once",
+    },
     { argv: ["generate", "--root"], expected: "requires a path" },
     {
       argv: ["check", "--root", "one", "--root", "two"],
       expected: "only once",
     },
     { argv: ["init", "--provider", "codex"], expected: "only --root" },
+    { argv: ["init", "--no-providers"], expected: "only --root" },
     { argv: ["init", "--adopt"], expected: "Unknown argument" },
   ])("rejects invalid arguments: $expected", ({ argv, expected }) => {
     // GIVEN: A malformed or unsupported command line.

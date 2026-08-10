@@ -4,9 +4,13 @@ import {
   type DriftEntry,
   type Plugin,
   type ProjectPath,
+  type ProviderId,
   type WriteResult,
   type WriteResultInput,
 } from "../core/index.js";
+
+/** Where one compiler operation obtained its effective provider selection. */
+export type ProviderSelectionSource = "manifest" | "override";
 
 /**
  * Result of initializing the minimal authored plugin layout.
@@ -31,6 +35,10 @@ export interface InitResult {
 export interface ValidateResult {
   /** Immutable domain plugin produced from the authored sources. */
   readonly plugin: Plugin;
+  /** Effective provider IDs in stable registry order. */
+  readonly providers: readonly ProviderId[];
+  /** Whether providers came from the manifest or an explicit override. */
+  readonly providerSelectionSource: ProviderSelectionSource;
   /** Non-fatal validation diagnostics. */
   readonly warnings: readonly string[];
 }
@@ -77,6 +85,10 @@ export interface CompileResult extends ValidateResult {
 export interface ValidateResultInput {
   /** Validated domain plugin. */
   readonly plugin: Plugin;
+  /** Effective provider IDs in stable registry order. */
+  readonly providers: readonly ProviderId[];
+  /** Source of the effective provider selection. */
+  readonly providerSelectionSource: ProviderSelectionSource;
   /** Non-fatal validation diagnostics. */
   readonly warnings: readonly string[];
 }
@@ -144,6 +156,8 @@ export function createValidateResult(
 ): ValidateResult {
   return Object.freeze({
     plugin: input.plugin,
+    providers: Object.freeze([...input.providers]),
+    providerSelectionSource: input.providerSelectionSource,
     warnings: Object.freeze([...input.warnings]),
   });
 }
@@ -159,6 +173,8 @@ export function createCheckResult(input: CheckResultInput): CheckResult {
   const drift = Object.freeze(input.drift.map(createDriftEntry));
   return Object.freeze({
     plugin: input.plugin,
+    providers: Object.freeze([...input.providers]),
+    providerSelectionSource: input.providerSelectionSource,
     warnings: Object.freeze([...input.warnings]),
     upToDate: drift.length === 0,
     drift,
@@ -176,6 +192,8 @@ export function createCompileResult(input: CompileResultInput): CompileResult {
   const drift = Object.freeze(input.drift.map(createDriftEntry));
   return Object.freeze({
     plugin: input.plugin,
+    providers: Object.freeze([...input.providers]),
+    providerSelectionSource: input.providerSelectionSource,
     warnings: Object.freeze([...input.warnings]),
     writeResult: createWriteResult(input.writeResult),
     verified: drift.length === 0,

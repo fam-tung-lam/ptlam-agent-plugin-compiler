@@ -57,7 +57,7 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
       skills: publishedSkills.map((skill) => `./skills/${skill.id}`),
     });
     const marketplaceJson = renderJson({
-      name: plugin.marketplace.name,
+      name: plugin.name,
       owner: {
         name: plugin.author.name,
         ...(plugin.author.email === undefined
@@ -65,14 +65,13 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
           : { email: plugin.author.email }),
         ...(plugin.author.url === undefined ? {} : { url: plugin.author.url }),
       },
-      description: plugin.marketplace.description,
+      description: plugin.description,
       plugins: [
         {
           name: plugin.name,
           source: "./",
-          description: plugin.marketplace.plugin_description,
-          category: plugin.marketplace.category,
-          keywords: plugin.marketplace.keywords,
+          description: plugin.description,
+          keywords: plugin.keywords,
         },
       ],
     });

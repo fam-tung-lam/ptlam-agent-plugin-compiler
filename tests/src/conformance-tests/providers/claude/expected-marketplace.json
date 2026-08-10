@@ -1,20 +1,19 @@
 {
-  "name": "fixture-marketplace",
+  "name": "fixture-skills",
   "owner": {
     "name": "Fixture Owner",
     "email": "owner@example.test",
     "url": "https://example.test/owner"
   },
-  "description": "Fixture marketplace.",
+  "description": "Fixture plugin description.",
   "plugins": [
     {
       "name": "fixture-skills",
       "source": "./",
-      "description": "Installable fixture skills.",
-      "category": "development",
+      "description": "Fixture plugin description.",
       "keywords": [
         "agent-skills",
-        "testing"
+        "fixtures"
       ]
     }
   ]

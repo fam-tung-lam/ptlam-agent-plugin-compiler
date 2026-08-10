@@ -67,7 +67,7 @@ flowchart TD
     TerminalUser ------>|"`runs command`"| CommandLineInterface
     NodeJsCaller ------>|"`calls operation`"| CompilerFacade
     CommandLineInterface ------>|"`calls facade`"| CompilerFacade
-    CommandLineInterface ------>|"`selects provider IDs`"| Providers
+    CommandLineInterface ------>|"`passes optional provider override`"| CompilerFacade
     CompilerFacade ------>|"`coordinates`"| CompilerValidation
     CompilerFacade ------>|"`coordinates`"| CompilerRendering
     CompilerFacade ------>|"`coordinates`"| CompilerPlanning
@@ -147,7 +147,8 @@ sequenceDiagram
 | Repository seam           | `filesystem` readers and writer                                                | Path safety, snapshots, atomic file writes, and skills-tree replacement        |
 | Terminal seam             | `cli` command runner and immutable reports                                     | Argument parsing, output routing, and process exit handling                    |
 
-- Authored inputs are `plugin/plugin.yml` and `plugin/skills/**`.
+- Authored inputs are `plugin/plugin.yml` and `plugin/skills/**`. The manifest's
+  required `providers` list is the project-default provider selection.
 - Shared generated outputs are `skills/**` and `skills/README.md`.
 - Provider outputs are `.claude-plugin/**`, `.codex-plugin/plugin.json`, root
   `plugin.json`, `gemini-extension.json`, and `kimi.plugin.json`.
@@ -227,6 +228,26 @@ config:
   htmlLabels: false
 ---
 flowchart LR
+    CliOverride["`CLI optional override`"] --> Compiler["`AgentPluginCompiler`"]
+    ApiOverride["`Node.js optional override`"] --> Compiler
+    Manifest["`validated plugin.yml providers`"] --> Resolver["`effective provider resolver`"]
+    Compiler --> Resolver
+    Registry["`immutable provider registry`"] --> Resolver
+    Resolver --> Desired["`selected artifacts plus all registered ownership`"]
+    Desired --> Check["`check reports drift`"]
+    Desired --> Compile["`compile writes selected and removes unselected`"]
+```
+
+The compiler resolves providers only after manifest validation. Omitted CLI or
+Node.js input uses the manifest list; an explicit list, including `[]`, replaces
+it completely. Effective order always follows the registry.
+
+```mermaid
+---
+config:
+  htmlLabels: false
+---
+flowchart LR
     AgentPluginCompiler["`
         AgentPluginCompiler
         (operation facade)
@@ -260,7 +281,7 @@ flowchart LR
     `"]
 
     AgentPluginCompiler ------>|"`receives`"| ProviderAdapterRegistry
-    ProviderAdapterRegistry ------>|"`owns selected adapters`"| ProviderAdapter
+    ProviderAdapterRegistry ------>|"`owns registered adapters`"| ProviderAdapter
     ClaudeProviderAdapter ------>|"`implements`"| ProviderAdapter
     CodexProviderAdapter ------>|"`implements`"| ProviderAdapter
     CopilotProviderAdapter ------>|"`implements`"| ProviderAdapter
@@ -287,14 +308,22 @@ flowchart LR
   state.
 - Registering an adapter returns a new registry and leaves the original
   unchanged.
-- `cli` provider input is first converted to `ProviderId`, then checked against
-  the registry.
-- Omitting `--provider` selects no adapters, so the plan contains only the
-  shared `skills/` fragment. Every provider manifest is opt-in.
+- `cli` provider input is first converted to `ProviderId`, then passed to the
+  compiler as an optional override. The CLI never reads the manifest.
+- Omitting both CLI provider options uses `plugin.yml`; `--provider` is an
+  explicit replacement and `--no-providers` is an explicit empty replacement.
+- `providers: []` still compiles the shared `skills/` fragment but selects no
+  provider artifacts.
 - A malformed ID and a well-formed unknown ID are distinct failures; both are
   `cli` usage errors with exit code `2`.
-- Planning applies fragment integrity, collision, ownership, and path checks to
-  every producer, including shared rendering and provider adapters.
+- Every registered adapter contributes its exact-file ownership. Selected
+  adapters contribute desired artifacts; registered unselected exact files are
+  desired absent. Planning applies integrity, collision, ownership, and path
+  checks to every producer, including shared rendering and provider adapters.
+- Provider-owned exact paths are stable adapter metadata and must not change
+  with plugin fields. Complete-tree provider ownership is rejected before
+  planning because an unselected provider is represented by desired-absent exact
+  files.
 - `providers` contains host-specific rendering only; operation order remains in
   `compiler`.
 
@@ -366,12 +395,16 @@ flowchart LR
         compiler/validation
         (create Plugin)
     `"]
+    ResolveProviders["`
+        compiler
+        (resolve manifest or override providers)
+    `"]
     ValidateResult["`
         ValidateResult
         (Plugin and warnings)
     `"]
 
-    ValidateCommand ------> ReadPluginSnapshot ------> ParsePluginManifest ------> CreatePlugin ------> ValidateResult
+    ValidateCommand ------> ReadPluginSnapshot ------> ParsePluginManifest ------> CreatePlugin ------> ResolveProviders ------> ValidateResult
 ```
 
 ### check
@@ -393,6 +426,10 @@ flowchart LR
     CreatePlugin["`
         compiler/validation
         (create Plugin)
+    `"]
+    ResolveProviders["`
+        compiler
+        (resolve effective providers)
     `"]
     RenderSharedFragment["`
         compiler/rendering
@@ -420,8 +457,9 @@ flowchart LR
     `"]
 
     CheckCommand ------> ReadPluginSnapshot ------> CreatePlugin
-    CreatePlugin ------> RenderSharedFragment
-    CreatePlugin ------> RenderProviderFragments
+    CreatePlugin ------> ResolveProviders
+    ResolveProviders ------> RenderSharedFragment
+    ResolveProviders ------> RenderProviderFragments
     RenderSharedFragment ------> BuildWritePlan
     RenderProviderFragments ------> BuildWritePlan
     BuildWritePlan ------> ReadGeneratedSnapshot ------> CompareWritePlan ------> CheckResult
@@ -446,6 +484,10 @@ flowchart LR
     CreatePlugin["`
         compiler/validation
         (create Plugin)
+    `"]
+    ResolveProviders["`
+        compiler
+        (resolve effective providers)
     `"]
     RenderSharedFragment["`
         compiler/rendering
@@ -481,8 +523,9 @@ flowchart LR
     `"]
 
     GenerateCommand ------> ReadPluginSnapshot ------> CreatePlugin
-    CreatePlugin ------> RenderSharedFragment
-    CreatePlugin ------> RenderProviderFragments
+    CreatePlugin ------> ResolveProviders
+    ResolveProviders ------> RenderSharedFragment
+    ResolveProviders ------> RenderProviderFragments
     RenderSharedFragment ------> BuildWritePlan
     RenderProviderFragments ------> BuildWritePlan
     BuildWritePlan ------> ApplyWritePlan
@@ -491,20 +534,23 @@ flowchart LR
     WriteResult ------> CompileResult
 ```
 
-| Operation                       | Repository writes                | Result                                                                | Success condition                                         |
-| ------------------------------- | -------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------- |
-| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                         | Base paths exist; a new manifest has matching examples    |
-| `validate`                      | None                             | `ValidateResult` with `Plugin` and warnings                           | Authored source satisfies schema and domain rules         |
-| `check`                         | None                             | `CheckResult` with `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
-| `compile` (`generate` in `cli`) | Applies the complete `WritePlan` | `CompileResult` with `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
+| Operation                       | Repository writes                | Result                                                                           | Success condition                                         |
+| ------------------------------- | -------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `init`                          | Creates missing authored paths   | `InitResult` with created and unchanged paths                                    | Base paths exist; a new manifest has matching examples    |
+| `validate`                      | None                             | `ValidateResult` with `Plugin`, effective providers, source, and warnings        | Authored source and selection satisfy validation          |
+| `check`                         | None                             | `CheckResult` with selection, `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
+| `compile` (`generate` in `cli`) | Applies the complete `WritePlan` | `CompileResult` with selection, `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
 
 - Init creates only missing authored paths and never replaces existing content.
 - Validate, check, and compile read and validate authored source before using
   generated state.
+- Validate, check, and compile expose immutable effective providers and whether
+  they came from the manifest or an override.
 - Check and compile build the same shared and provider fragments and the same
   `WritePlan`.
-- `filesystem` reads only paths owned by that plan; unrelated and human-owned
-  files are not part of the comparison.
+- `filesystem` reads only paths owned by that plan, including registered
+  provider exact files that should be absent; unrelated, unregistered, and
+  human-owned files are not part of the comparison.
 - Compile writes, rereads, and verifies instead of assuming that successful
   writes produced the expected state.
 - A filesystem failure may leave some managed paths updated. Fix the problem and

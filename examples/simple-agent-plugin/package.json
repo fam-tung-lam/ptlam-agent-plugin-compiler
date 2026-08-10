@@ -2,7 +2,7 @@
   "name": "simple-agent-plugin-example",
   "version": "1.0.0",
   "private": true,
-  "description": "Minimal agent plugin compiled for Claude and Codex.",
+  "description": "Minimal manifest-configured agent plugin compiled for Claude and Codex.",
   "scripts": {
     "plugin:validate": "plugin-compiler validate",
     "plugin:check": "plugin-compiler check",

@@ -1,5 +1,9 @@
 schema_version: 1
 
+providers:
+  - claude
+  - codex
+
 name: simple-agent-plugin
 description: A minimal plugin that demonstrates skill dependencies.
 version: "1.0.0"
@@ -17,16 +21,6 @@ keywords:
   - agent
   - example
   - skills
-
-marketplace:
-  name: simple-agent-plugins
-  description: Minimal agent plugin examples.
-  plugin_description: Plan repository changes and write commit messages.
-  category: development
-  keywords:
-    - agent
-    - development
-    - skills
 
 categories:
   - id: engineering

@@ -26,7 +26,10 @@ export interface ProviderContext {
  * Pure in-process seam for one host-specific renderer.
  *
  * Implementations should derive deterministic artifacts only from the supplied
- * context and declare every generated path through the returned fragment.
+ * context and declare stable, metadata-independent exact-file ownership through
+ * the returned fragment. Provider adapters cannot own complete trees because an
+ * unselected provider expresses desired absence by retaining that exact ownership
+ * without artifacts.
  *
  * @example
  * ```ts
@@ -48,7 +51,8 @@ export interface ProviderAdapter {
    * Render this provider's generated contribution.
    *
    * @param context - Validated plugin data shared with provider adapters.
-   * @returns The provider's owned paths and generated artifacts.
+   * @returns Stable exact-file ownership and the provider's generated artifacts.
+   * @throws {TypeError} When the fragment does not use exact-file ownership.
    */
   compile(context: ProviderContext): PlanFragment;
 }

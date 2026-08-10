@@ -88,7 +88,7 @@ export async function runPluginCompilerCli({
 
   const scope: CompilerScope = Object.freeze({
     rootDir: parsed.rootDir,
-    providers: parsed.providers,
+    ...(parsed.providers === undefined ? {} : { providers: parsed.providers }),
   });
   let report: CliReport;
   try {

@@ -1,5 +1,6 @@
 import {
   createPlugin,
+  GEMINI,
   type Plugin,
   PluginSchemaVersion,
 } from "../../../../../src/core/index.ts";
@@ -7,6 +8,7 @@ import {
 export function makeGeminiConformancePlugin(): Plugin {
   return createPlugin({
     schema_version: PluginSchemaVersion.V1,
+    providers: [GEMINI],
     name: "fixture-skills",
     description: "Fixture plugin description.",
     version: "1.2.3",
@@ -19,13 +21,6 @@ export function makeGeminiConformancePlugin(): Plugin {
     repository: "https://example.test/repository",
     license: "MIT",
     keywords: ["agent-skills", "fixtures"],
-    marketplace: {
-      name: "fixture-marketplace",
-      description: "Fixture marketplace.",
-      plugin_description: "Installable fixture skills.",
-      category: "development",
-      keywords: ["agent-skills", "testing"],
-    },
     categories: [],
     skills: [],
   });

@@ -14,6 +14,7 @@ import {
 } from "yaml";
 import {
   createCategoryId,
+  createProviderId,
   createSkillId,
   type PluginCategory,
   type PluginManifest,
@@ -61,8 +62,12 @@ type JsonSkillManifest = Omit<
   readonly required_skills: readonly JsonSkillRequirement[];
 };
 
-type JsonPluginManifest = Omit<PluginManifest, "categories" | "skills"> & {
+type JsonPluginManifest = Omit<
+  PluginManifest,
+  "categories" | "providers" | "skills"
+> & {
   readonly categories: readonly JsonPluginCategory[];
+  readonly providers: readonly string[];
   readonly skills: readonly JsonSkillManifest[];
 };
 
@@ -156,11 +161,8 @@ function createPluginManifest(value: JsonPluginManifest): PluginManifest {
   return Object.freeze({
     ...value,
     author: Object.freeze({ ...value.author }),
+    providers: Object.freeze(value.providers.map(createProviderId)),
     keywords: Object.freeze([...value.keywords]),
-    marketplace: Object.freeze({
-      ...value.marketplace,
-      keywords: Object.freeze([...value.marketplace.keywords]),
-    }),
     categories: Object.freeze(
       value.categories.map((category) =>
         Object.freeze({

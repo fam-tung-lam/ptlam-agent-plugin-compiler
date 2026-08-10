@@ -24,7 +24,7 @@ export interface PlanFragmentInput {
   readonly ownerId: string;
   /** Generated paths controlled by this producer. */
   readonly ownership: Ownership;
-  /** Generated entries contributed by this producer. */
+  /** Desired entries; an omitted exact-owned file is desired absent. */
   readonly artifacts: Iterable<ArtifactInput>;
 }
 
@@ -48,7 +48,7 @@ export interface PlanFragment {
   readonly ownerId: string;
   /** Immutable declaration of the generated paths controlled by the producer. */
   readonly ownership: Ownership;
-  /** Immutable artifacts sorted by repository-relative path. */
+  /** Immutable desired artifacts sorted by repository-relative path. */
   readonly artifacts: readonly Artifact[];
 }
 

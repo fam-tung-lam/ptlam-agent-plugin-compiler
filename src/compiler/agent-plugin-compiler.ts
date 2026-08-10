@@ -1,7 +1,9 @@
 import {
+  createPlanFragment,
   createProviderContext,
+  OwnershipKind,
   type Plugin,
-  type ProviderAdapter,
+  type ProviderId,
 } from "../core/index.js";
 import {
   initializePluginSource,
@@ -21,6 +23,7 @@ import {
   createInitResult,
   createValidateResult,
   type InitResult,
+  type ProviderSelectionSource,
   type ValidateResult,
 } from "./results.js";
 import {
@@ -66,22 +69,55 @@ async function loadPlugin(
 
 async function buildPlan(
   plugin: Plugin,
-  providers: readonly ProviderAdapter[],
+  registry: ProviderAdapterRegistry,
+  selectedProviders: readonly ProviderId[],
 ) {
   const context = createProviderContext(plugin);
   const sharedSkills = await compileSharedSkills(plugin);
-  const providerFragments = providers.map((provider) =>
-    provider.compile(context),
-  );
+  const selected = new Set<string>(selectedProviders);
+  const providerFragments = registry.list().map((provider) => {
+    const fragment = provider.compile(context);
+    if (fragment.ownership.kind !== OwnershipKind.ExactFiles) {
+      throw new TypeError(
+        `Provider adapter ${JSON.stringify(provider.id)} must declare exact-file ownership`,
+      );
+    }
+    return selected.has(provider.id)
+      ? fragment
+      : createPlanFragment({
+          ownerId: fragment.ownerId,
+          ownership: fragment.ownership,
+          artifacts: [],
+        });
+  });
   return buildWritePlan({
     fragments: [sharedSkills, ...providerFragments],
   });
 }
 
+interface ProviderSelection {
+  readonly providers: readonly ProviderId[];
+  readonly providerSelectionSource: ProviderSelectionSource;
+}
+
+function resolveProviderSelection(
+  plugin: Plugin,
+  override: readonly ProviderId[] | undefined,
+  registry: ProviderAdapterRegistry,
+): ProviderSelection {
+  const requested = override ?? plugin.providers;
+  return Object.freeze({
+    providers: Object.freeze(
+      registry.resolve(requested).map((provider) => provider.id),
+    ),
+    providerSelectionSource: override === undefined ? "manifest" : "override",
+  });
+}
+
 /**
- * Validates authored plugin sources and manages generated outputs for selected providers.
+ * Validates authored plugin sources and reconciles generated provider outputs.
  *
- * One instance keeps a fixed repository, provider selection, and adapter registry. Use
+ * One instance keeps a fixed repository, optional provider override, and adapter registry. Use
  * {@link validate} for authored-source checks, {@link check} for a read-only generated-state
  * comparison, and {@link compile} to write and verify generated files.
  *
@@ -102,21 +138,21 @@ async function buildPlan(
  */
 export class AgentPluginCompiler {
   private readonly options: CompilerOptions;
-  private readonly providers: readonly ProviderAdapter[];
+  private readonly registry: ProviderAdapterRegistry;
 
   /**
-   * Creates a compiler with a fixed repository and provider selection.
+   * Creates a compiler with a fixed repository and optional provider override.
    *
-   * @param input - Repository path and provider IDs for this instance.
+   * @param input - Repository path and optional provider IDs for this instance.
    * @param registry - Per-instance adapter registry; defaults to all built-in adapters.
-   * @throws {TypeError} If the repository path is empty or a selected provider is unknown or duplicated.
+   * @throws {TypeError} If the repository path is empty.
    */
   constructor(
     input: CompilerOptionsInput,
     registry = ProviderAdapterRegistry.withBuiltIns(),
   ) {
     this.options = new CompilerOptions(input);
-    this.providers = registry.resolve(this.options.providers);
+    this.registry = registry;
     Object.freeze(this);
   }
 
@@ -140,7 +176,7 @@ export class AgentPluginCompiler {
   /**
    * Reads and validates authored sources without inspecting generated outputs.
    *
-   * @returns The immutable domain plugin and non-fatal warnings.
+   * @returns The immutable plugin, effective providers, selection source, and warnings.
    * @throws {Error} If the repository cannot be read or authored sources are invalid.
    *
    * @example
@@ -149,13 +185,19 @@ export class AgentPluginCompiler {
    * ```
    */
   async validate(): Promise<ValidateResult> {
-    return createValidateResult(await loadPlugin(this.options.rootDir));
+    const validation = await loadPlugin(this.options.rootDir);
+    const selection = resolveProviderSelection(
+      validation.plugin,
+      this.options.providers,
+      this.registry,
+    );
+    return createValidateResult({ ...validation, ...selection });
   }
 
   /**
    * Compares managed generated paths with the complete selected write plan without writing.
    *
-   * @returns The validated plugin, warnings, current status, and deterministic drift.
+   * @returns The plugin, effective selection, warnings, current status, and deterministic drift.
    * @throws {Error} If sources or generated state cannot be read, validation fails, or a provider produces an invalid plan fragment.
    *
    * @example
@@ -166,16 +208,25 @@ export class AgentPluginCompiler {
    */
   async check(): Promise<CheckResult> {
     const validation = await loadPlugin(this.options.rootDir);
-    const plan = await buildPlan(validation.plugin, this.providers);
+    const selection = resolveProviderSelection(
+      validation.plugin,
+      this.options.providers,
+      this.registry,
+    );
+    const plan = await buildPlan(
+      validation.plugin,
+      this.registry,
+      selection.providers,
+    );
     const snapshot = await readGeneratedSnapshot(this.options.rootDir, plan);
     const drift = compareWritePlan({ plan, snapshot });
-    return createCheckResult({ ...validation, drift });
+    return createCheckResult({ ...validation, ...selection, drift });
   }
 
   /**
    * Applies the complete selected write plan and verifies it from a fresh filesystem snapshot.
    *
-   * @returns The validated plugin, write facts, warnings, and post-write verification state.
+   * @returns The plugin, effective selection, write facts, warnings, and verification state.
    * @throws {Error} If validation, rendering, planning, filesystem writing, or verification cannot complete.
    *
    * @example
@@ -186,12 +237,22 @@ export class AgentPluginCompiler {
    */
   async compile(): Promise<CompileResult> {
     const validation = await loadPlugin(this.options.rootDir);
-    const plan = await buildPlan(validation.plugin, this.providers);
+    const selection = resolveProviderSelection(
+      validation.plugin,
+      this.options.providers,
+      this.registry,
+    );
+    const plan = await buildPlan(
+      validation.plugin,
+      this.registry,
+      selection.providers,
+    );
     const writeResult = await writePlan(this.options.rootDir, plan);
     const snapshot = await readGeneratedSnapshot(this.options.rootDir, plan);
     const drift = compareWritePlan({ plan, snapshot });
     return createCompileResult({
       ...validation,
+      ...selection,
       writeResult,
       drift,
     });

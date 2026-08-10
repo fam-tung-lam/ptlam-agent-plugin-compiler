@@ -7,15 +7,15 @@ import type {
 import type { ProviderId } from "../providers/index.js";
 
 /**
- * Repository and providers selected for one CLI operation.
+ * Repository and optional provider override for one CLI operation.
  *
  * @internal
  */
 export interface CompilerScope {
   /** Absolute repository root. */
   readonly rootDir: string;
-  /** Ordered provider identifiers selected for the operation. */
-  readonly providers: readonly ProviderId[];
+  /** Explicit provider override; omit to use the authored manifest selection. */
+  readonly providers?: readonly ProviderId[];
 }
 
 /**
@@ -49,7 +49,7 @@ export interface CompilerOperations {
 /**
  * Construct compiler operations for one CLI scope.
  *
- * @param scope - Resolved repository and provider selection.
+ * @param scope - Resolved repository and optional provider override.
  * @returns Operations bound to that scope.
  * @throws If compiler construction rejects the scope.
  * @internal

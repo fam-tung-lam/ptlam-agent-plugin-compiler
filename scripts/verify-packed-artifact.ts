@@ -183,7 +183,7 @@ async function main(): Promise<void> {
 
     await writeFile(
       path.join(consumerRoot, "consumer.ts"),
-      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
+      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ProviderSelectionSource, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
         `const externalId: ProviderId = createProviderId("external");\n` +
         `const externalPath: ProjectPath = createProjectPath(".external-plugin/plugin.json");\n` +
         `const externalAdapter: ProviderAdapter = Object.freeze({\n` +
@@ -194,6 +194,7 @@ async function main(): Promise<void> {
         `  },\n` +
         `});\n` +
         `const registry = new ProviderAdapterRegistry().register(externalAdapter);\n` +
+        `const defaults = { rootDir: "." } satisfies CompilerOptionsInput;\n` +
         `const options = { rootDir: ".", providers: [externalId] } satisfies CompilerOptionsInput;\n` +
         `const compiler = new AgentPluginCompiler(options, registry);\n` +
         `const validation: Promise<ValidateResult> = compiler.validate();\n` +
@@ -203,7 +204,8 @@ async function main(): Promise<void> {
         `const artifact: Artifact | undefined = fragment.artifacts[0];\n` +
         `const ownership: Ownership = fragment.ownership;\n` +
         `const manifest = null as unknown as PluginManifest;\n` +
-        `void [validation, check, compilation, artifact, ownership, manifest, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter];\n`,
+        `const providerSelectionSource: ProviderSelectionSource = "manifest";\n` +
+        `void [defaults, validation, check, compilation, artifact, ownership, manifest, providerSelectionSource, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter];\n`,
       "utf8",
     );
     await writeFile(
@@ -270,7 +272,8 @@ async function main(): Promise<void> {
       !help.stdout.includes(
         "Possible values: claude, codex, copilot, gemini, kimi",
       ) ||
-      !help.stdout.includes("shared skills/ tree")
+      !help.stdout.includes("plugin/plugin.yml providers") ||
+      !help.stdout.includes("--no-providers")
     ) {
       fail(`Installed CLI help omits provider selection:\n${help.stdout}`);
     }
@@ -305,10 +308,11 @@ async function main(): Promise<void> {
       ) ||
       !generateHelp.stdout.includes("--root <path>") ||
       !generateHelp.stdout.includes("--provider <id>") ||
+      !generateHelp.stdout.includes("--no-providers") ||
       !generateHelp.stdout.includes(
         "possible values: claude, codex, copilot, gemini, kimi",
       ) ||
-      !generateHelp.stdout.includes("default: none; shared skills/ only") ||
+      !generateHelp.stdout.includes("default: plugin/plugin.yml providers") ||
       generateHelp.stdout.includes("Commands:")
     ) {
       fail(
