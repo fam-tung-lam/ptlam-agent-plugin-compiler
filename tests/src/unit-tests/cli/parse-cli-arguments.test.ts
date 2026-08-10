@@ -10,6 +10,27 @@ import {
 import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
 describe("parseCliArguments", () => {
+  it.each(Object.values(CliCommand))(
+    "parses comma-separated providers for %s in stable registry order",
+    (command) => {
+      // GIVEN: One supported command selects both built-ins in reverse order.
+      const argv = [command, "--provider", "codex,claude"];
+
+      // WHEN: The provider-aware parser resolves the comma-separated selection.
+      const parsed = parseCliArguments(argv, "/workspace/repository");
+
+      // THEN: The command carries immutable provider IDs in registry order.
+      assert.deepEqual(parsed, {
+        kind: "command",
+        command,
+        rootDir: "/workspace/repository",
+        providers: [CLAUDE, CODEX],
+      });
+      assert.ok(parsed.kind === "command");
+      assert.equal(Object.isFrozen(parsed.providers), true);
+    },
+  );
+
   it("parses repeated provider flags in stable registry order", () => {
     // GIVEN: A command selects both built-ins in reverse order.
     const argv = ["generate", "--provider", "codex", "--provider", "claude"];
@@ -79,6 +100,14 @@ describe("parseCliArguments", () => {
     {
       argv: ["check", "--provider", "codex", "--provider", "codex"],
       expected: "duplicate provider",
+    },
+    {
+      argv: ["check", "--provider", "codex,codex"],
+      expected: "duplicate provider",
+    },
+    {
+      argv: ["check", "--provider", "codex,"],
+      expected: "Invalid provider identifier",
     },
     { argv: ["generate", "--root"], expected: "requires a path" },
     {

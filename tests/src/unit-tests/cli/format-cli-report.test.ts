@@ -123,6 +123,7 @@ describe("formatCliResult", () => {
     assert.equal(help.exitCode, CliExitCode.Success);
     assert.match(help.stdout.join("\n"), /validate\|check\|generate/u);
     assert.match(help.stdout.join("\n"), /--provider <id>/u);
+    assert.match(help.stdout.join("\n"), /separate providers with commas/u);
     assert.match(help.stdout.join("\n"), /Defaults to: claude, codex/u);
     assert.equal(invalid.exitCode, CliExitCode.Usage);
     assert.match(invalid.stderr.join("\n"), /Unknown command/u);

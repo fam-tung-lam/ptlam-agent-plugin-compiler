@@ -38,6 +38,10 @@ function parseProviderId(value: string): ProviderId {
   }
 }
 
+function parseProviderIds(value: string): readonly ProviderId[] {
+  return value.split(",").map(parseProviderId);
+}
+
 function resolveRequestedProviderIds(
   requested: readonly ProviderId[],
   registry: ProviderAdapterRegistry,
@@ -104,7 +108,7 @@ export function parseCliArguments(
       if (providerValue === undefined || providerValue === "") {
         throw new CliUsageError("--provider requires an identifier.");
       }
-      requestedProviders.push(parseProviderId(providerValue));
+      requestedProviders.push(...parseProviderIds(providerValue));
       index += 1;
       continue;
     }

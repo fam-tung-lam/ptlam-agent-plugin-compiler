@@ -8,6 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added comma-separated CLI provider selection, such as
+  `--provider claude,codex`, while preserving repeated `--provider` flags.
+
 ## [0.1.0-alpha.3] - 2026-08-10
 
 ### Changed
