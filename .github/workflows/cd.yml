@@ -195,7 +195,7 @@ jobs:
         uses: ./.github/actions/download-release-candidate
         with:
           run-id: ${{ needs.detect.outputs.ci_run_id }}
-          destination: ${{ env.CANDIDATE_DIR }}
+          destination: ${{ runner.temp }}/release-candidate
           token: ${{ github.token }}
 
       - name: Create or verify GitHub release metadata
