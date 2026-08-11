@@ -1,7 +1,7 @@
 # Reference Overview
 
-This reference documents the public contract of Agent Plugin Compiler
-`0.1.0-beta.2`. It states what the package accepts and produces. The
+This reference documents the public contract of Agent Plugin Compiler `0.1.0`.
+It states what the package accepts and produces. The
 [Guide](/guide/introduction) explains why, and shows the workflow around it.
 
 ## Contract surfaces
@@ -31,9 +31,9 @@ documents the internal design.
 
 ## Stability note
 
-The package is currently a beta prerelease published under the npm `next` tag.
-Pin it exactly, review release notes before upgrading, and recompile output with
-the upgraded version before accepting the change.
+The package is stable and published under npm's `latest` tag. Pin it exactly,
+review release notes before upgrading, and recompile output with the upgraded
+version before accepting the change.
 
 Start with the [CLI reference](/reference/cli), or follow the
 [Quick Start](/guide/quick-start).

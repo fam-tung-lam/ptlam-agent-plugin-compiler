@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@fam-tung-lam/ptlam-agent-plugin-compiler"><img alt="npm@next version" src="https://img.shields.io/npm/v/@fam-tung-lam/ptlam-agent-plugin-compiler/next?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@fam-tung-lam/ptlam-agent-plugin-compiler"><img alt="npm version" src="https://img.shields.io/npm/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
   <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/fam-tung-lam/ptlam-agent-plugin-compiler/ci.yml?branch=main&style=flat-square&label=ci" /></a>
-  <a href="https://nodejs.org"><img alt="Required Node.js version" src="https://img.shields.io/node/v/@fam-tung-lam/ptlam-agent-plugin-compiler/next?style=flat-square" /></a>
+  <a href="https://nodejs.org"><img alt="Required Node.js version" src="https://img.shields.io/node/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
   <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
 </p>
 
@@ -250,11 +250,11 @@ as root skills, while `draft` and `archived` ones are not.
 
 ```bash
 npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@next
+  @fam-tung-lam/ptlam-agent-plugin-compiler
 ```
 
-Requires Node.js 22.6 or newer. The package is a beta prerelease: pin it exactly
-and recompile after every upgrade.
+Requires Node.js 22.6 or newer. `--save-exact` pins the stable version resolved
+from npm. Recompile after every upgrade.
 
 ## Quick start
 
