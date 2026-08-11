@@ -20,5 +20,13 @@
     "MD024": {
       "siblings_only": true,
     },
+    // Vue components registered by the documentation site theme.
+    "MD033": {
+      "allowed_elements": [
+        "OwnershipMap",
+        "PublicationMatrix",
+        "SkillGraphTransform",
+      ],
+    },
   },
 }

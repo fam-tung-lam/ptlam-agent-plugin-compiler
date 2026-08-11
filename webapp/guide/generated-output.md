@@ -1,72 +1,122 @@
 # Generated Output
 
-Generated files are a projection of `plugin/plugin.yml` and `plugin/skills/**`.
-Recompile them; do not maintain them as a second source.
+The compiler treats `plugin/**` as source and everything it writes as a build
+result. This page explains which paths it owns, what it puts in them, and what
+happens to files it finds there that the source does not imply.
 
-## Shared skill tree
+## What the compiler owns
 
-The compiler owns the complete root `skills/` tree. It publishes eligible public
-skills, writes a catalog, and nests required skill sources inside every public
-root skill that needs them.
+<OwnershipMap />
+
+Ownership comes in two kinds, and the difference matters.
+
+The root `skills/` directory is owned as a **complete tree**. The compiler
+decides the entire contents. A file you add inside it is reported by `check` as
+`unexpected` and removed by the next `compile`:
 
 ```text
-skills/
-├── README.md
-└── prepare-change-plan/
-    ├── SKILL.md
-    └── skills/
-        └── inspect-repository/
-            └── SKILL.md
+Output check found 2 drift entries:
+- skills/NOTES.md: unexpected
+- skills/prepare-change-plan/EXTRA.md: unexpected
 ```
 
-An internal skill can therefore support a public skill without appearing as a
-standalone catalog entry.
+Each built-in provider owns **exact files** instead. The compiler writes those
+specific paths and nothing else, so a provider can never claim an open-ended
+directory of yours. Custom adapters are held to the same rule: complete-tree
+ownership is rejected for providers.
 
-## Provider manifests
+Every other path in the repository stays outside the write plan. Source code,
+tests, documentation, and your own `README.md` are never read or written.
 
-Provider adapters own exact manifest paths. The built-in outputs are:
+## What a generated skill contains
 
-| Provider | Managed manifest paths                                          |
-| -------- | --------------------------------------------------------------- |
-| Claude   | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
-| Codex    | `.codex-plugin/plugin.json`                                     |
-| Copilot  | `plugin.json`                                                   |
-| Gemini   | `gemini-extension.json`                                         |
-| Kimi     | `kimi.plugin.json`                                              |
+For each published skill the compiler writes `skills/<skill-id>/SKILL.md`
+containing, in order:
 
-Changing the provider selection also reconciles previously managed built-in
-manifest files. Unselected provider output is removed from its declared exact
-paths; unrelated repository files remain outside the plan.
+1. **Frontmatter** derived from the manifest: `name` is the skill ID and
+   `description` is the manifest description. Authored sources must not contain
+   frontmatter, so this metadata has exactly one owner.
+2. **Your Markdown**, unchanged.
+3. **A `## Required skills` section**, one subsection per requirement, with the
+   reason, the instructions, and a relative link to the nested copy. Its
+   position is the marker, when the source has one, and otherwise directly after
+   the title and its introductory paragraphs.
 
-## Select output for one run
+Supporting files that sit next to an authored `SKILL.md` are copied into the
+generated skill at the same relative path, so a skill can ship templates,
+schemas, or reference documents. `plugin/skills/<skill-id>/skills/` is reserved:
+the compiler builds that directory, and an authored one is rejected.
 
-Without an override, `validate`, `compile`, and `check` use the manifest's
-`providers` list. Replace that selection for one invocation with a
-comma-separated list:
+Each required skill is copied into `skills/<skill-id>/skills/`, recursively, so
+the dependency exists once in the source and as many times in the output as
+there are published skills that need it. [Skill graph](/guide/skill-graph)
+covers the rules that decide which skills become roots and what gets nested.
 
-```bash
-npm exec -- plugin-compiler compile --provider claude,codex
+## The generated catalog
+
+`skills/README.md` lists every published skill with its category, description,
+lifecycle status, and replacement:
+
+<!-- prettier-ignore -->
+```markdown
+## Available skills
+
+| Skill                 | Category    | Description                                                    | Status | Replacement |
+| --------------------- | ----------- | -------------------------------------------------------------- | ------ | ----------- |
+| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | Active | —           |
 ```
 
-Compile only shared skills with no provider manifests:
+A deprecated skill appears with its migration guidance in the status column, so
+the catalog is a truthful index of what the plugin currently offers.
 
-```bash
-npm exec -- plugin-compiler compile --no-providers
+## Host manifests
+
+Every selected provider projects the same validated plugin model into its own
+format. They cannot disagree with each other, because none of them is written by
+hand. [Providers](/reference/providers) documents each adapter's output.
+
+Provider selection is part of the plan, not a filter applied afterwards. The
+compiler owns each built-in manifest path whether or not you selected its
+provider, and a path that no selected provider produces must be absent. Removing
+`codex` from `providers` therefore deletes `.codex-plugin/plugin.json` on the
+next compile rather than leaving a stale manifest behind.
+
+That is also why `compile` reports paths you did not select:
+
+```text
+Compilation completed and post-write verification passed.
+- .claude-plugin/marketplace.json: changed
+- .claude-plugin/plugin.json: changed
+- skills: changed
+- .codex-plugin/plugin.json: unchanged
+- gemini-extension.json: unchanged
+- kimi.plugin.json: unchanged
+- plugin.json: unchanged
 ```
 
-The two provider options are mutually exclusive.
+`unchanged` there means the path is absent and should stay absent.
 
-## Keep CI honest
+## Determinism
 
-Run `compile` when authored source changes. Run `check` in verification paths
-where writes are undesirable:
+The same authored source compiles to the same bytes: skills are emitted in
+manifest order, resources and directories in sorted order, and JSON and YAML
+through fixed formatters. There is no timestamp, no host path, and no random
+identifier in the output.
 
-```bash
-npm exec -- plugin-compiler check
-```
+Two properties follow from that. Writes are idempotent, so compiling twice
+changes nothing the second time. And the committed output can be compared with
+the source, which is what `plugin-compiler check` does.
 
-A clean check proves the selected managed paths match the same deterministic
-write plan that `compile` would apply.
+## Commit the output
 
-Next: compare [provider contracts](/reference/providers), or use the compiler
-through its [Node.js interface](/reference/node-interface).
+Commit generated files with the source. Users install the plugin from the
+repository, so the output has to be there, and committing it is what lets
+`check` prove that it is current. Never fix a generated file by hand: change
+`plugin/**` and compile again.
+
+## Next steps
+
+- [Continuous integration](/guide/continuous-integration) turns `check` into a
+  build gate.
+- [Providers](/reference/providers) documents each host manifest.
+- [CLI reference](/reference/cli) lists the commands, options, and exit codes.

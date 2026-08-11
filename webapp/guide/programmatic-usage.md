@@ -1,4 +1,4 @@
-# Node.js Interface
+# Programmatic Usage
 
 The package exports `AgentPluginCompiler` for build tools and other Node.js
 integrations.
@@ -111,5 +111,5 @@ await externalCompiler.compile();
 Each registry is immutable and isolated. `register()` returns a new registry,
 and adapters must use stable exact-file ownership.
 
-Next: compare the [built-in providers](/reference/providers), or return to the
-[Guide](/guide/introduction).
+Next: compare the [built-in providers](/reference/providers), or see how the
+same check runs in [continuous integration](/guide/continuous-integration).
