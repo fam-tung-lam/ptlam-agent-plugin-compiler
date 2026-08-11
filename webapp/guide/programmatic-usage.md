@@ -111,5 +111,5 @@ await externalCompiler.compile();
 Each registry is immutable and isolated. `register()` returns a new registry,
 and adapters must use stable exact-file ownership.
 
-Next: compare the [built-in providers](/reference/providers), or return to the
-[Quick Start](/guide/quick-start).
+Next: compare the [built-in providers](/reference/providers), or see how the
+same check runs in [continuous integration](/guide/continuous-integration).

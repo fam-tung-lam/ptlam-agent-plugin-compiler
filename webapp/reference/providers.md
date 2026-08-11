@@ -55,5 +55,5 @@ An adapter must declare stable exact-file paths. Complete-tree ownership is
 rejected so a provider cannot claim an open-ended repository directory.
 
 Next: use provider constants through
-[Programmatic Usage](/guide/programmatic-usage), or review the
-[compile and verification workflow](/guide/quick-start).
+[Programmatic Usage](/guide/programmatic-usage), or review how selection affects
+what is written in [Generated output](/guide/generated-output).
