@@ -15,13 +15,13 @@ Install the compiler into the repository that owns the plugin:
 
 ```bash
 npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@next
+  @fam-tung-lam/ptlam-agent-plugin-compiler
 ```
 
-The package is a beta prerelease, so it is published under the `next` tag.
-`--save-exact` records one resolved version instead of a range, which keeps
-local and CI compilation on the same compiler. Commit `package.json` and the
-lockfile with the plugin source.
+The package resolves from npm's stable `latest` tag by default. `--save-exact`
+records one resolved version instead of a range, which keeps local and CI
+compilation on the same compiler. Commit `package.json` and the lockfile with
+the plugin source.
 
 The package installs one executable named `plugin-compiler`. Run it through npm:
 

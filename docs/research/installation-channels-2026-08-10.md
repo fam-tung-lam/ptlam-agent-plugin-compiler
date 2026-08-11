@@ -2,6 +2,7 @@
 
 Дата исследования: 2026-08-10  
 Дата доступа ко всем внешним источникам: 2026-08-10  
+Обновление для stable-релиза: 2026-08-11
 Текущий проект: commit `584785045d5225d72e3e743309881e21ba08d536`  
 Референс `local/agentplugins`: commit `f3d9c439680d26d4316c1ed214ae9a82a2127a2a`
 
@@ -44,10 +45,10 @@ npm tarball. Новая независимая сборка появляется
    ([`docs/RELEASE.md:125-138`](../RELEASE.md)). Добавление каналов не должно
    ослабить эту цепочку или создать второго владельца версии.
 7. На момент проверки npm registry содержит `0.1.0-alpha.1` и `0.1.0-alpha.2`:
-   tag `next` указывает на `alpha.2`, а `latest` все еще на `alpha.1`
+   prerelease tag указывает на `alpha.2`, а `latest` все еще на `alpha.1`
    ([npm registry metadata](https://registry.npmjs.org/@fam-tung-lam%2Fptlam-agent-plugin-compiler)).
-   Следовательно, до stable-релиза команды для пробного запуска должны
-   использовать `@next` или точную версию, а не `@latest`.
+   Это исторический snapshot до stable-релиза. После выпуска `0.1.0` обычная
+   установка должна использовать npm default, который разрешает `latest`.
 8. GitHub release `v0.1.0-alpha.2` является prerelease и не содержит assets
    ([GitHub Releases API](https://api.github.com/repos/fam-tung-lam/ptlam-agent-plugin-compiler/releases/tags/v0.1.0-alpha.2)).
    Поэтому сейчас `curl` и binary-based Formula скачивать нечего.
@@ -108,20 +109,19 @@ npm остается каноническим каналом. Отдельног
 
 ```bash
 npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@next
+  @fam-tung-lam/ptlam-agent-plugin-compiler
 npm exec -- plugin-compiler validate
 ```
 
 `--save-exact` фиксирует фактически разрешенную версию в `package.json`;
-lockfile фиксирует весь dependency graph. После stable-релиза документация
-должна заменить `@next` на точную stable-версию или оставить команду установки с
-`--save-exact`.
+lockfile фиксирует весь dependency graph. Без суффикса npm использует stable
+`latest`, а `--save-exact` сохраняет разрешенную версию без диапазона.
 
-Для одноразовой проверки prerelease без изменения проекта:
+Для одноразовой проверки stable-релиза без изменения проекта:
 
 ```bash
 npm exec --yes \
-  --package=@fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0-alpha.2 \
+  --package=@fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0 \
   -- plugin-compiler --help
 ```
 
@@ -129,7 +129,7 @@ npm exec --yes \
 `bin`:
 
 ```bash
-npx --yes @fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0-alpha.2 --help
+npx --yes @fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0 --help
 ```
 
 Точную версию особенно важно указывать в CI. Интерактивный prompt `npx` снижает
@@ -175,7 +175,7 @@ publish. Bun умеет добавлять npm packages, global CLI и exact dep
 
 ```bash
 bun add --dev --exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler@next
+  @fam-tung-lam/ptlam-agent-plugin-compiler
 bunx --no-install \
   --package @fam-tung-lam/ptlam-agent-plugin-compiler \
   plugin-compiler validate
@@ -185,7 +185,7 @@ bunx --no-install \
 
 ```bash
 bunx \
-  --package '@fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0-alpha.2' \
+  --package '@fam-tung-lam/ptlam-agent-plugin-compiler@0.1.0' \
   plugin-compiler --help
 ```
 
@@ -211,7 +211,7 @@ bunx \
 ### Риски
 
 - Bun может разрешить dependency tree иначе, чем npm; нужен consumer smoke test.
-- Floating `@next` в одноразовой команде не воспроизводим; для CI нужна версия.
+- Floating dist-tag в одноразовой команде не воспроизводим; для CI нужна версия.
 - Запуск с `--bun` может попасть на неполную Node API compatibility; Bun прямо
   документирует еще частично или не полностью реализованные Node APIs
   ([Node.js compatibility](https://bun.com/docs/runtime/nodejs-compat)).
@@ -237,8 +237,8 @@ Homebrew отдельно рекомендует для Node applications exact 
 
 `homebrew/core` требует stable release и не принимает software без него
 ([Acceptable Formulae](https://docs.brew.sh/Acceptable-Formulae#stable-releases)).
-Текущий `0.1.0-alpha.2` — prerelease. Собственный tap технически может раздавать
-alpha, но добавит release surface до стабилизации CLI и версии без явной пользы.
+Stable `0.1.0` выполняет это предварительное условие, но отдельный tap все равно
+нуждается в собственных smoke tests и reviewable release automation.
 
 ### Целевая форма Formula
 
