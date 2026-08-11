@@ -1,147 +1,331 @@
 # Quick Start
 
-Once your repository contains an authored `plugin/**` source, decide which
-skills users can install and where each skill is in its lifecycle. Then one
-command validates the graph, writes deterministic output, and verifies the
-result. See [Installation](/guide/installation) and the
-[Authored Plugin Source](/reference/authored-source) if the source is not ready.
+This page starts with a repository that has no plugin in it and ends with
+compiled, verified output: a self-contained skill under `skills/` and a Claude
+plugin manifest. Every file and command you need is on this page.
 
-## Configure publication
+## Before you start
 
-Every skill in `plugin/plugin.yml` needs both `visibility` and `status`.
-Together they control which skills become installable roots and which exist only
-inside the skills that require them.
+- Node.js 22.6 or newer. Check with `node --version`.
+- A repository that will own the plugin. Any npm project works.
 
-### Choose skill visibility
+## 1. Install the compiler
 
-| Value      | Behavior                                                                                           |
-| ---------- | -------------------------------------------------------------------------------------------------- |
-| `public`   | Eligible for publication as a root and still nested inside every published skill that requires it. |
-| `internal` | Never published as a root; compiled only inside reachable published skills that depend on it.      |
+Install the compiler into the repository that owns the plugin:
 
-Use `internal` for reusable procedures that should not appear as standalone
-install choices. An active internal skill that cannot be reached from any
-published root produces a warning because it contributes to no output.
+```bash
+npm install --save-dev --save-exact \
+  @fam-tung-lam/ptlam-agent-plugin-compiler@next
+```
+
+The package is a beta prerelease, so it is published under the `next` tag.
+`--save-exact` records one resolved version instead of a range, which keeps
+local and CI compilation on the same compiler. Commit `package.json` and the
+lockfile with the plugin source.
+
+The package installs one executable named `plugin-compiler`. Run it through npm:
+
+```bash
+npm exec -- plugin-compiler --help
+```
+
+## 2. Create the authored source
+
+Everything you edit lives under `plugin/`. Create three files:
+
+```text
+plugin/
+├── plugin.yml
+└── skills/
+    ├── inspect-repository/
+    │   └── SKILL.md
+    └── prepare-change-plan/
+        └── SKILL.md
+```
+
+`plugin/plugin.yml` declares the plugin and every skill in it. This manifest has
+two skills: an internal building block, and a public skill that requires it.
 
 ```yaml
+schema_version: 1
+
+providers:
+  - claude
+
+name: example-agent-plugin
+description: Skills that plan repository changes from verified facts.
+version: "0.1.0"
+
+author:
+  name: Your Name
+
+homepage: https://github.com/you/example-agent-plugin
+repository: https://github.com/you/example-agent-plugin
+license: MIT
+
+keywords:
+  - agent
+  - skills
+
+categories:
+  - id: engineering
+    name: Engineering
+    description: Skills for repository work.
+
 skills:
   - id: inspect-repository
-    description: Collect verified repository facts.
+    description: Collect verified facts about a repository.
     category_id: engineering
     visibility: internal
     status: active
     required_skills: []
 
   - id: prepare-change-plan
-    description: Prepare a plan from verified facts.
+    description: Prepare an implementation plan from verified repository facts.
     category_id: engineering
     visibility: public
     status: active
     required_skills:
       - skill_id: inspect-repository
-        reason: The plan must reflect verified facts.
-        instructions: Inspect the repository before preparing the plan.
+        reason: A plan must reflect the repository's actual structure.
+        instructions: Inspect the repository first and pass the facts forward.
 ```
 
-### Choose lifecycle status
+Every field above is required. Identifiers are lowercase kebab-case, `version`
+must be quoted so YAML keeps it a string, and each skill `id` must have a
+matching source directory.
 
-| Status       | Root publication and dependency rules                                                                       |
-| ------------ | ----------------------------------------------------------------------------------------------------------- |
-| `draft`      | Not published as a root. Active or deprecated skills cannot depend on it.                                   |
-| `active`     | Published as a root when public; the normal state for supported skills.                                     |
-| `deprecated` | Published as a root when public, requires deprecation guidance, and warns when another skill depends on it. |
-| `archived`   | Not published as a root, requires archive metadata, and cannot be required by a non-archived skill.         |
+`plugin/skills/inspect-repository/SKILL.md` holds the building block:
 
-Only public `active` and `deprecated` skills become root entries in `skills/**`.
-Required skills are still nested according to the validated dependency graph.
+```markdown
+# Inspect repository
 
-#### Deprecate a skill
+Collect the facts another skill needs before it plans a change.
 
-A deprecated skill must explain the migration. A replacement is optional, but
-when present it must identify an active public skill.
-
-```yaml
-status: deprecated
-deprecation:
-  reason: A narrower workflow replaces this skill.
-  instructions: Use prepare-focused-change instead.
-  replacement_skill_id: prepare-focused-change
+1. List the files and modules the change touches.
+2. Record the conventions those files already follow.
 ```
 
-#### Archive a skill
+`plugin/skills/prepare-change-plan/SKILL.md` holds the public skill. Note that
+it never mentions `inspect-repository`. The dependency is declared in the
+manifest, and the compiler writes the instructions for it:
 
-An archived skill must record why it is no longer published. A replacement is
-optional and follows the same active-public rule.
+```markdown
+# Prepare a change plan
 
-```yaml
-status: archived
-archive:
-  reason: The workflow is no longer supported.
-  replacement_skill_id: prepare-focused-change
+Create a focused implementation plan from verified repository facts.
+
+1. State the intended outcome and constraints.
+2. Order the implementation and verification steps.
 ```
 
-Validation rejects incompatible lifecycle relationships before any output is
-written. The [Manifest reference](/reference/manifest) documents every field.
+Write plain Markdown with no YAML frontmatter. The compiler generates
+frontmatter from the manifest so the metadata has one owner.
 
-## Compile and verify
+::: tip Start from a scaffold instead
 
-Run this command from the plugin repository root:
+`npm exec -- plugin-compiler init` writes a fully commented, schema-valid
+`plugin/plugin.yml` plus matching `SKILL.md` sources for three example skills.
+It only creates missing paths, so running it in an existing project is safe.
+
+:::
+
+## 3. Validate the source
+
+Run every command from the repository root:
+
+```bash
+npm exec -- plugin-compiler validate
+```
+
+```text
+Scope: /path/to/example-agent-plugin; providers: claude; provider source: manifest.
+Validated example-agent-plugin@0.1.0: 2 skills in 1 category.
+```
+
+`validate` reads `plugin/**` and nothing else. It checks the manifest against
+the schema, confirms every declared skill has a source file, and validates the
+dependency graph: unknown, duplicate, self-referencing, and circular
+dependencies all fail here, before anything is written.
+
+If you rename `inspect-repository` in the manifest without updating the
+requirement, `validate` exits `1` and names the exact location:
+
+```text
+Command failed: Plugin validation failed with 1 error:
+- plugin/plugin.yml#/skills/0/required_skills/0/skill_id: skill "prepare-change-plan" references unknown skill "inspect-repository"
+```
+
+## 4. Compile
 
 ```bash
 npm exec -- plugin-compiler compile
 ```
 
-The compiler validates the complete authored source, reconciles the root
-`skills/` tree and the exact host manifest paths selected by
-`plugin/plugin.yml`, then verifies the new state. These files are build results:
-update `plugin/**` and compile again instead of editing them by hand.
+```text
+Scope: /path/to/example-agent-plugin; providers: claude; provider source: manifest.
+Compilation completed and post-write verification passed.
+- .claude-plugin/marketplace.json: changed
+- .claude-plugin/plugin.json: changed
+- skills: changed
+- .codex-plugin/plugin.json: unchanged
+- gemini-extension.json: unchanged
+- kimi.plugin.json: unchanged
+- plugin.json: unchanged
+```
 
-### Inspect the self-contained skills
+`compile` validates the source again, writes the complete plan, then re-reads
+the result from disk and verifies it matches. The report lists every path the
+compiler manages, including the manifests of providers you did not select: the
+compiler owns those paths either way, and keeping them absent is part of the
+plan.
 
-For example, a public skill with one internal dependency compiles to this shared
-tree:
+## 5. Read the generated output
+
+The repository now contains generated files next to your source:
 
 ```text
 skills/
 ├── README.md
-├── prepare-change-plan/
-│   ├── SKILL.md
-│   └── skills/
-│       └── inspect-repository/
-│           └── SKILL.md
-└── write-commit-message/
-    └── SKILL.md
+└── prepare-change-plan/
+    ├── SKILL.md
+    └── skills/
+        └── inspect-repository/
+            └── SKILL.md
+.claude-plugin/
+├── marketplace.json
+└── plugin.json
 ```
 
-`prepare-change-plan` can be installed by itself because its internal
-`inspect-repository` dependency is nested inside it. If a required skill is
-public, it is nested where needed and also emitted as its own root skill.
-`skills/README.md` catalogs the published roots.
+`inspect-repository` is internal, so it never becomes a skill of its own. It is
+copied inside `prepare-change-plan`, which makes that skill complete for anyone
+who installs it.
 
-### Inspect the selected host manifests
+`skills/prepare-change-plan/SKILL.md` is your Markdown plus everything the
+compiler derived from the manifest:
 
-The same validated plugin model produces the built-in host files:
+<!-- prettier-ignore -->
+```markdown
+---
+name: prepare-change-plan
+description: Prepare an implementation plan from verified repository facts.
+---
 
-| Provider | Managed manifest paths                                          |
-| -------- | --------------------------------------------------------------- |
-| Claude   | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
-| Codex    | `.codex-plugin/plugin.json`                                     |
-| Copilot  | `plugin.json`                                                   |
-| Gemini   | `gemini-extension.json`                                         |
-| Kimi     | `kimi.plugin.json`                                              |
+# Prepare a change plan
 
-Without an override, `compile` uses the manifest's `providers` list. Replace it
-for one run with a comma-separated selection:
+Create a focused implementation plan from verified repository facts.
+
+## Required skills
+
+### `inspect-repository`
+
+**Reason:** A plan must reflect the repository's actual structure.
+
+**Instructions:** Inspect the repository first and pass the facts forward.
+
+Read [inspect-repository](skills/inspect-repository/SKILL.md).
+
+1. State the intended outcome and constraints.
+2. Order the implementation and verification steps.
+```
+
+`skills/README.md` is the generated catalog of installable skills:
+
+<!-- prettier-ignore -->
+```markdown
+## Available skills
+
+| Skill                 | Category    | Description                                                    | Status | Replacement |
+| --------------------- | ----------- | -------------------------------------------------------------- | ------ | ----------- |
+| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | Active | —           |
+```
+
+`.claude-plugin/plugin.json` is the host manifest, projected from the same
+validated model:
+
+<!-- prettier-ignore -->
+```json
+{
+  "name": "example-agent-plugin",
+  "version": "0.1.0",
+  "description": "Skills that plan repository changes from verified facts.",
+  "author": {
+    "name": "Your Name"
+  },
+  "homepage": "https://github.com/you/example-agent-plugin",
+  "repository": "https://github.com/you/example-agent-plugin",
+  "license": "MIT",
+  "keywords": [
+    "agent",
+    "skills"
+  ],
+  "skills": [
+    "./skills/prepare-change-plan"
+  ]
+}
+```
+
+These files are build results. Edit `plugin/**` and compile again instead of
+patching them by hand.
+
+## 6. Target other hosts
+
+Without an option, `compile` uses the `providers` list in `plugin/plugin.yml`.
+Replace that list for one run with a comma-separated selection:
 
 ```bash
 npm exec -- plugin-compiler compile --provider claude,codex
 ```
 
-Compile shared skills without host manifests with `--no-providers`. The two
-provider options are mutually exclusive. Changing the selection removes stale
-built-in manifest files from their declared exact paths while leaving unrelated
-repository files outside the write plan.
+Compile the shared `skills/` tree without any host manifest:
 
-Next: compare [provider contracts](/reference/providers), inspect the complete
-[Manifest reference](/reference/manifest), or use the compiler
-[programmatically](/guide/programmatic-usage).
+```bash
+npm exec -- plugin-compiler compile --no-providers
+```
+
+The two options are mutually exclusive. Because the compiler owns each built-in
+manifest path, narrowing the selection removes the manifests you dropped instead
+of leaving stale files behind.
+
+| Provider  | Managed manifest paths                                          |
+| --------- | --------------------------------------------------------------- |
+| `claude`  | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` |
+| `codex`   | `.codex-plugin/plugin.json`                                     |
+| `copilot` | `plugin.json`                                                   |
+| `gemini`  | `gemini-extension.json`                                         |
+| `kimi`    | `kimi.plugin.json`                                              |
+
+## 7. Verify instead of trusting
+
+Commit the generated files, then prove they still match the source:
+
+```bash
+npm exec -- plugin-compiler check
+```
+
+```text
+Scope: /path/to/example-agent-plugin; providers: claude; provider source: manifest.
+Output check passed.
+```
+
+`check` writes nothing. When a generated file no longer matches the source it
+names every path that drifted and exits `1`:
+
+```text
+Output check found 1 drift entry:
+- skills/prepare-change-plan/SKILL.md: content-differs
+```
+
+That exit code is what turns stale output into a failing build. See
+[Continuous integration](/guide/continuous-integration).
+
+## Next steps
+
+- [Skill graph](/guide/skill-graph) covers dependencies, visibility, and
+  lifecycle status in depth.
+- [Generated output](/guide/generated-output) explains exactly which paths the
+  compiler owns.
+- [Manifest reference](/reference/manifest) documents every `plugin.yml` field.
+- [CLI reference](/reference/cli) lists every command, option, and exit code.
+- [Programmatic usage](/guide/programmatic-usage) runs the same pipeline from
+  Node.js.
