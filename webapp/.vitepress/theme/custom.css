@@ -703,6 +703,15 @@ body {
   color: var(--apc-violet);
 }
 
+.apc-graph__group {
+  display: grid;
+  gap: 6px;
+  border: 1px dashed color-mix(in srgb, var(--apc-violet) 20%, var(--apc-line));
+  border-radius: 11px;
+  padding: 10px;
+  min-width: 0;
+}
+
 .apc-graph__node {
   display: flex;
   flex-wrap: wrap;
@@ -714,6 +723,19 @@ body {
   padding: 9px 12px;
   min-width: 0;
   background: var(--apc-surface);
+}
+
+.apc-graph__group > .apc-graph__edge,
+.apc-graph__group > .apc-graph__node--required {
+  margin-left: 18px;
+}
+
+.apc-graph__note {
+  margin: 0;
+  padding-left: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--vp-c-text-2);
 }
 
 .apc-graph__node--required {
@@ -779,6 +801,45 @@ body {
 .apc-graph__step {
   justify-content: center;
   padding: 2px 0;
+}
+
+.apc-graph__compiler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--apc-violet) 34%, var(--apc-line));
+  border-radius: 13px;
+  padding: 12px 16px;
+  min-width: 0;
+  background: var(--apc-surface-raised);
+}
+
+.apc-graph__compiler img {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+}
+
+.apc-graph__compiler div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.apc-graph__compiler strong {
+  font-family: var(--apc-font-mono);
+  font-size: 13px;
+  line-height: 19px;
+  font-weight: 720;
+  color: var(--vp-c-text-1);
+}
+
+.apc-graph__compiler span {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--apc-teal);
 }
 
 .apc-graph__connector {
@@ -1094,6 +1155,19 @@ body {
     padding: 11px;
   }
 
+  .apc-graph__group {
+    padding: 8px;
+  }
+
+  .apc-graph__group > .apc-graph__edge,
+  .apc-graph__group > .apc-graph__node--required {
+    margin-left: 10px;
+  }
+
+  .apc-graph__compiler {
+    padding: 10px 12px;
+  }
+
   .apc-graph__row--d2 {
     padding-left: 18px;
   }
@@ -1156,7 +1230,9 @@ body {
   .apc-capability,
   .apc-graph,
   .apc-graph__panel,
+  .apc-graph__group,
   .apc-graph__node,
+  .apc-graph__compiler,
   .apc-matrix,
   .apc-matrix__cell,
   .vp-doc table,

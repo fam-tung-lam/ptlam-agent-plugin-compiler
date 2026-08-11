@@ -110,9 +110,10 @@ the dependency existed.
 
 <SkillGraphTransform />
 
-`inspect-repository` is declared once and compiled into `prepare-change-plan`.
-There is no second place to keep in sync, and no way to install half of the
-skill.
+`inspect-repository` is declared once and compiled into the one skill that
+requires it. `write-commit-message` declares no requirements, so nothing is
+nested inside it. There is no second place to keep in sync, and no way to
+install half of a skill.
 
 ### Visibility decides what users can install
 
