@@ -6,13 +6,12 @@ This reference documents the public contract of Agent Plugin Compiler
 
 ## Contract surfaces
 
-| Surface             | Documentation                                        | Answers                                       |
-| ------------------- | ---------------------------------------------------- | --------------------------------------------- |
-| Authored layout     | [Authored Plugin Source](/reference/authored-source) | Where source files go and what may be in them |
-| Authored data       | [Manifest v1](/reference/manifest)                   | Every `plugin/plugin.yml` field and rule      |
-| Executable commands | [CLI](/reference/cli)                                | Commands, options, and exit codes             |
-| Generated hosts     | [Providers](/reference/providers)                    | Which manifest each provider writes           |
-| Programmatic use    | [Programmatic Usage](/guide/programmatic-usage)      | The Node.js API and custom adapters           |
+| Surface             | Documentation                                   | Answers                                         |
+| ------------------- | ----------------------------------------------- | ----------------------------------------------- |
+| Authored source     | [Manifest v1](/reference/manifest)              | Where source files go, and every field and rule |
+| Executable commands | [CLI](/reference/cli)                           | Commands, options, and exit codes               |
+| Generated hosts     | [Providers](/reference/providers)               | Which manifest each provider writes             |
+| Programmatic use    | [Programmatic Usage](/guide/programmatic-usage) | The Node.js API and custom adapters             |
 
 ## Sources of truth
 

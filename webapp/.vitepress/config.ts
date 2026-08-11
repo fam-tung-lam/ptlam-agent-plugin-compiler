@@ -23,7 +23,6 @@ const docsSidebar = [
     text: "Reference",
     items: [
       { text: "Overview", link: "/reference/" },
-      { text: "Authored Plugin Source", link: "/reference/authored-source" },
       { text: "Manifest", link: "/reference/manifest" },
       { text: "CLI", link: "/reference/cli" },
       { text: "Providers", link: "/reference/providers" },

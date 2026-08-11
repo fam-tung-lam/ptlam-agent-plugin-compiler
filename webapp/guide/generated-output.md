@@ -47,25 +47,10 @@ generated skill at the same relative path, so a skill can ship templates,
 schemas, or reference documents. `plugin/skills/<skill-id>/skills/` is reserved:
 the compiler builds that directory, and an authored one is rejected.
 
-## Required skills are nested
-
-Every required skill is copied inside its dependent, recursively:
-
-```text
-skills/
-├── README.md
-└── prepare-change-plan/
-    ├── SKILL.md
-    └── skills/
-        └── inspect-repository/
-            └── SKILL.md
-```
-
-The dependency exists once in the source and as many times in the output as
-there are published skills that need it. That is what makes an installed skill
-complete without the user knowing the dependency existed. See
-[Skill graph](/guide/skill-graph) for the rules that decide which skills become
-roots.
+Each required skill is copied into `skills/<skill-id>/skills/`, recursively, so
+the dependency exists once in the source and as many times in the output as
+there are published skills that need it. [Skill graph](/guide/skill-graph)
+covers the rules that decide which skills become roots and what gets nested.
 
 ## The generated catalog
 

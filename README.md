@@ -343,9 +343,7 @@ Types, options, and a custom adapter example →
 - [Continuous integration](https://agent-plugin-compiler.phamtunglam.com/guide/continuous-integration)
   — verifying committed output in a build
 - [Manifest](https://agent-plugin-compiler.phamtunglam.com/reference/manifest) —
-  every field of `plugin/plugin.yml`
-- [Authored source](https://agent-plugin-compiler.phamtunglam.com/reference/authored-source)
-  — the source layout contract
+  the source layout and every field of `plugin/plugin.yml`
 - [Architecture](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/docs/ARCHITECTURE.md)
   — internal design, for contributors
 - [Changelog](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/CHANGELOG.md)

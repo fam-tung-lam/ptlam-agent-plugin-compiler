@@ -185,7 +185,5 @@ Each diagnostic names the manifest location, for example
 
 - [Generated output](/guide/generated-output) shows what the compiler writes and
   which paths it owns.
-- [Manifest reference](/reference/manifest) documents every field and its exact
-  contract.
-- [Authored plugin source](/reference/authored-source) covers the source layout
-  and the required-skills marker.
+- [Manifest reference](/reference/manifest) documents the source layout and
+  every field's exact contract.
