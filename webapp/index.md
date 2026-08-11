@@ -11,5 +11,8 @@ hero:
   actions:
     - theme: brand
       text: Get started
+      link: /guide/quick-start
+    - theme: alt
+      text: Why a compiler
       link: /guide/introduction
 ---

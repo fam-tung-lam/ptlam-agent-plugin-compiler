@@ -9,8 +9,13 @@ const docsSidebar = [
     text: "Guide",
     items: [
       { text: "Introduction", link: "/guide/introduction" },
-      { text: "Installation", link: "/guide/installation" },
       { text: "Quick Start", link: "/guide/quick-start" },
+      { text: "Skill Graph", link: "/guide/skill-graph" },
+      { text: "Generated Output", link: "/guide/generated-output" },
+      {
+        text: "Continuous Integration",
+        link: "/guide/continuous-integration",
+      },
       { text: "Programmatic Usage", link: "/guide/programmatic-usage" },
     ],
   },
@@ -19,8 +24,8 @@ const docsSidebar = [
     items: [
       { text: "Overview", link: "/reference/" },
       { text: "Authored Plugin Source", link: "/reference/authored-source" },
-      { text: "CLI", link: "/reference/cli" },
       { text: "Manifest", link: "/reference/manifest" },
+      { text: "CLI", link: "/reference/cli" },
       { text: "Providers", link: "/reference/providers" },
     ],
   },
@@ -76,7 +81,14 @@ export default defineConfig({
       dark: "/logo.svg",
       alt: "Agent Plugin Compiler",
     },
-    nav: [{ text: "Docs", link: "/guide/introduction" }],
+    nav: [
+      {
+        text: "Guide",
+        link: "/guide/introduction",
+        activeMatch: "^/guide/",
+      },
+      { text: "Reference", link: "/reference/", activeMatch: "^/reference/" },
+    ],
     sidebar: {
       "/guide/": docsSidebar,
       "/reference/": docsSidebar,
