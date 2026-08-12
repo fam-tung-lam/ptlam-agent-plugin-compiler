@@ -29,6 +29,22 @@ The package installs one executable named `plugin-compiler`. Run it through npm:
 npm exec -- plugin-compiler --help
 ```
 
+::: tip Global Homebrew alternative
+
+Install the stable CLI globally if you prefer Homebrew to manage the compiler
+and its Node.js runtime:
+
+```bash
+brew install fam-tung-lam/tap/ptlam-agent-plugin-compiler
+plugin-compiler --help
+```
+
+Homebrew follows stable npm releases but upgrades independently from the
+project. Keep the exact npm dependency above for reproducible local and CI
+builds.
+
+:::
+
 ## 2. Create the authored source
 
 Everything you edit lives under `plugin/`. Create three files:
