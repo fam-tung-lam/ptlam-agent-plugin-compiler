@@ -64,8 +64,8 @@ export function renderNestedHookConfiguration({
           timeout: 10,
           statusMessage:
             invocation.lifecycle === HookLifecycle.BeforeRequest
-              ? "Adapting request"
-              : "Reviewing response",
+              ? "Running request hook"
+              : "Running response hook",
         },
       ],
     });

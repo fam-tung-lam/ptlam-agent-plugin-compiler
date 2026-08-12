@@ -82,7 +82,7 @@ One logical hook contains lifecycle bindings whose handler paths are relative to
 
 ```yaml
 hooks:
-  - id: adaptive-interaction
+  - id: simple-logger
     bindings:
       - lifecycle: before-request
         handler: request.mjs

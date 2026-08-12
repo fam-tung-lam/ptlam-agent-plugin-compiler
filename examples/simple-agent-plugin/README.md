@@ -8,14 +8,13 @@ The authored source contains three skills and one logical lifecycle hook:
 - `prepare-change-plan` is public and requires `inspect-repository`;
 - `inspect-repository` is an internal dependency; and
 - `write-commit-message` is public and standalone.
-- `adaptive-interaction` keeps small clear requests unchanged, adds bounded
-  context for complex requests, and reviews final-response presentation through
-  separate request and response handlers.
+- `simple-logger` prints each request and response to standard error, then lets
+  the interaction continue unchanged.
 
 Its source declaration is in `plugin/plugin.yml`; its two authored modules are
-`plugin/hooks/adaptive-interaction/request.mjs` and `response.mjs`. The
-generated Claude and Codex configurations reuse one compiled copy of both
-handlers under `hooks/handlers/`.
+`plugin/hooks/simple-logger/request.mjs` and `response.mjs`. The generated
+Claude and Codex configurations reuse one compiled copy of both handlers under
+`hooks/handlers/`.
 
 The compiler publishes the two public skills at the root of `skills/`. It embeds
 `inspect-repository` under `prepare-change-plan/skills/`, so the dependent skill

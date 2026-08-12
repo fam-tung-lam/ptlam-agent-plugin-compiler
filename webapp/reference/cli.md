@@ -86,8 +86,8 @@ provider-by-hook decision:
 
 ```text
 Hooks:
-- claude/adaptive-interaction: generated
-- external/adaptive-interaction: skipped (provider-does-not-support-hooks)
+- claude/simple-logger: generated
+- external/simple-logger: skipped (provider-does-not-support-hooks)
 ```
 
 Skipped hooks are non-fatal. Their provider's other output still participates in

@@ -162,7 +162,7 @@ Handler paths are relative to `plugin/hooks/<hook-id>/`:
 schema_version: 2
 
 hooks:
-  - id: adaptive-interaction
+  - id: simple-logger
     bindings:
       - lifecycle: before-request
         handler: request.mjs

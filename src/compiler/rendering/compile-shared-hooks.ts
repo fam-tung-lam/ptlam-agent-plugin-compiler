@@ -70,9 +70,9 @@ function requestOutput(provider, input, result) {
     const original = input.transformedPrompt ?? input.transformed_prompt ?? input.prompt ?? "";
     return {
       modifiedTransformedPrompt:
-        original + "\\n\\n<adaptive-interaction-context>\\n" +
+        original + "\\n\\n<portable-hook-context>\\n" +
         additionalContext +
-        "\\n</adaptive-interaction-context>",
+        "\\n</portable-hook-context>",
     };
   }
   return {

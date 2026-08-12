@@ -84,7 +84,7 @@ categories:
 # Hooks are optional in schema v2. Each binding maps a portable lifecycle to an
 # authored .mjs handler under plugin/hooks/<hook-id>/.
 # hooks:
-#   - id: adaptive-interaction
+#   - id: simple-logger
 #     bindings:
 #       - lifecycle: before-request
 #         handler: request.mjs

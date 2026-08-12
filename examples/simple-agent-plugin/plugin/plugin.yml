@@ -28,7 +28,7 @@ categories:
     description: Small helpers for everyday repository work.
 
 hooks:
-  - id: adaptive-interaction
+  - id: simple-logger
     bindings:
       - lifecycle: before-request
         handler: request.mjs

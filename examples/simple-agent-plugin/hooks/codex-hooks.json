@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex before-request \"${PLUGIN_ROOT}/hooks/handlers/adaptive-interaction/request.mjs\"",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex before-request \"${PLUGIN_ROOT}/hooks/handlers/simple-logger/request.mjs\"",
             "timeout": 10,
-            "statusMessage": "Adapting request"
+            "statusMessage": "Running request hook"
           }
         ]
       }
@@ -17,9 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex before-response \"${PLUGIN_ROOT}/hooks/handlers/adaptive-interaction/response.mjs\"",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex before-response \"${PLUGIN_ROOT}/hooks/handlers/simple-logger/response.mjs\"",
             "timeout": 10,
-            "statusMessage": "Reviewing response"
+            "statusMessage": "Running response hook"
           }
         ]
       }
