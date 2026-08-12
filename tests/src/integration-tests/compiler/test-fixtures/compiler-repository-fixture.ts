@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -77,4 +84,53 @@ export async function createCompilerRepository(): Promise<string> {
     "file",
   );
   return rootDir;
+}
+
+/** Add one valid two-stage adaptive hook to a compiler repository fixture. */
+export async function addAdaptiveHook(rootDir: string): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    schema_version: number;
+    hooks?: unknown[];
+  };
+  manifest.schema_version = 2;
+  manifest.hooks = [
+    {
+      id: "adaptive-interaction",
+      bindings: [
+        { lifecycle: "before-request", handler: "request.mjs" },
+        { lifecycle: "before-response", handler: "response.mjs" },
+      ],
+    },
+  ];
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const hookRoot = path.join(
+    rootDir,
+    "plugin",
+    "hooks",
+    "adaptive-interaction",
+  );
+  await mkdir(hookRoot, { recursive: true });
+  await writeFile(
+    path.join(hookRoot, "request.mjs"),
+    "export async function handle() { return {}; }\n",
+  );
+  await writeFile(
+    path.join(hookRoot, "response.mjs"),
+    "export async function handle() { return {}; }\n",
+  );
+}
+
+/** Remove the adaptive hook declaration and its authored source directory. */
+export async function removeAdaptiveHook(rootDir: string): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    hooks?: unknown[];
+  };
+  delete manifest.hooks;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await rm(path.join(rootDir, "plugin", "hooks"), {
+    force: true,
+    recursive: true,
+  });
 }

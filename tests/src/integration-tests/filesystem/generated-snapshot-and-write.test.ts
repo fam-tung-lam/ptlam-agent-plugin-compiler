@@ -184,6 +184,35 @@ describe("filesystem generated snapshots and writes", () => {
     );
   });
 
+  it("installs a nested complete tree when its unowned parent is absent", async () => {
+    // GIVEN: A complete-tree fragment owns a nested root under an absent parent.
+    const rootDir = await createFilesystemRepository();
+    const handlersRoot = createProjectPath("hooks/handlers");
+    const plan = createWritePlan({
+      fragments: [
+        {
+          ownerId: "shared-hooks",
+          ownership: {
+            kind: OwnershipKind.CompleteTree,
+            root: handlersRoot,
+          },
+          artifacts: [{ kind: ArtifactKind.Directory, path: handlersRoot }],
+        },
+      ],
+    });
+
+    // WHEN: The nested tree is written.
+    const result = await writePlan(rootDir, plan);
+
+    // THEN: Its structural parent is created and the owned root converges.
+    assert.deepEqual(result.changedPaths, [handlersRoot]);
+    assert.deepEqual(await readdir(path.join(rootDir, "hooks")), ["handlers"]);
+    assert.deepEqual(
+      await readdir(path.join(rootDir, "hooks", "handlers")),
+      [],
+    );
+  });
+
   it("finishes tree staging before changing exact provider files", async () => {
     // GIVEN: Exact write and deletion changes are paired with a tree artifact that cannot be staged.
     const rootDir = await createFilesystemRepository();

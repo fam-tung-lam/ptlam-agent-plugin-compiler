@@ -14,12 +14,12 @@ npm exec -- plugin-compiler <command>
 
 ## Commands
 
-| Command    | Reads authored source | Reads output | Writes output        | Purpose                              |
-| ---------- | --------------------- | ------------ | -------------------- | ------------------------------------ |
-| `init`     | Existing paths        | No           | Missing source paths | Create a safe starter                |
-| `validate` | Yes                   | No           | No                   | Validate manifest, skills, and graph |
-| `compile`  | Yes                   | Yes          | Yes                  | Compile and verify managed output    |
-| `check`    | Yes                   | Yes          | No                   | Report generated drift               |
+| Command    | Reads authored source | Reads output | Writes output        | Purpose                                     |
+| ---------- | --------------------- | ------------ | -------------------- | ------------------------------------------- |
+| `init`     | Existing paths        | No           | Missing source paths | Create a safe starter                       |
+| `validate` | Yes                   | No           | No                   | Validate manifest, skills, hooks, and graph |
+| `compile`  | Yes                   | Yes          | Yes                  | Compile and verify managed output           |
+| `check`    | Yes                   | Yes          | No                   | Report generated drift                      |
 
 Show root or focused help:
 
@@ -80,6 +80,18 @@ the verification step of `compile` list drift entries as `- <path>: <reason>`:
 | `kind-differs`    | The path is a different entry kind than planned     |
 | `missing`         | A planned path does not exist                       |
 | `unexpected`      | An owned path exists that the plan does not include |
+
+When hooks are declared, `validate`, `compile`, and `check` also print one
+provider-by-hook decision:
+
+```text
+Hooks:
+- claude/simple-logger: generated
+- external/simple-logger: skipped (provider-does-not-support-hooks)
+```
+
+Skipped hooks are non-fatal. Their provider's other output still participates in
+compilation and drift detection.
 
 Warnings are written to standard error and do not change the exit code.
 

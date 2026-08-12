@@ -1,9 +1,11 @@
 import {
   CLAUDE,
   createCategoryId,
+  createHookId,
   createPlugin,
   createProjectPath,
   createSkillId,
+  HookLifecycle,
   type Plugin,
   PluginSchemaVersion,
   SkillStatus,
@@ -92,5 +94,46 @@ export function makePluginFixture(
         resources: [],
       },
     ],
+  });
+}
+
+/** Create one provider fixture containing the portable adaptive hook shape. */
+export function makeHookPluginFixture(): Plugin {
+  const plugin = makePluginFixture();
+  return createPlugin({
+    ...plugin,
+    schema_version: PluginSchemaVersion.V2,
+    categories: plugin.categories,
+    hooks: [
+      {
+        id: createHookId("adaptive-interaction"),
+        bindings: [
+          {
+            lifecycle: HookLifecycle.BeforeRequest,
+            handler: createProjectPath("request.mjs"),
+          },
+          {
+            lifecycle: HookLifecycle.BeforeResponse,
+            handler: createProjectPath("response.mjs"),
+          },
+        ],
+        source_path: createProjectPath("plugin/hooks/adaptive-interaction"),
+        resources: [
+          {
+            path: createProjectPath("request.mjs"),
+            content: Buffer.from("export async function handle() {}\n"),
+          },
+          {
+            path: createProjectPath("response.mjs"),
+            content: Buffer.from("export async function handle() {}\n"),
+          },
+          {
+            path: createProjectPath("policies/style.json"),
+            content: Buffer.from('{"concise":true}\n'),
+          },
+        ],
+      },
+    ],
+    skills: plugin.skills,
   });
 }

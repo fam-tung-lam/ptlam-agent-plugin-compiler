@@ -15,5 +15,6 @@
     "example",
     "skills"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json"
 }

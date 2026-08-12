@@ -35,12 +35,12 @@ const checked = await compiler.check();
 
 The Node.js method corresponding to the CLI `compile` command is `compile()`.
 
-| Method       | Main result facts                                            |
-| ------------ | ------------------------------------------------------------ |
-| `init()`     | `createdPaths`, `existingPaths`, `warnings`                  |
-| `validate()` | `plugin`, `providers`, `providerSelectionSource`, `warnings` |
-| `compile()`  | Validation facts, `writeResult`, `verified`, `drift`         |
-| `check()`    | Validation facts, `upToDate`, `drift`                        |
+| Method       | Main result facts                                    |
+| ------------ | ---------------------------------------------------- |
+| `init()`     | `createdPaths`, `existingPaths`, `warnings`          |
+| `validate()` | `plugin`, selection, `hookDiagnostics`, `warnings`   |
+| `compile()`  | Validation facts, `writeResult`, `verified`, `drift` |
+| `check()`    | Validation facts, `upToDate`, `drift`                |
 
 Results and their nested public collections are immutable snapshots. Methods
 reject when repository I/O, validation, planning, or verification cannot
@@ -80,6 +80,7 @@ const manifestPath = createProjectPath(".external-plugin/plugin.json");
 
 const adapter = {
   id: EXTERNAL,
+  // Omit supportsHooks to compile other output and skip declared hooks.
   compile: ({ plugin }) =>
     createPlanFragment({
       ownerId: EXTERNAL,
@@ -109,7 +110,11 @@ await externalCompiler.compile();
 ```
 
 Each registry is immutable and isolated. `register()` returns a new registry,
-and adapters must use stable exact-file ownership.
+and adapters must use stable exact-file ownership. Hook support is binary:
+setting `supportsHooks: true` promises that the adapter compiles both logical
+lifecycle stages into valid native configuration. Omitted or false adapters
+receive a hook-free plugin view, and results contain a non-fatal skipped
+diagnostic for each affected hook.
 
 Next: compare the [built-in providers](/reference/providers), or see how the
 same check runs in [continuous integration](/guide/continuous-integration).

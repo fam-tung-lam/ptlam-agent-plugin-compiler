@@ -59,8 +59,8 @@ flowchart TD
         `"]
 
         Schemas["`
-            schemas/v1
-            (versioned JSON contract)
+            schemas/v1 and v2
+            (versioned JSON contracts)
         `"]
     end
 
@@ -147,13 +147,18 @@ sequenceDiagram
 | Repository seam           | `filesystem` readers and writer                                                | Path safety, snapshots, atomic file writes, and skills-tree replacement        |
 | Terminal seam             | `cli` command runner and immutable reports                                     | Argument parsing, output routing, and process exit handling                    |
 
-- Authored inputs are `plugin/plugin.yml` and `plugin/skills/**`. The manifest's
-  required `providers` list is the project-default provider selection.
-- Shared generated outputs are `skills/**` and `skills/README.md`.
+- Authored inputs are `plugin/plugin.yml`, `plugin/skills/**`, and optional
+  `plugin/hooks/**`. The manifest's required `providers` list is the
+  project-default provider selection.
+- Shared generated outputs are `skills/**`, `skills/README.md`, and, when a
+  compatible selected provider needs them, `hooks/handlers/**`.
 - Provider outputs are `.claude-plugin/**`, `.codex-plugin/plugin.json`, root
-  `plugin.json`, `gemini-extension.json`, and `kimi.plugin.json`.
-- `src/schemas/v1/plugin-manifest.schema.json` is a versioned data resource, not
-  a code module; the build copies it to the same path under `dist/`.
+  `plugin.json`, `gemini-extension.json`, `kimi.plugin.json`, and their native
+  hook configurations.
+- `src/schemas/v1/plugin-manifest.schema.json` is the frozen skill-only
+  contract; `src/schemas/v2/plugin-manifest.schema.json` adds portable hooks.
+  Both are versioned data resources, not code modules, and the build copies them
+  to matching paths under `dist/`.
 - Root `README.md`, `LICENSE`, and every unowned path remain human-owned.
 - Cross-module TypeScript imports target the module's `index.js`.
 - Code outside `compiler/` imports only `compiler/index.js`, never a private
@@ -180,6 +185,8 @@ erDiagram
     PluginSource ||--|| PluginManifest : "parses into"
     PluginManifest ||--|| Plugin : "validates into"
     Plugin ||--|{ Skill : "contains"
+    Plugin ||--o{ Hook : "contains"
+    Hook ||--|{ HookBinding : "maps lifecycle to handler"
     Plugin ||--|{ PlanFragment : "renders into"
     PlanFragment }|--|| WritePlan : "combines into"
     WritePlan ||--|{ Artifact : "contains"
@@ -190,26 +197,26 @@ erDiagram
     WritePlan ||--o| WriteResult : "writes into"
 ```
 
-| Model                              | Meaning                                                                    | Created when                                                            |
-| ---------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `PluginSource`                     | Immutable manifest bytes and authored skill-tree entries                   | Authored paths have been read                                           |
-| `PluginSnapshot`                   | Plugin source plus normalized filesystem diagnostics                       | The `filesystem` read is complete                                       |
-| `PluginManifest` / `SkillManifest` | Strictly parsed `plugin.yml` values                                        | YAML and the selected JSON schema pass                                  |
-| `Plugin` / `Skill`                 | Immutable, provider-neutral domain values with loaded source and resources | Graph, lifecycle, layout, resources, and Markdown links pass validation |
-| `PlanFragment`                     | Artifacts and ownership contributed by shared rendering or one provider    | One producer has rendered its output                                    |
-| `WritePlan`                        | Ordered, collision-checked combination of all selected fragments           | Planning accepts every fragment                                         |
-| `Artifact` / `Ownership`           | Desired file or tree entry and the paths managed by its owner              | A fragment is constructed                                               |
-| `GeneratedSnapshot`                | Current entries read only from paths owned by a write plan                 | Check or post-write verification reads generated state                  |
-| `DriftEntry`                       | Missing, unexpected, content-changed, or wrong-kind managed path           | A write plan and generated snapshot differ                              |
-| `WriteResult`                      | Managed paths that changed or stayed unchanged                             | `filesystem` applies a write plan                                       |
+| Model                              | Meaning                                                                 | Created when                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `PluginSource`                     | Immutable manifest bytes plus authored skill and hook entries           | Authored paths have been read                                           |
+| `PluginSnapshot`                   | Plugin source plus normalized filesystem diagnostics                    | The `filesystem` read is complete                                       |
+| `PluginManifest` / child manifests | Strictly parsed `plugin.yml` values                                     | YAML and the selected JSON schema pass                                  |
+| `Plugin`, `Skill`, and `Hook`      | Immutable provider-neutral values with loaded source and resources      | Graph, lifecycle, layout, resources, and Markdown links pass validation |
+| `PlanFragment`                     | Artifacts and ownership contributed by shared rendering or one provider | One producer has rendered its output                                    |
+| `WritePlan`                        | Ordered, collision-checked combination of all selected fragments        | Planning accepts every fragment                                         |
+| `Artifact` / `Ownership`           | Desired file or tree entry and the paths managed by its owner           | A fragment is constructed                                               |
+| `GeneratedSnapshot`                | Current entries read only from paths owned by a write plan              | Check or post-write verification reads generated state                  |
+| `DriftEntry`                       | Missing, unexpected, content-changed, or wrong-kind managed path        | A write plan and generated snapshot differ                              |
+| `WriteResult`                      | Managed paths that changed or stayed unchanged                          | `filesystem` applies a write plan                                       |
 
 - `PluginManifest` is the typed expression of the public versioned schema
   contract; `Plugin` is the validated domain value used by rendering and
   providers.
-- `ProjectPath`, `SkillId`, `CategoryId`, and `ProviderId` are branded strings
-  created by smart constructors.
-- `SkillId` and `CategoryId` prevent references from being mixed at compile
-  time; graph validation still proves that referenced skills exist at runtime.
+- `ProjectPath`, `SkillId`, `HookId`, `CategoryId`, and `ProviderId` are branded
+  strings created by smart constructors.
+- Branded identifiers prevent references from being mixed at compile time; graph
+  and source validation still prove runtime relationships and files.
 - Domain constructors follow `XInput -> X`: they normalize, copy mutable values,
   enforce invariants, and freeze the result.
 - `WritePlan` and `GeneratedSnapshot` deliberately remain separate: one is
@@ -293,13 +300,13 @@ flowchart LR
 
 | Type                      | Module      | Responsibility                                      | Invariant                                                 |
 | ------------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------- |
-| `ProviderAdapter`         | `core`      | Define host rendering over provider-neutral context | Has one valid `ProviderId` and returns one `PlanFragment` |
+| `ProviderAdapter`         | `core`      | Define host rendering and binary hook capability    | Has one valid `ProviderId` and returns one `PlanFragment` |
 | `ProviderContext`         | `core`      | Give adapters the validated plugin data they need   | Contains no live filesystem access                        |
-| `ClaudeProviderAdapter`   | `providers` | Render `.claude-plugin/**`                          | Owns only Claude paths                                    |
-| `CodexProviderAdapter`    | `providers` | Render `.codex-plugin/plugin.json`                  | Owns only Codex paths                                     |
-| `CopilotProviderAdapter`  | `providers` | Render root `plugin.json`                           | Owns only the Copilot manifest                            |
-| `GeminiProviderAdapter`   | `providers` | Render root `gemini-extension.json`                 | Owns only the Gemini manifest                             |
-| `KimiProviderAdapter`     | `providers` | Render root `kimi.plugin.json`                      | Owns only the Kimi manifest                               |
+| `ClaudeProviderAdapter`   | `providers` | Render Claude manifests and hook config             | Owns only Claude exact paths                              |
+| `CodexProviderAdapter`    | `providers` | Render Codex manifest and hook config               | Owns only Codex exact paths                               |
+| `CopilotProviderAdapter`  | `providers` | Render Copilot manifest and hook config             | Owns only Copilot exact paths                             |
+| `GeminiProviderAdapter`   | `providers` | Render Gemini manifest and conventional hook config | Owns only Gemini exact paths                              |
+| `KimiProviderAdapter`     | `providers` | Render Kimi manifest with inline hooks              | Owns only the Kimi manifest                               |
 | `ProviderAdapterRegistry` | `providers` | Hold and resolve adapters for one compiler instance | Immutable, unique IDs, deterministic order                |
 
 - `AgentPluginCompiler` accepts a registry and uses a registry with built-ins by
@@ -314,18 +321,46 @@ flowchart LR
   explicit replacement and `--no-providers` is an explicit empty replacement.
 - `providers: []` still compiles the shared `skills/` fragment but selects no
   provider artifacts.
+- `supportsHooks` is one binary adapter capability. Omitted means unsupported;
+  the compiler removes hooks from that adapter's context, compiles its other
+  components, and returns one non-fatal skipped diagnostic per logical hook.
 - A malformed ID and a well-formed unknown ID are distinct failures; both are
   `cli` usage errors with exit code `2`.
 - Every registered adapter contributes its exact-file ownership. Selected
   adapters contribute desired artifacts; registered unselected exact files are
   desired absent. Planning applies integrity, collision, ownership, and path
   checks to every producer, including shared rendering and provider adapters.
-- Provider-owned exact paths are stable adapter metadata and must not change
-  with plugin fields. Complete-tree provider ownership is rejected before
-  planning because an unselected provider is represented by desired-absent exact
-  files.
+- Provider-owned exact paths are stable for a manifest schema contract and must
+  not change with hook presence. V1 retains the original manifest paths; v2
+  additionally owns native hook-config paths so hook removal can make them
+  desired absent. Complete-tree provider ownership is rejected before planning
+  because an unselected provider is represented by desired-absent exact files.
 - `providers` contains host-specific rendering only; operation order remains in
   `compiler`.
+
+## Portable hook seam
+
+A hook is one logical component with one or more lifecycle bindings. Manifest v2
+currently exposes only `before-request` and `before-response`, each bound to an
+authored `.mjs` handler under `plugin/hooks/<hook-id>/`. Handler-adjacent files
+are internal resources, so policy data can be shared without becoming a public
+manifest concept.
+
+For v2, the shared renderer owns `hooks/handlers/**`, copies each logical hook
+there once, and adds a small dispatcher. An empty v2 hook list retains an empty
+owned root so stale resources are removed; v1 claims no hook paths. Provider
+adapters point their native command entries at that shared tree and translate
+event names, inputs, and results. Claude and Codex use
+`UserPromptSubmit`/`Stop`; Copilot uses `userPromptTransformed`/`agentStop`;
+Gemini uses `BeforeAgent`/`AfterAgent`; and Kimi uses `UserPromptSubmit`/`Stop`
+inline in its manifest.
+
+The dispatcher fails open on handler errors. `before-request` handlers return
+optional context and never replace intent in the provider-neutral model.
+`before-response` handlers may request a bounded continuation with a reason;
+provider translation selects the native block or deny shape. No fallback skill,
+`AGENTS.md`, provider instruction injection, hook `required` flag, or granular
+event capability matrix exists at this seam.
 
 The seam is open inside the process and has five real adapters. It is not a
 separate package or process ABI, and it needs neither an abstract base class nor
@@ -389,7 +424,7 @@ flowchart LR
     `"]
     ParsePluginManifest["`
         compiler/validation
-        (parse PluginManifest with schemas/v1)
+        (dispatch PluginManifest to schemas/v1 or v2)
     `"]
     CreatePlugin["`
         compiler/validation
@@ -534,18 +569,20 @@ flowchart LR
     WriteResult ------> CompileResult
 ```
 
-| Operation  | Repository writes                | Result                                                                           | Success condition                                         |
-| ---------- | -------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `init`     | Creates missing authored paths   | `InitResult` with created and unchanged paths                                    | Base paths exist; a new manifest has matching examples    |
-| `validate` | None                             | `ValidateResult` with `Plugin`, effective providers, source, and warnings        | Authored source and selection satisfy validation          |
-| `check`    | None                             | `CheckResult` with selection, `upToDate`, `drift`, and warnings                  | Current managed paths equal the complete `WritePlan`      |
-| `compile`  | Applies the complete `WritePlan` | `CompileResult` with selection, `verified`, `drift`, `WriteResult`, and warnings | Reread managed paths equal the same plan that was written |
+| Operation  | Repository writes                | Result                                                                  | Success condition                                         |
+| ---------- | -------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------- |
+| `init`     | Creates missing authored paths   | `InitResult` with created and unchanged paths                           | Base paths exist; a new manifest has matching examples    |
+| `validate` | None                             | `ValidateResult` with plugin, selection, hook diagnostics, and warnings | Authored source and selection satisfy validation          |
+| `check`    | None                             | `CheckResult` with diagnostics, `upToDate`, `drift`, and warnings       | Current managed paths equal the complete `WritePlan`      |
+| `compile`  | Applies the complete `WritePlan` | `CompileResult` with diagnostics, verification, drift, and write facts  | Reread managed paths equal the same plan that was written |
 
 - Init creates only missing authored paths and never replaces existing content.
 - Validate, check, and compile read and validate authored source before using
   generated state.
 - Validate, check, and compile expose immutable effective providers and whether
   they came from the manifest or an override.
+- Validate, check, and compile expose immutable per-provider, per-hook
+  `generated` or `skipped` diagnostics; skipped entries include a stable reason.
 - Check and compile build the same shared and provider fragments and the same
   `WritePlan`.
 - `filesystem` reads only paths owned by that plan, including registered

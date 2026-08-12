@@ -10,7 +10,7 @@ describe("INITIAL_PLUGIN_MANIFEST", () => {
     // GIVEN: The complete manifest source emitted by plugin initialization.
     const source = INITIAL_PLUGIN_MANIFEST;
 
-    // WHEN: The template is parsed through the current schema-v1 contract.
+    // WHEN: The template is parsed through the current schema-v2 contract.
     const result = parsePluginManifest(source);
 
     // THEN: The template is valid, selects no providers, and has no marketplace input.

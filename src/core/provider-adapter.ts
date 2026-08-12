@@ -48,6 +48,13 @@ export interface ProviderAdapter {
   /** Stable identifier selected through compiler options. */
   readonly id: ProviderId;
   /**
+   * Whether this provider can compile every lifecycle used by logical hooks.
+   *
+   * Omitted values are treated as `false` so existing external adapters remain
+   * source-compatible and safely skip hooks.
+   */
+  readonly supportsHooks?: boolean;
+  /**
    * Render this provider's generated contribution.
    *
    * @param context - Validated plugin data shared with provider adapters.

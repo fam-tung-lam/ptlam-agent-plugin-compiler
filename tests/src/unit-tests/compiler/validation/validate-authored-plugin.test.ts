@@ -6,7 +6,10 @@ import {
   validateAuthoredPlugin,
 } from "../../../../../src/compiler/validation/index.ts";
 import {
+  createHookId,
   createProjectPath,
+  HookLifecycle,
+  PluginSchemaVersion,
   REQUIRED_SKILLS_MARKER,
   SkillStatus,
   SkillVisibility,
@@ -19,6 +22,117 @@ import {
 } from "../test-fixtures/plugin-fixture.ts";
 
 describe("validateAuthoredPlugin", () => {
+  it("ignores hook-tree entries for a schema-v1 plugin", () => {
+    // GIVEN: A legacy plugin has an unrelated directory under plugin/hooks/.
+    const manifest = makeManifest();
+    const { hooks: _hooks, ...withoutHooks } = manifest;
+    const source = makePluginSource({
+      manifest,
+      manifestSource: `${JSON.stringify(
+        { ...withoutHooks, schema_version: PluginSchemaVersion.V1 },
+        null,
+        2,
+      )}\n`,
+      hookExtraEntries: [
+        {
+          kind: SourceEntryKind.Directory,
+          path: createProjectPath("plugin/hooks/unrelated-tooling"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath("plugin/hooks/unrelated-tooling/config.json"),
+          content: Buffer.from("{}\n"),
+        },
+      ],
+    });
+
+    // WHEN: The frozen v1 contract validates the authored repository.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: The pre-existing hook tree remains outside v1 validation and output.
+    assert.equal(result.plugin.schema_version, PluginSchemaVersion.V1);
+    assert.deepEqual(result.plugin.hooks, []);
+  });
+
+  it("loads separate hook handlers and keeps policy files as internal resources", () => {
+    // GIVEN: One logical hook binds two .mjs handlers and ships a private policy file.
+    const manifest = makeManifest({
+      hooks: [
+        {
+          id: createHookId("adaptive-interaction"),
+          bindings: [
+            {
+              lifecycle: HookLifecycle.BeforeRequest,
+              handler: createProjectPath("request.mjs"),
+            },
+            {
+              lifecycle: HookLifecycle.BeforeResponse,
+              handler: createProjectPath("response.mjs"),
+            },
+          ],
+        },
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      hookResources: {
+        "adaptive-interaction": {
+          "request.mjs": "export async function handle() {}\n",
+          "response.mjs": "export async function handle() {}\n",
+          "policies/style.json": '{"concise":true}\n',
+        },
+      },
+    });
+
+    // WHEN: Authored plugin validation attaches source resources.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: The public hook has two bindings while all three files stay resources.
+    assert.equal(result.plugin.hooks.length, 1);
+    assert.deepEqual(
+      result.plugin.hooks[0]?.bindings.map(({ lifecycle }) => lifecycle),
+      [HookLifecycle.BeforeRequest, HookLifecycle.BeforeResponse],
+    );
+    assert.deepEqual(
+      result.plugin.hooks[0]?.resources.map(({ path }) => path),
+      ["policies/style.json", "request.mjs", "response.mjs"],
+    );
+    assert.equal(Object.isFrozen(result.plugin.hooks), true);
+  });
+
+  it("aggregates duplicate lifecycles and missing handler resources", () => {
+    // GIVEN: A logical hook repeats a lifecycle and references absent handlers.
+    const manifest = makeManifest({
+      hooks: [
+        {
+          id: createHookId("adaptive-interaction"),
+          bindings: [
+            {
+              lifecycle: HookLifecycle.BeforeRequest,
+              handler: createProjectPath("request.mjs"),
+            },
+            {
+              lifecycle: HookLifecycle.BeforeRequest,
+              handler: createProjectPath("other.mjs"),
+            },
+          ],
+        },
+      ],
+    });
+    const source = makePluginSource({ manifest });
+
+    // WHEN: Validation evaluates hook identity, lifecycle, and source mapping.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: Both semantic and missing-resource failures remain visible together.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.match(error.message, /duplicate lifecycle/u);
+      assert.match(error.message, /expected .*request\.mjs/u);
+      assert.match(error.message, /expected .*other\.mjs/u);
+      return true;
+    });
+  });
   it("returns ordered immutable source data with defensive resource bytes", () => {
     // GIVEN: Valid in-memory source facts contain a dependency and binary resource.
     const manifest = makeManifest({

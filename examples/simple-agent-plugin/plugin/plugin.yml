@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 
 providers:
   - claude
@@ -26,6 +26,14 @@ categories:
   - id: engineering
     name: Engineering
     description: Small helpers for everyday repository work.
+
+hooks:
+  - id: simple-logger
+    bindings:
+      - lifecycle: before-request
+        handler: request.mjs
+      - lifecycle: before-response
+        handler: response.mjs
 
 skills:
   - id: inspect-repository
