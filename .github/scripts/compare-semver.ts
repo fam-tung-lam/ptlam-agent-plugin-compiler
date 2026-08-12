@@ -56,6 +56,21 @@ export function compareSemVer(leftValue: string, rightValue: string): number {
   return 0;
 }
 
+export function isPrereleaseOf(
+  prereleaseVersion: string,
+  stableVersion: string,
+): boolean {
+  const prerelease = parseSemVer(prereleaseVersion);
+  const stable = parseSemVer(stableVersion);
+  return (
+    prerelease.prerelease.length > 0 &&
+    stable.prerelease.length === 0 &&
+    prerelease.major === stable.major &&
+    prerelease.minor === stable.minor &&
+    prerelease.patch === stable.patch
+  );
+}
+
 export function requireGreaterSemVer(next: string, previous: string): void {
   if (compareSemVer(next, previous) <= 0) {
     throw new Error(
