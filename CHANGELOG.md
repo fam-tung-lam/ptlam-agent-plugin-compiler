@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-12
+
+### Added
+
+- Added Homebrew as a secondary stable installation channel through the shared
+  `fam-tung-lam/homebrew-tap` repository.
+- Added a dedicated Installation guide for choosing, verifying, upgrading, and
+  removing the npm or Homebrew installation.
+
+### Changed
+
+- Documented the post-release Homebrew Formula update boundary while keeping npm
+  authoritative for package versions and bytes.
+
 ## [0.1.0] - 2026-08-11
 
 ### Changed
@@ -126,7 +140,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.1...HEAD
+[0.1.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0...v0.1.1
 [0.1.0]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.2...v0.1.0
 [0.1.0-beta.2]:
