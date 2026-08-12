@@ -72,4 +72,69 @@ describe("prepare release candidate", () => {
     // THEN: Immutable npm bytes cannot be replaced.
     await assert.rejects(preparing, /different bytes/);
   });
+
+  it("allows a prerelease after an unreleased stable manifest", async () => {
+    // GIVEN: The previous commit names an unpublished stable version.
+    const input = {
+      currentManifest: {
+        name: "@fam-tung-lam/ptlam-agent-plugin-compiler",
+        version: "1.1.0-alpha.1",
+      },
+      integrity: "sha512-YWJj",
+      previousSha: "previous",
+      releaseSha: "b".repeat(40),
+      shasum: "a".repeat(40),
+      tarballName: "package.tgz",
+    };
+    const unreleasedStable = {
+      ...repository("absent"),
+      async readPackageJsonAt() {
+        return {
+          name: "@fam-tung-lam/ptlam-agent-plugin-compiler",
+          version: "1.1.0",
+        };
+      },
+    };
+
+    // WHEN: CI prepares metadata for the same-core prerelease.
+    const candidate = await prepareReleaseCandidate(input, unreleasedStable);
+
+    // THEN: CD receives the intended prerelease candidate.
+    assert.equal(candidate.shouldRelease, true);
+    assert.equal(candidate.npmTag, "next");
+    assert.equal(candidate.packageVersion, "1.1.0-alpha.1");
+  });
+
+  it("rejects a prerelease after the stable base was published", async () => {
+    // GIVEN: The previous stable manifest already exists in npm.
+    const input = {
+      currentManifest: {
+        name: "@fam-tung-lam/ptlam-agent-plugin-compiler",
+        version: "1.1.0-alpha.1",
+      },
+      integrity: "sha512-YWJj",
+      previousSha: "previous",
+      releaseSha: "b".repeat(40),
+      shasum: "a".repeat(40),
+      tarballName: "package.tgz",
+    };
+    const releasedStable = {
+      ...repository("absent"),
+      async readPackageJsonAt() {
+        return {
+          name: "@fam-tung-lam/ptlam-agent-plugin-compiler",
+          version: "1.1.0",
+        };
+      },
+      async readRegistryIntegrity(packageSpec: string) {
+        return packageSpec.endsWith("@1.1.0") ? "sha512-c3RhYmxl" : "absent";
+      },
+    } satisfies CandidateRepository;
+
+    // WHEN: CI would move backward from a published stable version.
+    const preparing = prepareReleaseCandidate(input, releasedStable);
+
+    // THEN: Normal SemVer monotonicity remains enforced.
+    await assert.rejects(preparing, /greater than 1\.1\.0/);
+  });
 });

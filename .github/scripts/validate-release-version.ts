@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 
 import {
   compareSemVer,
-  parseSemVer,
+  isPrereleaseOf,
   requireGreaterSemVer,
 } from "./compare-semver.ts";
 import { validateReleaseChangelog } from "./release-notes.ts";
@@ -25,21 +25,6 @@ export interface ReleaseVersionRepository {
   findTag(tagName: string): Promise<string | undefined>;
   listVersionTags(): Promise<readonly string[]>;
   readPublishedVersion(packageSpec: string): Promise<"absent" | "present">;
-}
-
-function isUnreleasedStableBase(
-  currentVersion: string,
-  baseVersion: string,
-): boolean {
-  const current = parseSemVer(currentVersion);
-  const base = parseSemVer(baseVersion);
-  return (
-    current.prerelease.length > 0 &&
-    base.prerelease.length === 0 &&
-    current.major === base.major &&
-    current.minor === base.minor &&
-    current.patch === base.patch
-  );
 }
 
 function latestVersionTag(tags: readonly string[]): string | undefined {
@@ -76,7 +61,7 @@ export async function validateReleaseVersion(
 
   let changelogBaseVersion = previous.version;
   if (compareSemVer(current.version, previous.version) <= 0) {
-    if (!isUnreleasedStableBase(current.version, previous.version)) {
+    if (!isPrereleaseOf(current.version, previous.version)) {
       requireGreaterSemVer(current.version, previous.version);
     }
     const previousSpec = `${previous.name}@${previous.version}`;

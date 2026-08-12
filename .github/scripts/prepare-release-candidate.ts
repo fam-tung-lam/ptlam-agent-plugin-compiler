@@ -1,7 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { requireGreaterSemVer } from "./compare-semver.ts";
+import {
+  compareSemVer,
+  isPrereleaseOf,
+  requireGreaterSemVer,
+} from "./compare-semver.ts";
 import {
   type CommandRunner,
   requireEnvironment,
@@ -66,7 +70,18 @@ export async function prepareReleaseCandidate(
   let prerelease = false;
 
   if (shouldRelease) {
-    requireGreaterSemVer(current.version, previous.version);
+    if (compareSemVer(current.version, previous.version) <= 0) {
+      const previousWasReleased =
+        (await repository.readRegistryIntegrity(
+          `${previous.name}@${previous.version}`,
+        )) !== "absent" || (await repository.findTag(`v${previous.version}`));
+      if (
+        !isPrereleaseOf(current.version, previous.version) ||
+        previousWasReleased
+      ) {
+        requireGreaterSemVer(current.version, previous.version);
+      }
+    }
     const registryIntegrity = await repository.readRegistryIntegrity(
       `${current.name}@${current.version}`,
     );
