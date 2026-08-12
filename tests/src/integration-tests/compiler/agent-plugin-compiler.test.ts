@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   lstat,
   mkdir,
+  readdir,
   readFile,
   rm,
   symlink,
@@ -10,7 +11,11 @@ import {
 import path from "node:path";
 
 import { describe, it, vi } from "vitest";
-import { AgentPluginCompiler } from "../../../../src/compiler/index.ts";
+import {
+  AgentPluginCompiler,
+  HookDiagnosticReason,
+  HookDiagnosticStatus,
+} from "../../../../src/compiler/index.ts";
 import { PluginValidationError } from "../../../../src/compiler/validation/index.ts";
 import {
   ArtifactKind,
@@ -28,9 +33,11 @@ import {
   ProviderAdapterRegistry,
 } from "../../../../src/providers/index.ts";
 import {
+  addAdaptiveHook,
   createCompilerRepository,
   DISABLED_CLAUDE_BYTES,
   DISABLED_CLAUDE_MARKETPLACE_BYTES,
+  removeAdaptiveHook,
 } from "./test-fixtures/compiler-repository-fixture.ts";
 
 function codexCompiler(rootDir: string): AgentPluginCompiler {
@@ -38,6 +45,161 @@ function codexCompiler(rootDir: string): AgentPluginCompiler {
 }
 
 describe("AgentPluginCompiler", () => {
+  it("compiles shared hook resources and native configuration with drift detection", async () => {
+    // GIVEN: A valid plugin declares one two-stage adaptive hook for Codex.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: The public facade compiles and a generated handler is then changed.
+    const compiled = await compiler.compile();
+    const generatedRequest = path.join(
+      rootDir,
+      "hooks",
+      "handlers",
+      "adaptive-interaction",
+      "request.mjs",
+    );
+    await writeFile(generatedRequest, "externally changed\n");
+    const checked = await compiler.check();
+
+    // THEN: One shared handler tree, one native config, and structured status are observable.
+    assert.equal(compiled.verified, true);
+    assert.deepEqual(compiled.hookDiagnostics, [
+      {
+        provider: CODEX,
+        hook: "adaptive-interaction",
+        status: HookDiagnosticStatus.Generated,
+      },
+    ]);
+    assert.equal(
+      (await lstat(path.join(rootDir, "hooks", "codex-hooks.json"))).isFile(),
+      true,
+    );
+    assert.match(
+      await readFile(
+        path.join(rootDir, ".codex-plugin", "plugin.json"),
+        "utf8",
+      ),
+      /hooks\/codex-hooks\.json/u,
+    );
+    assert.deepEqual(checked.drift, [
+      {
+        path: "hooks/handlers/adaptive-interaction/request.mjs",
+        reason: DriftReason.ContentDiffers,
+      },
+    ]);
+  });
+
+  it("removes stale v2 hook output after the declaration is removed", async () => {
+    // GIVEN: A v2 plugin has compiled one portable hook for Codex.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const compiler = codexCompiler(rootDir);
+    await compiler.compile();
+    await removeAdaptiveHook(rootDir);
+
+    // WHEN: The current desired state is checked and reconciled.
+    const checked = await compiler.check();
+    const compiled = await compiler.compile();
+
+    // THEN: The config and resources are diagnosed, removed, and left verified.
+    assert.equal(
+      checked.drift.some(
+        (entry) => String(entry.path) === "hooks/codex-hooks.json",
+      ),
+      true,
+    );
+    assert.equal(
+      checked.drift.some((entry) =>
+        String(entry.path).startsWith("hooks/handlers/"),
+      ),
+      true,
+    );
+    assert.equal(compiled.verified, true);
+    await assert.rejects(
+      lstat(path.join(rootDir, "hooks", "codex-hooks.json")),
+      {
+        code: "ENOENT",
+      },
+    );
+    assert.deepEqual(
+      await readdir(path.join(rootDir, "hooks", "handlers")),
+      [],
+    );
+  });
+
+  it("skips hooks non-fatally for an incompatible provider without fallback output", async () => {
+    // GIVEN: A valid hooked plugin selects an external adapter with no hook capability.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const providerId = createProviderId("external");
+    const outputPath = createProjectPath(".external-plugin/plugin.json");
+    const adapter = Object.freeze({
+      id: providerId,
+      compile: () =>
+        createPlanFragment({
+          ownerId: providerId,
+          ownership: {
+            kind: OwnershipKind.ExactFiles,
+            paths: [outputPath],
+          },
+          artifacts: [
+            {
+              kind: ArtifactKind.File,
+              path: outputPath,
+              content: Buffer.from("external\n"),
+            },
+          ],
+        }),
+    }) satisfies ProviderAdapter;
+    const compiler = new AgentPluginCompiler(
+      { rootDir, providers: [providerId] },
+      new ProviderAdapterRegistry([adapter]),
+    );
+
+    // WHEN: Compilation resolves compatibility and writes all other output.
+    const result = await compiler.compile();
+
+    // THEN: Provider output succeeds, the hook is skipped, and no emulation is installed.
+    assert.equal(result.verified, true);
+    assert.deepEqual(result.hookDiagnostics, [
+      {
+        provider: providerId,
+        hook: "adaptive-interaction",
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHooks,
+      },
+    ]);
+    assert.equal(
+      await readFile(path.join(rootDir, outputPath), "utf8"),
+      "external\n",
+    );
+    assert.equal(
+      (await lstat(path.join(rootDir, "hooks", "handlers"))).isDirectory(),
+      true,
+    );
+    await assert.rejects(
+      lstat(
+        path.join(
+          rootDir,
+          "hooks",
+          "handlers",
+          ".runtime",
+          "portable-hook-dispatcher.mjs",
+        ),
+      ),
+      { code: "ENOENT" },
+    );
+    await assert.rejects(lstat(path.join(rootDir, "AGENTS.md")), {
+      code: "ENOENT",
+    });
+    const generatedSkills = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+    assert.doesNotMatch(generatedSkills, /adaptive-interaction/u);
+  });
   it("compiles only the shared skills tree for an empty provider selection", async () => {
     // GIVEN: A valid repository explicitly overrides its manifest with no providers.
     const rootDir = await createCompilerRepository();

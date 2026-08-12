@@ -1,14 +1,14 @@
 # Reference Overview
 
-This reference documents the public contract of Agent Plugin Compiler `0.1.0`.
-It states what the package accepts and produces. The
-[Guide](/guide/introduction) explains why, and shows the workflow around it.
+This reference documents the public contract of Agent Plugin Compiler. It states
+what the package accepts and produces. The [Guide](/guide/introduction) explains
+why, and shows the workflow around it.
 
 ## Contract surfaces
 
 | Surface             | Documentation                                   | Answers                                         |
 | ------------------- | ----------------------------------------------- | ----------------------------------------------- |
-| Authored source     | [Manifest v1](/reference/manifest)              | Where source files go, and every field and rule |
+| Authored source     | [Manifest v1 and v2](/reference/manifest)       | Where source files go, and every field and rule |
 | Executable commands | [CLI](/reference/cli)                           | Commands, options, and exit codes               |
 | Generated hosts     | [Providers](/reference/providers)               | Which manifest each provider writes             |
 | Programmatic use    | [Programmatic Usage](/guide/programmatic-usage) | The Node.js API and custom adapters             |
@@ -20,6 +20,7 @@ The package behavior is defined by executable and versioned contracts in the
 
 - CLI parsing, help, process tests, and exit codes;
 - [`src/schemas/v1/plugin-manifest.schema.json`](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/src/schemas/v1/plugin-manifest.schema.json);
+- [`src/schemas/v2/plugin-manifest.schema.json`](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/src/schemas/v2/plugin-manifest.schema.json);
 - compiler and provider adapter implementations;
 - exported TypeScript declarations;
 - conformance tests for externally owned provider formats.

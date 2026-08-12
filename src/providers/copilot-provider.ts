@@ -5,12 +5,15 @@ import {
   createProjectPath,
   OwnershipKind,
   type PlanFragment,
+  PluginSchemaVersion,
   type ProviderAdapter,
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
+import { renderCopilotHookConfiguration } from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
+const hooksPath = createProjectPath("hooks/copilot-hooks.json");
 const pluginPath = createProjectPath("plugin.json");
 const portablePluginSchema =
   "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
@@ -35,6 +38,8 @@ const portablePluginSchema =
 export class CopilotProviderAdapter implements ProviderAdapter {
   /** Built-in GitHub Copilot CLI provider identifier. */
   readonly id: ProviderId = COPILOT;
+  /** Copilot CLI supports both provider-neutral lifecycle stages. */
+  readonly supportsHooks = true;
 
   /**
    * Render the portable Agent Plugins manifest from a validated plugin.
@@ -43,6 +48,7 @@ export class CopilotProviderAdapter implements ProviderAdapter {
    * @returns An exact-file fragment containing the root Copilot manifest.
    */
   compile({ plugin }: ProviderContext): PlanFragment {
+    const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
     const pluginJson = renderJson({
       $schema: portablePluginSchema,
       name: plugin.name,
@@ -53,13 +59,16 @@ export class CopilotProviderAdapter implements ProviderAdapter {
       repository: plugin.repository,
       license: plugin.license,
       keywords: plugin.keywords,
+      ...(plugin.hooks.length === 0
+        ? {}
+        : { hooks: "./hooks/copilot-hooks.json" }),
     });
 
     return createPlanFragment({
       ownerId: this.id,
       ownership: {
         kind: OwnershipKind.ExactFiles,
-        paths: [pluginPath],
+        paths: [...(ownsHooks ? [hooksPath] : []), pluginPath],
       },
       artifacts: [
         {
@@ -67,6 +76,15 @@ export class CopilotProviderAdapter implements ProviderAdapter {
           path: pluginPath,
           content: pluginJson,
         },
+        ...(plugin.hooks.length === 0
+          ? []
+          : [
+              {
+                kind: ArtifactKind.File as const,
+                path: hooksPath,
+                content: renderJson(renderCopilotHookConfiguration(plugin)),
+              },
+            ]),
       ],
     });
   }

@@ -1,10 +1,13 @@
 declare const categoryIdBrand: unique symbol;
+declare const hookIdBrand: unique symbol;
 declare const projectPathBrand: unique symbol;
 declare const providerIdBrand: unique symbol;
 declare const skillIdBrand: unique symbol;
 
 /** A manifest-v1 category identifier validated by {@link createCategoryId}. */
 export type CategoryId = string & { readonly [categoryIdBrand]: true };
+/** A manifest-v1 hook identifier validated by {@link createHookId}. */
+export type HookId = string & { readonly [hookIdBrand]: true };
 
 /**
  * A normalized, repository-relative POSIX path.
@@ -29,7 +32,7 @@ export type ProviderId = string & { readonly [providerIdBrand]: true };
 export type SkillId = string & { readonly [skillIdBrand]: true };
 
 /** The logical identifier family reported by {@link InvalidIdentifierError}. */
-export type IdentifierKind = "category" | "provider" | "skill";
+export type IdentifierKind = "category" | "hook" | "provider" | "skill";
 
 /** An invalid logical identifier, including its expected kind and input value. */
 export class InvalidIdentifierError extends TypeError {
@@ -93,7 +96,7 @@ export function createProjectPath(value: string): ProjectPath {
 }
 
 function createManifestIdentifier(
-  kind: "category" | "skill",
+  kind: "category" | "hook" | "skill",
   value: string,
 ): string {
   if (value.length > 64 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value)) {
@@ -111,6 +114,17 @@ function createManifestIdentifier(
  */
 export function createCategoryId(value: string): CategoryId {
   return createManifestIdentifier("category", value) as CategoryId;
+}
+
+/**
+ * Validate one hook identifier against the manifest-v1 contract.
+ *
+ * @param value - Candidate hook identifier.
+ * @returns The validated hook identifier.
+ * @throws {@link InvalidIdentifierError} When the value violates manifest-v1 syntax.
+ */
+export function createHookId(value: string): HookId {
+  return createManifestIdentifier("hook", value) as HookId;
 }
 
 /**

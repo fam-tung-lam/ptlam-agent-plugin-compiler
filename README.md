@@ -98,12 +98,14 @@ flowchart TD
     subgraph Authored["You author"]
         PluginManifest["plugin/plugin.yml"]
         SkillSources["plugin/skills/**"]
+        HookSources["plugin/hooks/**"]
     end
 
     AgentPluginCompiler{{"plugin-compiler"}}
 
     subgraph Generated["The compiler owns"]
         SharedSkills["skills/**"]
+        SharedHooks["hooks/handlers/**"]
         ClaudePlugin[".claude-plugin/**"]
         CodexPlugin[".codex-plugin/plugin.json"]
         CopilotPlugin["plugin.json"]
@@ -113,7 +115,9 @@ flowchart TD
 
     PluginManifest --> AgentPluginCompiler
     SkillSources --> AgentPluginCompiler
+    HookSources --> AgentPluginCompiler
     AgentPluginCompiler --> SharedSkills
+    AgentPluginCompiler --> SharedHooks
     AgentPluginCompiler --> ClaudePlugin
     AgentPluginCompiler --> CodexPlugin
     AgentPluginCompiler --> CopilotPlugin
@@ -151,12 +155,35 @@ skills:
     required_skills: []
 ```
 
+The same manifest can declare one logical hook with separate lifecycle handlers.
+Handler paths are relative to `plugin/hooks/<hook-id>/`:
+
+```yaml
+schema_version: 2
+
+hooks:
+  - id: adaptive-interaction
+    bindings:
+      - lifecycle: before-request
+        handler: request.mjs
+      - lifecycle: before-response
+        handler: response.mjs
+```
+
+The compiler copies those handlers once into `hooks/handlers/**` and translates
+the lifecycle stages into each compatible provider's native hook format. Hook
+compatibility is optional: an incompatible adapter still compiles its other
+output and reports the hook as skipped. Hooks do not have a `required` flag, do
+not become fallback skills, and do not write provider instruction files.
+
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
-source and compile again. The compiler owns the whole root `skills/` tree and
-one exact file per host manifest; every other path stays outside its write plan.
-Compilation is deterministic, so the same source always produces the same bytes
-and `check` can prove that committed output is current.
+source and compile again. The compiler owns the root `skills/` tree. Schema v2
+also owns the shared hook-handler tree and provider hook-config paths so
+removing a hook cleans stale output; schema v1 retains its original hook-free
+ownership. Every other path stays outside the write plan. Compilation is
+deterministic, so the same source always produces the same bytes and `check` can
+prove that committed output is current.
 
 ## Dependency instructions are generated
 
@@ -286,7 +313,7 @@ reproduced in CI.
 
 ```bash
 npm exec -- plugin-compiler init      # scaffold plugin/plugin.yml + example skills
-# edit plugin/plugin.yml and plugin/skills/**
+# edit plugin/plugin.yml, plugin/skills/**, and optional plugin/hooks/**
 npm exec -- plugin-compiler validate  # check the manifest, sources, and graph
 npm exec -- plugin-compiler compile   # write skills/** and host manifests
 npm exec -- plugin-compiler check     # confirm output matches the source
@@ -311,9 +338,9 @@ Full walkthrough, with every file to paste →
 | Command    | Purpose                                                        |
 | ---------- | -------------------------------------------------------------- |
 | `init`     | Create missing authored source paths, never overwriting        |
-| `validate` | Check the manifest, skill sources, links, and dependency graph |
-| `compile`  | Write the shared skill tree and the selected host manifests    |
-| `check`    | Report output that no longer matches the source                |
+| `validate` | Check the manifest, skills, hooks, links, and dependency graph |
+| `compile`  | Write shared resources plus selected host manifests and hooks  |
+| `check`    | Report managed output that no longer matches authored source   |
 
 `validate`, `compile`, and `check` share
 `[--root <path>] [--provider <id>[,<id>...] | --no-providers]`. Without a
@@ -333,6 +360,11 @@ Every flag, precedence rule, and exit code →
 | `copilot` | GitHub Copilot CLI   | `plugin.json`                                                   |
 | `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
 | `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
+
+All five built-in adapters currently implement the binary hook capability. They
+map `before-request` to a prompt/agent-start event and `before-response` to a
+stop/agent-finished event. Custom adapters opt in with `supportsHooks: true`;
+omitting it produces a structured, non-fatal skip for every declared hook.
 
 Adapter behavior and custom providers →
 [Providers](https://agent-plugin-compiler.phamtunglam.com/reference/providers).

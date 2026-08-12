@@ -2,12 +2,48 @@ import {
   createDriftEntry,
   createWriteResult,
   type DriftEntry,
+  type HookId,
   type Plugin,
   type ProjectPath,
   type ProviderId,
   type WriteResult,
   type WriteResultInput,
 } from "../core/index.js";
+
+/** Whether one logical hook was emitted or skipped for a selected provider. */
+export enum HookDiagnosticStatus {
+  /** Provider-native configuration and shared handler resources are planned. */
+  Generated = "generated",
+  /** Hook output is intentionally absent for this provider. */
+  Skipped = "skipped",
+}
+
+/** Stable reason why a logical hook was skipped. */
+export enum HookDiagnosticReason {
+  /** The provider adapter does not support lifecycle hooks as one capability. */
+  ProviderDoesNotSupportHooks = "provider-does-not-support-hooks",
+}
+
+/** Structured compatibility result for one selected provider and logical hook. */
+export type HookDiagnostic =
+  | {
+      /** Selected target provider. */
+      readonly provider: ProviderId;
+      /** Logical authored hook identifier. */
+      readonly hook: HookId;
+      /** Successful generation status. */
+      readonly status: HookDiagnosticStatus.Generated;
+    }
+  | {
+      /** Selected target provider. */
+      readonly provider: ProviderId;
+      /** Logical authored hook identifier. */
+      readonly hook: HookId;
+      /** Non-fatal skip status. */
+      readonly status: HookDiagnosticStatus.Skipped;
+      /** Machine-readable compatibility reason. */
+      readonly reason: HookDiagnosticReason;
+    };
 
 /** Where one compiler operation obtained its effective provider selection. */
 export type ProviderSelectionSource = "manifest" | "override";
@@ -39,6 +75,8 @@ export interface ValidateResult {
   readonly providers: readonly ProviderId[];
   /** Whether providers came from the manifest or an explicit override. */
   readonly providerSelectionSource: ProviderSelectionSource;
+  /** Provider-by-hook compatibility and generation decisions. */
+  readonly hookDiagnostics: readonly HookDiagnostic[];
   /** Non-fatal validation diagnostics. */
   readonly warnings: readonly string[];
 }
@@ -89,6 +127,8 @@ export interface ValidateResultInput {
   readonly providers: readonly ProviderId[];
   /** Source of the effective provider selection. */
   readonly providerSelectionSource: ProviderSelectionSource;
+  /** Provider-by-hook compatibility and generation decisions. */
+  readonly hookDiagnostics?: readonly HookDiagnostic[];
   /** Non-fatal validation diagnostics. */
   readonly warnings: readonly string[];
 }
@@ -158,6 +198,7 @@ export function createValidateResult(
     plugin: input.plugin,
     providers: Object.freeze([...input.providers]),
     providerSelectionSource: input.providerSelectionSource,
+    hookDiagnostics: freezeHookDiagnostics(input.hookDiagnostics ?? []),
     warnings: Object.freeze([...input.warnings]),
   });
 }
@@ -175,6 +216,7 @@ export function createCheckResult(input: CheckResultInput): CheckResult {
     plugin: input.plugin,
     providers: Object.freeze([...input.providers]),
     providerSelectionSource: input.providerSelectionSource,
+    hookDiagnostics: freezeHookDiagnostics(input.hookDiagnostics ?? []),
     warnings: Object.freeze([...input.warnings]),
     upToDate: drift.length === 0,
     drift,
@@ -194,9 +236,18 @@ export function createCompileResult(input: CompileResultInput): CompileResult {
     plugin: input.plugin,
     providers: Object.freeze([...input.providers]),
     providerSelectionSource: input.providerSelectionSource,
+    hookDiagnostics: freezeHookDiagnostics(input.hookDiagnostics ?? []),
     warnings: Object.freeze([...input.warnings]),
     writeResult: createWriteResult(input.writeResult),
     verified: drift.length === 0,
     drift,
   });
+}
+
+function freezeHookDiagnostics(
+  diagnostics: readonly HookDiagnostic[],
+): readonly HookDiagnostic[] {
+  return Object.freeze(
+    diagnostics.map((diagnostic) => Object.freeze({ ...diagnostic })),
+  );
 }

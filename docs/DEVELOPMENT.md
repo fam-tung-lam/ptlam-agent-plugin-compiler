@@ -20,7 +20,7 @@ versions.
 | `src/schemas/`             | Versioned JSON contracts                                   |
 | `src/core/`                | Shared plugin and generated types, plus their constructors |
 | `src/compiler/validation/` | Manifest and authored-source validation                    |
-| `src/compiler/rendering/`  | Shared skill document and catalog rendering                |
+| `src/compiler/rendering/`  | Shared skill, hook-resource, and runtime rendering         |
 | `src/compiler/planning/`   | Write-plan construction and generated-state comparison     |
 | `src/compiler/`            | Public `AgentPluginCompiler` orchestration                 |
 | `src/providers/`           | Provider adapters and per-instance registry                |
@@ -78,6 +78,23 @@ Check and compile reconcile exact files owned by every registered adapter.
 Selected provider files must contain the desired bytes, while unselected
 registered provider files must be absent. Unknown unregistered paths and the
 root `README.md` stay outside compiler ownership.
+
+## Hook compilation while developing
+
+Manifest v1 is frozen and hook-free. Manifest v2 adds `PluginManifest.hooks`,
+which contains provider-neutral logical hooks. Each binding maps
+`before-request` or `before-response` to an authored `.mjs` handler under
+`plugin/hooks/<hook-id>/`. Validation loads every file in that directory as an
+internal hook resource, but only bindings are public manifest entries.
+
+`ProviderAdapter.supportsHooks` is deliberately binary. A true adapter renders
+native hook configuration; an omitted or false capability receives a hook-free
+provider context and produces a structured skipped diagnostic. Schema v2 owns
+the shared `hooks/handlers/**` tree and each built-in provider's hook-config
+path even when no hook artifact is desired, so later compiles can remove stale
+output. Handler resources are emitted only when at least one selected adapter
+supports hooks. Do not implement fallback skills, provider instructions, or
+per-event capability negotiation at this seam.
 
 ## Test layers
 

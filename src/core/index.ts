@@ -12,6 +12,7 @@
 export * from "./identifiers.js";
 export * from "./plugin/plugin-source.js";
 export * from "./plugin/plugin-snapshot.js";
+export * from "./plugin/hook.js";
 export * from "./plugin/plugin.js";
 export * from "./plugin/skill.js";
 export * from "./plugin/select-published-skills.js";

@@ -10,9 +10,10 @@ happens to files it finds there that the source does not imply.
 
 Ownership comes in two kinds, and the difference matters.
 
-The root `skills/` directory is owned as a **complete tree**. The compiler
-decides the entire contents. A file you add inside it is reported by `check` as
-`unexpected` and removed by the next `compile`:
+The root `skills/` directory is owned as a **complete tree**. For a schema-v2
+plugin, `hooks/handlers/` is a second complete tree; schema v1 claims no hook
+paths. The compiler decides the entire contents. A file you add inside an owned
+tree is reported by `check` as `unexpected` and removed by the next `compile`:
 
 ```text
 Output check found 2 drift entries:
@@ -27,6 +28,25 @@ ownership is rejected for providers.
 
 Every other path in the repository stays outside the write plan. Source code,
 tests, documentation, and your own `README.md` are never read or written.
+
+## Generated hooks
+
+Every declared logical hook is copied once to `hooks/handlers/<hook-id>/`,
+including handler-adjacent internal resources. The compiler also writes
+`hooks/handlers/.runtime/portable-hook-dispatcher.mjs`. Compatible provider
+configurations point at these shared files; handlers are not duplicated per
+provider.
+
+Native hook configuration remains exact-file-owned by the corresponding adapter.
+`check` reports content or missing-file drift in both the shared handler tree
+and provider-native configuration. Removing every v2 hook leaves an empty owned
+handler root and makes native config files desired absent, cleaning stale
+output. A selected adapter without hook support receives a structured skip; its
+ordinary manifest and the shared skills still compile, but no handler resources
+are emitted for that selection.
+
+No fallback skill, `AGENTS.md`, equivalent instruction file, or first-class
+policy output is generated.
 
 ## What a generated skill contains
 
@@ -87,6 +107,11 @@ That is also why `compile` reports paths you did not select:
 Compilation completed and post-write verification passed.
 - .claude-plugin/marketplace.json: changed
 - .claude-plugin/plugin.json: changed
+- hooks/claude-hooks.json: unchanged
+- hooks/codex-hooks.json: unchanged
+- hooks/copilot-hooks.json: unchanged
+- hooks/handlers: unchanged
+- hooks/hooks.json: unchanged
 - skills: changed
 - .codex-plugin/plugin.json: unchanged
 - gemini-extension.json: unchanged

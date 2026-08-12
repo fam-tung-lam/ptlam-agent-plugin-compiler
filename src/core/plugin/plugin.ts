@@ -1,5 +1,11 @@
 import type { CategoryId, ProviderId } from "../identifiers.js";
 import {
+  createHook,
+  type Hook,
+  type HookInput,
+  type HookManifest,
+} from "./hook.js";
+import {
   createSkill,
   type Skill,
   type SkillInput,
@@ -10,6 +16,8 @@ import {
 export enum PluginSchemaVersion {
   /** Version one of the authored plugin manifest schema. */
   V1 = 1,
+  /** Version two adds provider-neutral lifecycle hooks. */
+  V2 = 2,
 }
 
 /** Authorship metadata copied into provider manifests. */
@@ -67,6 +75,8 @@ export interface PluginManifest {
   readonly keywords: readonly string[];
   /** Skill categories declared by the plugin. */
   readonly categories: readonly PluginCategory[];
+  /** Provider-neutral lifecycle hooks; omitted manifests normalize to an empty list. */
+  readonly hooks: readonly HookManifest[];
   /** Authored skill declarations before source files are attached. */
   readonly skills: readonly SkillManifest[];
 }
@@ -82,16 +92,20 @@ export interface PluginManifest {
  * console.log(plugin.name, plugin.skills.length);
  * ```
  */
-export interface Plugin extends Omit<PluginManifest, "skills"> {
+export interface Plugin extends Omit<PluginManifest, "hooks" | "skills"> {
+  /** Validated hooks with loaded handler modules and internal resources. */
+  readonly hooks: readonly Hook[];
   /** Validated skills with their authored source documents and resources. */
   readonly skills: readonly Skill[];
 }
 
 /** Mutable-input form used to construct a validated plugin model. */
 export interface PluginInput
-  extends Omit<PluginManifest, "categories" | "skills"> {
+  extends Omit<PluginManifest, "categories" | "hooks" | "skills"> {
   /** Skill categories to copy into the immutable model. */
   readonly categories: Iterable<PluginCategory>;
+  /** Validated logical hooks to copy into the immutable model. */
+  readonly hooks?: Iterable<HookInput>;
   /** Validated skills to copy into the immutable model. */
   readonly skills: Iterable<SkillInput>;
 }
@@ -111,6 +125,7 @@ export function createPlugin(input: PluginInput): Plugin {
     categories: Object.freeze(
       [...input.categories].map((category) => Object.freeze({ ...category })),
     ),
+    hooks: Object.freeze([...(input.hooks ?? [])].map(createHook)),
     skills: Object.freeze([...input.skills].map(createSkill)),
   });
 }

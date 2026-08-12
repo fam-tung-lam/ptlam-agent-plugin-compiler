@@ -8,6 +8,29 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-12
+
+### Added
+
+- Added provider-neutral logical hooks with separate `before-request` and
+  `before-response` handlers, binary adapter capability detection, shared
+  runtime resources, provider-native output for Claude, Codex, Copilot, Gemini,
+  and Kimi, and structured generated/skipped diagnostics.
+- Added the closed manifest schema v2 for portable hooks while retaining the
+  original v1 schema as an immutable packaged resource.
+- Added an adaptive interaction example that preserves simple requests, enriches
+  complex work without changing intent, and requests at most one
+  response-presentation revision.
+
+### Changed
+
+- New plugin templates use schema v2. Existing schema-v1 plugins keep their
+  hook-free validation and generated-file ownership unchanged; migrating a valid
+  manifest requires changing `schema_version` from `1` to `2`.
+- Validation, compilation, drift detection, the CLI, and the Node.js API now
+  include hooks, and removing v2 hooks reconciles stale handler and native
+  configuration output.
+
 ## [0.1.1] - 2026-08-12
 
 ### Added
@@ -140,7 +163,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.1...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...HEAD
+[0.2.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.1...v0.2.0
 [0.1.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0...v0.1.1
 [0.1.0]:

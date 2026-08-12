@@ -4,18 +4,23 @@ import { createRequire } from "node:module";
 import { describe, it } from "vitest";
 
 import { parsePluginManifest } from "../../../../../src/compiler/validation/index.ts";
-import { CLAUDE, CODEX } from "../../../../../src/core/index.ts";
+import {
+  CLAUDE,
+  CODEX,
+  PluginSchemaVersion,
+} from "../../../../../src/core/index.ts";
 import { makeManifest } from "../test-fixtures/plugin-fixture.ts";
 
 const require = createRequire(import.meta.url);
-const pluginManifestSchema = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV1 = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV2 = require("../../../../../src/schemas/v2/plugin-manifest.schema.json");
 
 describe("parsePluginManifest", () => {
-  it("uses the versioned JSON schema as the manifest contract", () => {
-    // GIVEN: A schema-valid manifest declares non-empty provider defaults.
+  it("uses the v2 JSON schema as the current manifest contract", () => {
+    // GIVEN: The current schema has a stable versioned resource identifier.
     assert.equal(
-      pluginManifestSchema.$id,
-      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json",
+      pluginManifestSchemaV2.$id,
+      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v2/plugin-manifest.schema.json",
     );
     const manifest = makeManifest({ providers: [CLAUDE, CODEX] });
 
@@ -42,6 +47,31 @@ describe("parsePluginManifest", () => {
     );
   });
 
+  it("keeps v1 frozen and rejects lifecycle hooks", () => {
+    // GIVEN: The frozen v1 schema has no hook property.
+    assert.equal(
+      pluginManifestSchemaV1.$id,
+      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json",
+    );
+    assert.equal(pluginManifestSchemaV1.properties.hooks, undefined);
+    const manifest = makeManifest();
+    const { hooks: _hooks, ...withoutHooks } = manifest;
+    const legacy = {
+      ...withoutHooks,
+      schema_version: PluginSchemaVersion.V1,
+    };
+
+    // WHEN: A v1 source adds the v2-only hook property.
+    const result = parsePluginManifest(
+      JSON.stringify({ ...legacy, hooks: manifest.hooks }),
+    );
+
+    // THEN: Version dispatch applies the closed v1 contract.
+    assert.deepEqual(result, {
+      errors: ["plugin/plugin.yml#/hooks: must NOT have additional properties"],
+    });
+  });
+
   it("accepts an empty provider default", () => {
     // GIVEN: A schema-valid manifest selects shared skills only.
     const manifest = makeManifest({ providers: [] });
@@ -54,6 +84,104 @@ describe("parsePluginManifest", () => {
     assert.equal(
       "manifest" in result && Object.isFrozen(result.manifest.providers),
       true,
+    );
+  });
+
+  it("normalizes omitted hooks and accepts two lifecycle bindings without a required flag", () => {
+    // GIVEN: Legacy source omits hooks while new source declares one two-stage hook.
+    const current = makeManifest();
+    const { hooks: _hooks, ...currentWithoutHooks } = current;
+    const legacyWithoutHooks = {
+      ...currentWithoutHooks,
+      schema_version: PluginSchemaVersion.V1,
+    };
+    const adaptive = {
+      ...current,
+      hooks: [
+        {
+          id: "adaptive-interaction",
+          bindings: [
+            { lifecycle: "before-request", handler: "request.mjs" },
+            { lifecycle: "before-response", handler: "response.mjs" },
+          ],
+        },
+      ],
+    };
+
+    // WHEN: Both manifests cross the same public schema boundary.
+    const legacyResult = parsePluginManifest(
+      JSON.stringify(legacyWithoutHooks),
+    );
+    const adaptiveResult = parsePluginManifest(JSON.stringify(adaptive));
+
+    // THEN: Hook-free input stays valid and the hook has only logical bindings.
+    assert.equal("manifest" in legacyResult, true);
+    assert.deepEqual(
+      "manifest" in legacyResult ? legacyResult.manifest.hooks : undefined,
+      [],
+    );
+    assert.equal("manifest" in adaptiveResult, true);
+    assert.deepEqual(
+      "manifest" in adaptiveResult
+        ? adaptiveResult.manifest.hooks[0]?.bindings.map(
+            ({ lifecycle, handler }) => ({ lifecycle, handler }),
+          )
+        : undefined,
+      [
+        { lifecycle: "before-request", handler: "request.mjs" },
+        { lifecycle: "before-response", handler: "response.mjs" },
+      ],
+    );
+    assert.equal(
+      "manifest" in adaptiveResult &&
+        adaptiveResult.manifest.hooks[0] !== undefined &&
+        "required" in adaptiveResult.manifest.hooks[0],
+      false,
+    );
+  });
+
+  it("rejects unsupported schema versions before contract validation", () => {
+    // GIVEN: A structurally complete manifest selects a future schema version.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      schema_version: 3,
+    });
+
+    // WHEN: The manifest parser dispatches by schema version.
+    const result = parsePluginManifest(source);
+
+    // THEN: The version error names every contract this library supports.
+    assert.deepEqual(result, {
+      errors: [
+        "plugin/plugin.yml/schema_version: must be one of the supported versions: 1, 2",
+      ],
+    });
+  });
+
+  it("keeps hook policies internal and rejects a required compatibility flag", () => {
+    // GIVEN: A hook attempts to expose policy and required fields in the manifest.
+    const invalid = {
+      ...makeManifest(),
+      hooks: [
+        {
+          id: "adaptive-interaction",
+          required: true,
+          policies: ["style.json"],
+          bindings: [{ lifecycle: "before-request", handler: "request.mjs" }],
+        },
+      ],
+    };
+
+    // WHEN: The closed schema parses the provider-neutral declaration.
+    const result = parsePluginManifest(JSON.stringify(invalid));
+
+    // THEN: Both unsupported public fields are rejected as manifest properties.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.filter((error) =>
+          error.includes("must NOT have additional properties"),
+        ).length >= 2,
     );
   });
 

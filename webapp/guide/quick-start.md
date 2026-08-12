@@ -30,7 +30,7 @@ plugin/
 two skills: an internal building block, and a public skill that requires it.
 
 ```yaml
-schema_version: 1
+schema_version: 2
 
 providers:
   - claude

@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude before-request \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/adaptive-interaction/request.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Adapting request"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude before-response \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/adaptive-interaction/response.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Reviewing response"
+          }
+        ]
+      }
+    ]
+  }
+}

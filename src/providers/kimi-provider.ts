@@ -9,6 +9,7 @@ import {
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
+import { renderKimiHooks } from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const pluginPath = createProjectPath("kimi.plugin.json");
@@ -22,6 +23,8 @@ const pluginPath = createProjectPath("kimi.plugin.json");
 export class KimiProviderAdapter implements ProviderAdapter {
   /** Built-in Kimi provider identifier. */
   readonly id: ProviderId = KIMI;
+  /** Kimi Code CLI supports both provider-neutral lifecycle stages. */
+  readonly supportsHooks = true;
 
   /**
    * Render the Kimi manifest from a validated plugin.
@@ -44,6 +47,7 @@ export class KimiProviderAdapter implements ProviderAdapter {
       homepage: plugin.homepage,
       license: plugin.license,
       skills: "./skills/",
+      ...(plugin.hooks.length === 0 ? {} : { hooks: renderKimiHooks(plugin) }),
     });
 
     return createPlanFragment({

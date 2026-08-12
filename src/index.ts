@@ -32,13 +32,22 @@ export type {
   CheckResult,
   CompileResult,
   CompilerOptionsInput,
+  HookDiagnostic,
   InitResult,
   ProviderSelectionSource,
   ValidateResult,
 } from "./compiler/index.js";
-export { AgentPluginCompiler } from "./compiler/index.js";
+export {
+  AgentPluginCompiler,
+  HookDiagnosticReason,
+  HookDiagnosticStatus,
+} from "./compiler/index.js";
 export type {
   Artifact,
+  Hook,
+  HookBinding,
+  HookId,
+  HookManifest,
   Ownership,
   PlanFragment,
   PlanFragmentInput,
@@ -54,12 +63,15 @@ export {
   CLAUDE,
   CODEX,
   COPILOT,
+  createHookId,
   createPlanFragment,
   createProjectPath,
   createProviderId,
   GEMINI,
+  HookLifecycle,
   KIMI,
   OwnershipKind,
+  PluginSchemaVersion,
 } from "./core/index.js";
 export {
   ClaudeProviderAdapter,
