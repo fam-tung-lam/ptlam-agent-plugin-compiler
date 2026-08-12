@@ -19,8 +19,8 @@ and this project adheres to
 
 ### Changed
 
-- Documented the post-release Homebrew Formula update boundary while keeping
-  npm authoritative for package versions and bytes.
+- Documented the post-release Homebrew Formula update boundary while keeping npm
+  authoritative for package versions and bytes.
 
 ## [0.1.0] - 2026-08-11
 
