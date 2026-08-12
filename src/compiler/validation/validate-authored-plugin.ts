@@ -1,6 +1,7 @@
 import {
   createPlugin,
   type Plugin,
+  PluginSchemaVersion,
   type PluginSource,
 } from "../../core/index.js";
 import {
@@ -50,7 +51,10 @@ export function validateAuthoredPlugin(
 
   const manifest = manifestResult.manifest;
   const graph = validateSkillGraph(manifest.categories, manifest.skills);
-  const hooks = validateHookSources(source, manifest.hooks);
+  const hooks =
+    manifest.schema_version === PluginSchemaVersion.V1
+      ? { hooks: Object.freeze([]), errors: Object.freeze([]) }
+      : validateHookSources(source, manifest.hooks);
   const sources = validateSkillSources(source, manifest.skills);
   const errors = [...graph.errors, ...hooks.errors, ...sources.errors];
   if (errors.length > 0) throw new PluginValidationError(errors);

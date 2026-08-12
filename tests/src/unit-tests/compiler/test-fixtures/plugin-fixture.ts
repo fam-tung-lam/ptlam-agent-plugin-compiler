@@ -151,6 +151,7 @@ export function makePluginSource({
   skillSources = {},
   resources = {},
   hookResources = {},
+  hookExtraEntries = [],
   extraEntries = [],
 }: {
   readonly manifest?: PluginManifest;
@@ -160,6 +161,7 @@ export function makePluginSource({
   readonly hookResources?: Readonly<
     Record<string, Readonly<Record<string, string | Uint8Array>>>
   >;
+  readonly hookExtraEntries?: readonly SourceEntryInput[];
   readonly extraEntries?: readonly SourceEntryInput[];
 } = {}): PluginSource {
   const hookEntries: SourceEntryInput[] = [];
@@ -191,6 +193,7 @@ export function makePluginSource({
       });
     }
   }
+  hookEntries.push(...hookExtraEntries);
   for (const skill of manifest.skills) {
     const skillRoot = `plugin/skills/${skill.id}`;
     skillEntries.push(

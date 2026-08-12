@@ -185,6 +185,35 @@ describe("parsePluginManifest", () => {
     );
   });
 
+  it("rejects dot segments in hook handler paths with a schema diagnostic", () => {
+    // GIVEN: A v2 hook handler path contains a non-normalized dot segment.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      hooks: [
+        {
+          id: "simple-logger",
+          bindings: [
+            { lifecycle: "before-request", handler: "lib/./request.mjs" },
+          ],
+        },
+      ],
+    });
+
+    // WHEN: The manifest crosses the public parsing boundary.
+    const result = parsePluginManifest(source);
+
+    // THEN: Parsing returns a field-level diagnostic instead of throwing.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.some(
+          (error) =>
+            error.includes("hooks/0/bindings/0/handler") &&
+            error.includes("must match pattern"),
+        ),
+    );
+  });
+
   it("rejects duplicate provider defaults", () => {
     // GIVEN: A manifest repeats the same extensible provider identifier.
     const source = JSON.stringify({

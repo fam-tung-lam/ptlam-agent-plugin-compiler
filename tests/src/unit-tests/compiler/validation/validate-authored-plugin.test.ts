@@ -9,6 +9,7 @@ import {
   createHookId,
   createProjectPath,
   HookLifecycle,
+  PluginSchemaVersion,
   REQUIRED_SKILLS_MARKER,
   SkillStatus,
   SkillVisibility,
@@ -21,6 +22,38 @@ import {
 } from "../test-fixtures/plugin-fixture.ts";
 
 describe("validateAuthoredPlugin", () => {
+  it("ignores hook-tree entries for a schema-v1 plugin", () => {
+    // GIVEN: A legacy plugin has an unrelated directory under plugin/hooks/.
+    const manifest = makeManifest();
+    const { hooks: _hooks, ...withoutHooks } = manifest;
+    const source = makePluginSource({
+      manifest,
+      manifestSource: `${JSON.stringify(
+        { ...withoutHooks, schema_version: PluginSchemaVersion.V1 },
+        null,
+        2,
+      )}\n`,
+      hookExtraEntries: [
+        {
+          kind: SourceEntryKind.Directory,
+          path: createProjectPath("plugin/hooks/unrelated-tooling"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath("plugin/hooks/unrelated-tooling/config.json"),
+          content: Buffer.from("{}\n"),
+        },
+      ],
+    });
+
+    // WHEN: The frozen v1 contract validates the authored repository.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: The pre-existing hook tree remains outside v1 validation and output.
+    assert.equal(result.plugin.schema_version, PluginSchemaVersion.V1);
+    assert.deepEqual(result.plugin.hooks, []);
+  });
+
   it("loads separate hook handlers and keeps policy files as internal resources", () => {
     // GIVEN: One logical hook binds two .mjs handlers and ships a private policy file.
     const manifest = makeManifest({
