@@ -9,6 +9,7 @@ const docsSidebar = [
     text: "Guide",
     items: [
       { text: "Introduction", link: "/guide/introduction" },
+      { text: "Installation", link: "/guide/installation" },
       { text: "Quick Start", link: "/guide/quick-start" },
       { text: "Skill Graph", link: "/guide/skill-graph" },
       { text: "Generated Output", link: "/guide/generated-output" },
