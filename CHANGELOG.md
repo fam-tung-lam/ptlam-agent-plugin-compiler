@@ -8,7 +8,7 @@ and this project adheres to
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-08-12
+## [0.2.0-alpha.1] - 2026-08-12
 
 ### Added
 
@@ -163,9 +163,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...HEAD
-[0.2.0]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.1...v0.2.0
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.1...HEAD
+[0.2.0-alpha.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.1...v0.2.0-alpha.1
 [0.1.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0...v0.1.1
 [0.1.0]:
