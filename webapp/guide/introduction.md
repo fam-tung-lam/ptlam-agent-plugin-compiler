@@ -5,8 +5,9 @@ You author one manifest and one Markdown file per skill. One command validates
 the dependency graph between those skills and generates self-contained skills
 plus an exact plugin manifest for every agent host you target.
 
-This page explains why that build step exists and what it guarantees. To run it
-against a real plugin instead, start with the [Quick Start](/guide/quick-start).
+This page explains why that build step exists and what it guarantees. To use it
+against a real plugin, [install the compiler](/guide/installation), then follow
+the [Quick Start](/guide/quick-start).
 
 ## The problem
 
@@ -187,6 +188,8 @@ step. The cost of the compiler is a manifest; the return is everything above.
 
 ## Next steps
 
+- [Installation](/guide/installation) covers the reproducible npm dependency and
+  the global Homebrew CLI.
 - [Quick Start](/guide/quick-start) compiles a working plugin from an empty
   directory, with every file and command on one page.
 - [Skill graph](/guide/skill-graph) covers dependencies, visibility, and

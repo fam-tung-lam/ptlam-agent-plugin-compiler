@@ -8,28 +8,11 @@ plugin manifest. Every file and command you need is on this page.
 
 - Node.js 22.6 or newer. Check with `node --version`.
 - A repository that will own the plugin. Any npm project works.
+- The compiler installed as the exact npm dependency from
+  [Installation](/guide/installation). This walkthrough uses `npm exec` so the
+  local and CI commands resolve the same compiler version.
 
-## 1. Install the compiler
-
-Install the compiler into the repository that owns the plugin:
-
-```bash
-npm install --save-dev --save-exact \
-  @fam-tung-lam/ptlam-agent-plugin-compiler
-```
-
-The package resolves from npm's stable `latest` tag by default. `--save-exact`
-records one resolved version instead of a range, which keeps local and CI
-compilation on the same compiler. Commit `package.json` and the lockfile with
-the plugin source.
-
-The package installs one executable named `plugin-compiler`. Run it through npm:
-
-```bash
-npm exec -- plugin-compiler --help
-```
-
-## 2. Create the authored source
+## 1. Create the authored source
 
 Everything you edit lives under `plugin/`. Create three files:
 
@@ -130,7 +113,7 @@ It only creates missing paths, so running it in an existing project is safe.
 
 :::
 
-## 3. Validate the source
+## 2. Validate the source
 
 Run every command from the repository root:
 
@@ -156,7 +139,7 @@ Command failed: Plugin validation failed with 1 error:
 - plugin/plugin.yml#/skills/0/required_skills/0/skill_id: skill "prepare-change-plan" references unknown skill "inspect-repository"
 ```
 
-## 4. Compile
+## 3. Compile
 
 ```bash
 npm exec -- plugin-compiler compile
@@ -180,7 +163,7 @@ compiler manages, including the manifests of providers you did not select: the
 compiler owns those paths either way, and keeping them absent is part of the
 plan.
 
-## 5. Read the generated output
+## 4. Read the generated output
 
 The repository now contains generated files next to your source:
 
@@ -268,7 +251,7 @@ validated model:
 These files are build results. Edit `plugin/**` and compile again instead of
 patching them by hand.
 
-## 6. Target other hosts
+## 5. Target other hosts
 
 Without an option, `compile` uses the `providers` list in `plugin/plugin.yml`.
 Replace that list for one run with a comma-separated selection:
@@ -295,7 +278,7 @@ of leaving stale files behind.
 | `gemini`  | `gemini-extension.json`                                         |
 | `kimi`    | `kimi.plugin.json`                                              |
 
-## 7. Verify instead of trusting
+## 6. Verify instead of trusting
 
 Commit the generated files, then prove they still match the source:
 

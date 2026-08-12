@@ -248,6 +248,11 @@ as root skills, while `draft` and `archived` ones are not.
 
 ## Install
 
+### Project dependency
+
+Install the compiler with the plugin project so local development and CI use the
+same exact version:
+
 ```bash
 npm install --save-dev --save-exact \
   @fam-tung-lam/ptlam-agent-plugin-compiler
@@ -255,6 +260,27 @@ npm install --save-dev --save-exact \
 
 Requires Node.js 22.6 or newer. `--save-exact` pins the stable version resolved
 from npm. Recompile after every upgrade.
+
+### Homebrew CLI
+
+Install the stable CLI globally through the PTLam Homebrew tap:
+
+```bash
+brew install fam-tung-lam/tap/ptlam-agent-plugin-compiler
+```
+
+Homebrew installs the required Node.js runtime. Use `plugin-compiler` directly,
+and let Homebrew manage upgrades and removal:
+
+```bash
+plugin-compiler --help
+brew upgrade fam-tung-lam/tap/ptlam-agent-plugin-compiler
+brew uninstall ptlam-agent-plugin-compiler
+```
+
+Homebrew follows stable npm releases but updates independently. Prefer the
+project dependency above when the compiler version must be committed and
+reproduced in CI.
 
 ## Quick start
 
