@@ -82,10 +82,26 @@ are relative to `plugin/hooks/`:
 
 ```yaml
 hooks:
+  sessionStart:
+    - handler: observability/audit.mjs
   userPromptSubmit:
+    - handler: observability/audit.mjs
     - handler: simple-logger/request.mjs
+  preToolUse:
+    - handler: observability/audit.mjs
+  postToolUse:
+    - handler: observability/audit.mjs
+  permissionDenied:
+    - handler: observability/audit.mjs
+  subagentStart:
+    - handler: observability/audit.mjs
+  preCompact:
+    - handler: observability/audit.mjs
   stop:
     - handler: simple-logger/response.mjs
+    - handler: observability/audit.mjs
+  fileChanged:
+    - handler: observability/audit.mjs
 ```
 
 Each declared event requires a non-empty list of handler objects. Every object

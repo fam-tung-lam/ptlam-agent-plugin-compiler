@@ -162,10 +162,22 @@ Handler paths are relative to `plugin/hooks/`:
 schema_version: 2
 
 hooks:
+  sessionStart:
+    - handler: observability/audit.mjs
   userPromptSubmit:
+    - handler: observability/audit.mjs
     - handler: simple-logger/request.mjs
+  preToolUse:
+    - handler: observability/audit.mjs
+  postToolUseFailure:
+    - handler: observability/audit.mjs
+  permissionRequest:
+    - handler: observability/audit.mjs
   stop:
     - handler: simple-logger/response.mjs
+    - handler: observability/audit.mjs
+  setup:
+    - handler: observability/audit.mjs
 ```
 
 The compiler copies those handlers once into `hooks/handlers/**` and translates
