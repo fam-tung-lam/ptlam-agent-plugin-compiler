@@ -77,29 +77,41 @@ Hooks require `schema_version: 2`. To migrate a valid v1 manifest, change only
 `schema_version` to `2`; its existing fields remain valid and an omitted `hooks`
 field normalizes to an empty list.
 
-One logical hook contains lifecycle bindings whose handler paths are relative to
-`plugin/hooks/<hook-id>/`:
+One logical hook contains universal event bindings whose handler paths are
+relative to `plugin/hooks/<hook-id>/`:
 
 ```yaml
 hooks:
   - id: simple-logger
     bindings:
-      - lifecycle: before-request
+      - event: userPromptSubmit
         handler: request.mjs
-      - lifecycle: before-response
+      - event: stop
         handler: response.mjs
 ```
 
-`id` and a non-empty `bindings` list are required. A binding requires one of the
-two provider-neutral lifecycle values and a normalized `.mjs` handler path. Each
-lifecycle may appear only once per logical hook, every handler must exist, and
-each manifest hook needs a matching `plugin/hooks/<hook-id>/` directory.
+`id` and a non-empty `bindings` list are required. A binding requires a
+universal event and a normalized `.mjs` handler path; `matcher` is optional and
+is copied to compatible native formats. Each event may appear only once per
+logical hook, every handler must exist, and each manifest hook needs a matching
+`plugin/hooks/<hook-id>/` directory.
+
+| Category   | Universal events                                  |
+| ---------- | ------------------------------------------------- |
+| Session    | `sessionStart`, `sessionEnd`                      |
+| Prompt     | `userPromptSubmit`, `userPromptExpansion`         |
+| Tool       | `preToolUse`, `postToolUse`, `postToolUseFailure` |
+| Permission | `permissionRequest`, `permissionDenied`           |
+| Subagent   | `subagentStart`, `subagentStop`                   |
+| Context    | `preCompact`, `postCompact`                       |
+| Lifecycle  | `stop`, `stopFailure`, `notification`, `setup`    |
+| File       | `fileChanged`, `cwdChanged`                       |
 
 Other files inside that directory are loaded as internal resources and copied
 with the handlers. They are not separate manifest entries. In particular, the
-hook shape has no `required` or `policies` property: provider capability decides
-whether native output is generated, while policies remain private to handler
-implementation.
+hook shape has no `required` or `policies` property: per-event provider
+capability decides whether native output is generated, while policies remain
+private to handler implementation.
 
 ## Skill
 

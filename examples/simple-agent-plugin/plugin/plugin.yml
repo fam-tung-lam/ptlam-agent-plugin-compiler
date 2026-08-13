@@ -30,9 +30,9 @@ categories:
 hooks:
   - id: simple-logger
     bindings:
-      - lifecycle: before-request
+      - event: userPromptSubmit
         handler: request.mjs
-      - lifecycle: before-response
+      - event: stop
         handler: response.mjs
 
 skills:

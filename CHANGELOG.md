@@ -13,6 +13,17 @@ and this project adheres to
 - Added optional schema-v2 `disable_model_invocation` skill metadata, compiled
   to `disable-model-invocation: true` in every generated root and embedded
   `SKILL.md` copy.
+- Added all 19 universal hook events and optional binding matchers to the
+  schema-v2 manifest contract.
+
+### Changed
+
+- **Breaking:** Replaced hook binding `lifecycle` and the custom
+  `before-request`/`before-response` values with `event` and the universal hook
+  vocabulary.
+- Replaced binary adapter `supportsHooks` capability reporting with
+  `supportedHookEvents`, provider-native event maps, and binding-level
+  generated/skipped diagnostics.
 
 ## [0.2.0-alpha.1] - 2026-08-12
 

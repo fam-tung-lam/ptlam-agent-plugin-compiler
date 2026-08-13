@@ -93,13 +93,36 @@
     "hookBinding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["lifecycle", "handler"],
+      "required": ["event", "handler"],
       "properties": {
-        "lifecycle": { "enum": ["before-request", "before-response"] },
+        "event": {
+          "enum": [
+            "sessionStart",
+            "sessionEnd",
+            "userPromptSubmit",
+            "userPromptExpansion",
+            "preToolUse",
+            "postToolUse",
+            "postToolUseFailure",
+            "permissionRequest",
+            "permissionDenied",
+            "subagentStart",
+            "subagentStop",
+            "preCompact",
+            "postCompact",
+            "stop",
+            "stopFailure",
+            "notification",
+            "fileChanged",
+            "cwdChanged",
+            "setup"
+          ]
+        },
         "handler": {
           "type": "string",
           "pattern": "^(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]*\\.mjs$"
-        }
+        },
+        "matcher": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
     "hook": {

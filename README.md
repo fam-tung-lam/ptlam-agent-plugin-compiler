@@ -155,8 +155,8 @@ skills:
     required_skills: []
 ```
 
-The same manifest can declare one logical hook with separate lifecycle handlers.
-Handler paths are relative to `plugin/hooks/<hook-id>/`:
+The same manifest can declare one logical hook with separate universal-event
+handlers. Handler paths are relative to `plugin/hooks/<hook-id>/`:
 
 ```yaml
 schema_version: 2
@@ -164,17 +164,18 @@ schema_version: 2
 hooks:
   - id: simple-logger
     bindings:
-      - lifecycle: before-request
+      - event: userPromptSubmit
         handler: request.mjs
-      - lifecycle: before-response
+      - event: stop
         handler: response.mjs
 ```
 
 The compiler copies those handlers once into `hooks/handlers/**` and translates
-the lifecycle stages into each compatible provider's native hook format. Hook
-compatibility is optional: an incompatible adapter still compiles its other
-output and reports the hook as skipped. Hooks do not have a `required` flag, do
-not become fallback skills, and do not write provider instruction files.
+each universal event into semantically equivalent provider-native events. Hook
+compatibility is evaluated per binding: an adapter still compiles its other
+output and reports unsupported events as skipped. Hooks do not have a `required`
+flag, do not become fallback skills, and do not write provider instruction
+files.
 
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
@@ -379,10 +380,11 @@ Every flag, precedence rule, and exit code →
 | `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
 | `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
 
-All five built-in adapters currently implement the binary hook capability. They
-map `before-request` to a prompt/agent-start event and `before-response` to a
-stop/agent-finished event. Custom adapters opt in with `supportsHooks: true`;
-omitting it produces a structured, non-fatal skip for every declared hook.
+Schema v2 accepts the 19 universal hook events documented in the
+[manifest reference](https://agent-plugin-compiler.phamtunglam.com/reference/manifest#hook).
+Each built-in adapter declares the events for which its host has an equivalent.
+Custom adapters expose `supportedHookEvents`; omitted events produce structured,
+non-fatal binding-level skips.
 
 Adapter behavior and custom providers →
 [Providers](https://agent-plugin-compiler.phamtunglam.com/reference/providers).

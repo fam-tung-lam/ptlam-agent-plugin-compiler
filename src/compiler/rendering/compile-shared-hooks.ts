@@ -47,9 +47,11 @@ async function readInput() {
   return source === "" ? {} : JSON.parse(source);
 }
 
-function normalizedContext(lifecycle, input) {
+function normalizedContext(provider, event, input) {
   return Object.freeze({
-    lifecycle,
+    provider,
+    event,
+    input: Object.freeze({ ...input }),
     prompt: input.prompt ?? input.transformedPrompt ?? input.transformed_prompt,
     response:
       input.last_assistant_message ??
@@ -62,19 +64,11 @@ function normalizedContext(lifecycle, input) {
 
 function requestOutput(provider, input, result) {
   if (typeof result?.additionalContext !== "string" || result.additionalContext.trim() === "") {
-    return provider === "kimi" ? "" : {};
+    return result ?? {};
   }
   const additionalContext = result.additionalContext.trim();
   if (provider === "kimi") return additionalContext;
-  if (provider === "copilot") {
-    const original = input.transformedPrompt ?? input.transformed_prompt ?? input.prompt ?? "";
-    return {
-      modifiedTransformedPrompt:
-        original + "\\n\\n<portable-hook-context>\\n" +
-        additionalContext +
-        "\\n</portable-hook-context>",
-    };
-  }
+  if (provider === "copilot") return result;
   return {
     hookSpecificOutput: {
       ...(provider === "claude" || provider === "codex"
@@ -87,7 +81,7 @@ function requestOutput(provider, input, result) {
 
 function responseOutput(provider, result) {
   if (result?.retry !== true || typeof result.reason !== "string" || result.reason.trim() === "") {
-    return {};
+    return result ?? {};
   }
   if (provider === "kimi") {
     return {
@@ -104,17 +98,19 @@ function responseOutput(provider, result) {
 }
 
 async function main() {
-  const [, , provider, lifecycle, handlerPath] = process.argv;
-  if (!provider || !lifecycle || !handlerPath) throw new Error("Missing dispatcher arguments");
+  const [, , provider, event, handlerPath] = process.argv;
+  if (!provider || !event || !handlerPath) throw new Error("Missing dispatcher arguments");
   const input = await readInput();
   const handlerModule = await import(pathToFileURL(handlerPath).href);
   if (typeof handlerModule.handle !== "function") {
     throw new TypeError("Hook handler must export an async handle(context) function");
   }
-  const result = await handlerModule.handle(normalizedContext(lifecycle, input));
-  const output = lifecycle === "before-request"
+  const result = await handlerModule.handle(normalizedContext(provider, event, input));
+  const output = event === "userPromptSubmit"
     ? requestOutput(provider, input, result)
-    : responseOutput(provider, result);
+    : event === "stop"
+      ? responseOutput(provider, result)
+      : result ?? {};
   process.stdout.write(typeof output === "string" ? output : JSON.stringify(output));
 }
 

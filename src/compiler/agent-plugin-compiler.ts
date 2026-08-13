@@ -4,7 +4,9 @@ import {
   OwnershipKind,
   type Plugin,
   PluginSchemaVersion,
+  type ProviderAdapter,
   type ProviderId,
+  type UniversalHookEvent,
 } from "../core/index.js";
 import {
   initializePluginSource,
@@ -76,19 +78,12 @@ async function buildPlan(
   registry: ProviderAdapterRegistry,
   selectedProviders: readonly ProviderId[],
 ) {
-  const context = createProviderContext(plugin);
   const sharedSkills = await compileSharedSkills(plugin);
   const selected = new Set<string>(selectedProviders);
   const providerFragments = registry.list().map((provider) => {
-    const providerContext =
-      provider.supportsHooks === true
-        ? context
-        : createProviderContext(
-            Object.freeze({
-              ...plugin,
-              hooks: Object.freeze([]),
-            }),
-          );
+    const providerContext = createProviderContext(
+      filterPluginHooks(plugin, provider.supportedHookEvents ?? []),
+    );
     const fragment = provider.compile(providerContext);
     if (fragment.ownership.kind !== OwnershipKind.ExactFiles) {
       throw new TypeError(
@@ -103,19 +98,14 @@ async function buildPlan(
           artifacts: [],
         });
   });
-  const selectedSupportsHooks = registry
-    .resolve(selectedProviders)
-    .some((provider) => provider.supportsHooks === true);
+  const selectedEvents = new Set(
+    registry
+      .resolve(selectedProviders)
+      .flatMap((provider) => provider.supportedHookEvents ?? []),
+  );
   const sharedHooks =
     plugin.schema_version === PluginSchemaVersion.V2
-      ? compileSharedHooks(
-          selectedSupportsHooks
-            ? plugin
-            : Object.freeze({
-                ...plugin,
-                hooks: Object.freeze([]),
-              }),
-        )
+      ? compileSharedHooks(filterPluginHooks(plugin, selectedEvents))
       : null;
   return buildWritePlan({
     fragments: [
@@ -124,6 +114,33 @@ async function buildPlan(
       ...providerFragments,
     ],
   });
+}
+
+function filterPluginHooks(
+  plugin: Plugin,
+  supportedEvents: Iterable<UniversalHookEvent>,
+): Plugin {
+  const supported = new Set(supportedEvents);
+  return Object.freeze({
+    ...plugin,
+    hooks: Object.freeze(
+      plugin.hooks.flatMap((hook) => {
+        const bindings = hook.bindings.filter((binding) =>
+          supported.has(binding.event),
+        );
+        return bindings.length === 0
+          ? []
+          : [Object.freeze({ ...hook, bindings: Object.freeze(bindings) })];
+      }),
+    ),
+  });
+}
+
+function providerSupportsEvent(
+  provider: ProviderAdapter,
+  event: UniversalHookEvent,
+): boolean {
+  return provider.supportedHookEvents?.includes(event) === true;
 }
 
 interface ProviderSelection {
@@ -142,20 +159,24 @@ function resolveProviderSelection(
   const hookDiagnostics: HookDiagnostic[] = [];
   for (const provider of adapters) {
     for (const hook of plugin.hooks) {
-      hookDiagnostics.push(
-        provider.supportsHooks === true
-          ? {
-              provider: provider.id,
-              hook: hook.id,
-              status: HookDiagnosticStatus.Generated,
-            }
-          : {
-              provider: provider.id,
-              hook: hook.id,
-              status: HookDiagnosticStatus.Skipped,
-              reason: HookDiagnosticReason.ProviderDoesNotSupportHooks,
-            },
-      );
+      for (const binding of hook.bindings) {
+        hookDiagnostics.push(
+          providerSupportsEvent(provider, binding.event)
+            ? {
+                provider: provider.id,
+                hook: hook.id,
+                event: binding.event,
+                status: HookDiagnosticStatus.Generated,
+              }
+            : {
+                provider: provider.id,
+                hook: hook.id,
+                event: binding.event,
+                status: HookDiagnosticStatus.Skipped,
+                reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+              },
+        );
+      }
     }
   }
   return Object.freeze({

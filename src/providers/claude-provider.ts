@@ -11,7 +11,12 @@ import {
   type ProviderId,
   selectPublishedSkills,
 } from "../core/index.js";
-import { renderNestedHookConfiguration } from "./render-hooks.js";
+import {
+  hasMappedHookBindings,
+  NESTED_HOOK_EVENT_MAP,
+  renderNestedHookConfiguration,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const hooksPath = createProjectPath("hooks/claude-hooks.json");
@@ -40,8 +45,8 @@ const pluginRoot = `\${CLAUDE_PLUGIN_ROOT}`;
 export class ClaudeProviderAdapter implements ProviderAdapter {
   /** Built-in Claude provider identifier. */
   readonly id: ProviderId = CLAUDE;
-  /** Claude Code supports both provider-neutral lifecycle stages. */
-  readonly supportsHooks = true;
+  /** Universal events with native Claude Code equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(NESTED_HOOK_EVENT_MAP);
 
   /**
    * Render Claude manifests from a validated plugin.
@@ -51,6 +56,7 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
+    const hasHooks = hasMappedHookBindings(plugin, NESTED_HOOK_EVENT_MAP);
     const publishedSkills = selectPublishedSkills(plugin.skills);
     const pluginJson = renderJson({
       name: plugin.name,
@@ -62,9 +68,7 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
       license: plugin.license,
       keywords: plugin.keywords,
       skills: publishedSkills.map((skill) => `./skills/${skill.id}`),
-      ...(plugin.hooks.length === 0
-        ? {}
-        : { hooks: "./hooks/claude-hooks.json" }),
+      ...(!hasHooks ? {} : { hooks: "./hooks/claude-hooks.json" }),
     });
     const marketplaceJson = renderJson({
       name: plugin.name,
@@ -103,7 +107,7 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
           path: marketplacePath,
           content: marketplaceJson,
         },
-        ...(plugin.hooks.length === 0
+        ...(!hasHooks
           ? []
           : [
               {
@@ -114,8 +118,6 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
                     plugin,
                     provider: "claude",
                     pluginRoot,
-                    requestEvent: "UserPromptSubmit",
-                    responseEvent: "Stop",
                   }),
                 ),
               },

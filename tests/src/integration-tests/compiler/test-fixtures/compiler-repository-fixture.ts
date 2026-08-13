@@ -86,8 +86,18 @@ export async function createCompilerRepository(): Promise<string> {
   return rootDir;
 }
 
-/** Add one valid two-stage adaptive hook to a compiler repository fixture. */
-export async function addAdaptiveHook(rootDir: string): Promise<void> {
+/** Add one valid adaptive hook to a compiler repository fixture. */
+export async function addAdaptiveHook(
+  rootDir: string,
+  bindings: readonly {
+    readonly event: string;
+    readonly handler: "request.mjs" | "response.mjs";
+    readonly matcher?: string;
+  }[] = [
+    { event: "userPromptSubmit", handler: "request.mjs" },
+    { event: "stop", handler: "response.mjs" },
+  ],
+): Promise<void> {
   const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
     schema_version: number;
@@ -97,10 +107,7 @@ export async function addAdaptiveHook(rootDir: string): Promise<void> {
   manifest.hooks = [
     {
       id: "adaptive-interaction",
-      bindings: [
-        { lifecycle: "before-request", handler: "request.mjs" },
-        { lifecycle: "before-response", handler: "response.mjs" },
-      ],
+      bindings,
     },
   ];
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

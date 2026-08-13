@@ -68,10 +68,10 @@ export {
   createProjectPath,
   createProviderId,
   GEMINI,
-  HookLifecycle,
   KIMI,
   OwnershipKind,
   PluginSchemaVersion,
+  UniversalHookEvent,
 } from "./core/index.js";
 export {
   ClaudeProviderAdapter,

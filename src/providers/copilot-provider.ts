@@ -10,7 +10,12 @@ import {
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
-import { renderCopilotHookConfiguration } from "./render-hooks.js";
+import {
+  COPILOT_HOOK_EVENT_MAP,
+  hasMappedHookBindings,
+  renderCopilotHookConfiguration,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const hooksPath = createProjectPath("hooks/copilot-hooks.json");
@@ -38,8 +43,8 @@ const portablePluginSchema =
 export class CopilotProviderAdapter implements ProviderAdapter {
   /** Built-in GitHub Copilot CLI provider identifier. */
   readonly id: ProviderId = COPILOT;
-  /** Copilot CLI supports both provider-neutral lifecycle stages. */
-  readonly supportsHooks = true;
+  /** Universal events with native Copilot CLI equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(COPILOT_HOOK_EVENT_MAP);
 
   /**
    * Render the portable Agent Plugins manifest from a validated plugin.
@@ -49,6 +54,7 @@ export class CopilotProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
+    const hasHooks = hasMappedHookBindings(plugin, COPILOT_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       $schema: portablePluginSchema,
       name: plugin.name,
@@ -59,9 +65,7 @@ export class CopilotProviderAdapter implements ProviderAdapter {
       repository: plugin.repository,
       license: plugin.license,
       keywords: plugin.keywords,
-      ...(plugin.hooks.length === 0
-        ? {}
-        : { hooks: "./hooks/copilot-hooks.json" }),
+      ...(!hasHooks ? {} : { hooks: "./hooks/copilot-hooks.json" }),
     });
 
     return createPlanFragment({
@@ -76,7 +80,7 @@ export class CopilotProviderAdapter implements ProviderAdapter {
           path: pluginPath,
           content: pluginJson,
         },
-        ...(plugin.hooks.length === 0
+        ...(!hasHooks
           ? []
           : [
               {

@@ -130,6 +130,7 @@ function hookDiagnosticLines(
   diagnostics: readonly {
     readonly provider: string;
     readonly hook: string;
+    readonly event: string;
     readonly status: string;
     readonly reason?: string;
   }[],
@@ -140,7 +141,7 @@ function hookDiagnosticLines(
         "Hooks:",
         ...diagnostics.map(
           (diagnostic) =>
-            `- ${diagnostic.provider}/${diagnostic.hook}: ${diagnostic.status}${diagnostic.reason === undefined ? "" : ` (${diagnostic.reason})`}`,
+            `- ${diagnostic.provider}/${diagnostic.hook}/${diagnostic.event}: ${diagnostic.status}${diagnostic.reason === undefined ? "" : ` (${diagnostic.reason})`}`,
         ),
       ];
 }

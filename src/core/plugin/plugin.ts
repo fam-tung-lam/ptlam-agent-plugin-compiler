@@ -16,7 +16,7 @@ import {
 export enum PluginSchemaVersion {
   /** Version one of the authored plugin manifest schema. */
   V1 = 1,
-  /** Version two adds provider-neutral lifecycle hooks. */
+  /** Version two adds provider-neutral universal hook events. */
   V2 = 2,
 }
 
@@ -75,7 +75,7 @@ export interface PluginManifest {
   readonly keywords: readonly string[];
   /** Skill categories declared by the plugin. */
   readonly categories: readonly PluginCategory[];
-  /** Provider-neutral lifecycle hooks; omitted manifests normalize to an empty list. */
+  /** Provider-neutral universal hooks; omitted manifests normalize to an empty list. */
   readonly hooks: readonly HookManifest[];
   /** Authored skill declarations before source files are attached. */
   readonly skills: readonly SkillManifest[];

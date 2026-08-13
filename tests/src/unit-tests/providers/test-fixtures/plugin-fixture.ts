@@ -5,11 +5,11 @@ import {
   createPlugin,
   createProjectPath,
   createSkillId,
-  HookLifecycle,
   type Plugin,
   PluginSchemaVersion,
   SkillStatus,
   SkillVisibility,
+  UniversalHookEvent,
 } from "../../../../../src/core/index.ts";
 
 export function makePluginFixture(
@@ -113,11 +113,11 @@ export function makeHookPluginFixture(): Plugin {
         id: createHookId("adaptive-interaction"),
         bindings: [
           {
-            lifecycle: HookLifecycle.BeforeRequest,
+            event: UniversalHookEvent.UserPromptSubmit,
             handler: createProjectPath("request.mjs"),
           },
           {
-            lifecycle: HookLifecycle.BeforeResponse,
+            event: UniversalHookEvent.Stop,
             handler: createProjectPath("response.mjs"),
           },
         ],

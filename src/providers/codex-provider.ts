@@ -10,7 +10,12 @@ import {
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
-import { renderNestedHookConfiguration } from "./render-hooks.js";
+import {
+  hasMappedHookBindings,
+  NESTED_HOOK_EVENT_MAP,
+  renderNestedHookConfiguration,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const hooksPath = createProjectPath("hooks/codex-hooks.json");
@@ -37,8 +42,8 @@ const pluginRoot = `\${PLUGIN_ROOT}`;
 export class CodexProviderAdapter implements ProviderAdapter {
   /** Built-in Codex provider identifier. */
   readonly id: ProviderId = CODEX;
-  /** Codex supports both provider-neutral lifecycle stages through command hooks. */
-  readonly supportsHooks = true;
+  /** Universal events with native Codex command-hook equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(NESTED_HOOK_EVENT_MAP);
 
   /**
    * Render the Codex manifest from a validated plugin.
@@ -48,6 +53,7 @@ export class CodexProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
+    const hasHooks = hasMappedHookBindings(plugin, NESTED_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       name: plugin.name,
       version: plugin.version,
@@ -58,9 +64,7 @@ export class CodexProviderAdapter implements ProviderAdapter {
       license: plugin.license,
       keywords: plugin.keywords,
       skills: "./skills/",
-      ...(plugin.hooks.length === 0
-        ? {}
-        : { hooks: "./hooks/codex-hooks.json" }),
+      ...(!hasHooks ? {} : { hooks: "./hooks/codex-hooks.json" }),
     });
 
     return createPlanFragment({
@@ -75,7 +79,7 @@ export class CodexProviderAdapter implements ProviderAdapter {
           path: pluginPath,
           content: pluginJson,
         },
-        ...(plugin.hooks.length === 0
+        ...(!hasHooks
           ? []
           : [
               {
@@ -86,8 +90,6 @@ export class CodexProviderAdapter implements ProviderAdapter {
                     plugin,
                     provider: "codex",
                     pluginRoot,
-                    requestEvent: "UserPromptSubmit",
-                    responseEvent: "Stop",
                   }),
                 ),
               },

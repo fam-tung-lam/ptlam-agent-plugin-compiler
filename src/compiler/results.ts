@@ -6,11 +6,12 @@ import {
   type Plugin,
   type ProjectPath,
   type ProviderId,
+  type UniversalHookEvent,
   type WriteResult,
   type WriteResultInput,
 } from "../core/index.js";
 
-/** Whether one logical hook was emitted or skipped for a selected provider. */
+/** Whether one universal hook binding was emitted or skipped for a provider. */
 export enum HookDiagnosticStatus {
   /** Provider-native configuration and shared handler resources are planned. */
   Generated = "generated",
@@ -20,17 +21,19 @@ export enum HookDiagnosticStatus {
 
 /** Stable reason why a logical hook was skipped. */
 export enum HookDiagnosticReason {
-  /** The provider adapter does not support lifecycle hooks as one capability. */
-  ProviderDoesNotSupportHooks = "provider-does-not-support-hooks",
+  /** The provider has no semantically equivalent native hook event. */
+  ProviderDoesNotSupportHookEvent = "provider-does-not-support-hook-event",
 }
 
-/** Structured compatibility result for one selected provider and logical hook. */
+/** Structured compatibility result for one selected provider and hook binding. */
 export type HookDiagnostic =
   | {
       /** Selected target provider. */
       readonly provider: ProviderId;
       /** Logical authored hook identifier. */
       readonly hook: HookId;
+      /** Universal event evaluated for this binding. */
+      readonly event: UniversalHookEvent;
       /** Successful generation status. */
       readonly status: HookDiagnosticStatus.Generated;
     }
@@ -39,6 +42,8 @@ export type HookDiagnostic =
       readonly provider: ProviderId;
       /** Logical authored hook identifier. */
       readonly hook: HookId;
+      /** Universal event evaluated for this binding. */
+      readonly event: UniversalHookEvent;
       /** Non-fatal skip status. */
       readonly status: HookDiagnosticStatus.Skipped;
       /** Machine-readable compatibility reason. */
