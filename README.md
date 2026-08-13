@@ -155,27 +155,37 @@ skills:
     required_skills: []
 ```
 
-The same manifest can declare one logical hook with separate universal-event
-handlers. Handler paths are relative to `plugin/hooks/<hook-id>/`:
+The same manifest can key ordered handler lists directly by universal event.
+Handler paths are relative to `plugin/hooks/`:
 
 ```yaml
 schema_version: 2
 
 hooks:
-  - id: simple-logger
-    bindings:
-      - event: userPromptSubmit
-        handler: request.mjs
-      - event: stop
-        handler: response.mjs
+  sessionStart:
+    - handler: observability/audit.mjs
+  userPromptSubmit:
+    - handler: observability/audit.mjs
+    - handler: simple-logger/request.mjs
+  preToolUse:
+    - handler: observability/audit.mjs
+  postToolUseFailure:
+    - handler: observability/audit.mjs
+  permissionRequest:
+    - handler: observability/audit.mjs
+  stop:
+    - handler: simple-logger/response.mjs
+    - handler: observability/audit.mjs
+  setup:
+    - handler: observability/audit.mjs
 ```
 
 The compiler copies those handlers once into `hooks/handlers/**` and translates
 each universal event into semantically equivalent provider-native events. Hook
-compatibility is evaluated per binding: an adapter still compiles its other
-output and reports unsupported events as skipped. Hooks do not have a `required`
-flag, do not become fallback skills, and do not write provider instruction
-files.
+compatibility is evaluated per handler registration: an adapter still compiles
+its other output and reports unsupported events as skipped. Hooks do not have a
+`required` flag, do not become fallback skills, and do not write provider
+instruction files.
 
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
@@ -384,7 +394,7 @@ Schema v2 accepts the 19 universal hook events documented in the
 [manifest reference](https://agent-plugin-compiler.phamtunglam.com/reference/manifest#hook).
 Each built-in adapter declares the events for which its host has an equivalent.
 Custom adapters expose `supportedHookEvents`; omitted events produce structured,
-non-fatal binding-level skips.
+non-fatal handler-level skips.
 
 Adapter behavior and custom providers →
 [Providers](https://agent-plugin-compiler.phamtunglam.com/reference/providers).

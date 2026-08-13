@@ -161,7 +161,7 @@ describe("parsePluginManifest", () => {
   });
 
   it("normalizes omitted hooks and accepts every universal hook event", () => {
-    // GIVEN: Legacy source omits hooks while new source binds all universal events.
+    // GIVEN: Legacy source omits hooks while v2 keys handlers by every event.
     const current = makeManifest();
     const { hooks: _hooks, ...currentWithoutHooks } = current;
     const legacyWithoutHooks = {
@@ -170,18 +170,12 @@ describe("parsePluginManifest", () => {
     };
     const adaptive = {
       ...current,
-      hooks: [
-        {
-          id: "adaptive-interaction",
-          bindings: Object.values(UniversalHookEvent).map((event, index) => ({
-            event,
-            handler: `event-${index}.mjs`,
-            ...(event === UniversalHookEvent.PreToolUse
-              ? { matcher: "Bash|Write" }
-              : {}),
-          })),
-        },
-      ],
+      hooks: Object.fromEntries(
+        Object.values(UniversalHookEvent).map((event, index) => [
+          event,
+          [{ handler: `event-${index}.mjs` }],
+        ]),
+      ),
     };
 
     // WHEN: Both manifests cross the same public schema boundary.
@@ -194,60 +188,78 @@ describe("parsePluginManifest", () => {
     assert.equal("manifest" in legacyResult, true);
     assert.deepEqual(
       "manifest" in legacyResult ? legacyResult.manifest.hooks : undefined,
-      [],
+      {},
     );
     assert.equal("manifest" in adaptiveResult, true);
     assert.deepEqual(
       "manifest" in adaptiveResult
-        ? adaptiveResult.manifest.hooks[0]?.bindings.map(({ event }) => event)
+        ? Object.keys(adaptiveResult.manifest.hooks)
         : undefined,
       Object.values(UniversalHookEvent),
     );
     assert.equal(
       "manifest" in adaptiveResult
-        ? adaptiveResult.manifest.hooks[0]?.bindings.find(
-            ({ event }) => event === UniversalHookEvent.PreToolUse,
-          )?.matcher
+        ? adaptiveResult.manifest.hooks.preToolUse?.[0]?.handler
         : undefined,
-      "Bash|Write",
+      "event-4.mjs",
     );
     assert.equal(
       "manifest" in adaptiveResult &&
-        adaptiveResult.manifest.hooks[0] !== undefined &&
-        "required" in adaptiveResult.manifest.hooks[0],
-      false,
+        Object.isFrozen(adaptiveResult.manifest.hooks),
+      true,
     );
   });
 
   it.each(["before-request", "before-response"])(
     "rejects the legacy custom hook event %s",
     (legacyEvent) => {
-      // GIVEN: A schema-v2 hook still uses one compiler-specific lifecycle value.
+      // GIVEN: A schema-v2 map still uses one compiler-specific lifecycle key.
       const source = JSON.stringify({
         ...makeManifest(),
-        hooks: [
-          {
-            id: "adaptive-interaction",
-            bindings: [{ event: legacyEvent, handler: "request.mjs" }],
-          },
-        ],
+        hooks: { [legacyEvent]: [{ handler: "request.mjs" }] },
       });
 
       // WHEN: The manifest crosses the public parsing boundary.
       const result = parsePluginManifest(source);
 
-      // THEN: The closed universal-event enum rejects the legacy value.
+      // THEN: The closed event-keyed object rejects the legacy key.
       assert.equal("manifest" in result, false);
       assert.ok(
         "errors" in result &&
           result.errors.some(
             (error) =>
-              error.includes("hooks/0/bindings/0/event") &&
-              error.includes("must be equal to one of the allowed values"),
+              error.includes("hooks") &&
+              error.includes("must NOT have additional properties"),
           ),
       );
     },
   );
+
+  it("rejects the previous logical-hook binding array", () => {
+    // GIVEN: A schema-v2 manifest still nests event bindings below a hook id.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      hooks: [
+        {
+          id: "adaptive-interaction",
+          bindings: [{ event: "userPromptSubmit", handler: "request.mjs" }],
+        },
+      ],
+    });
+
+    // WHEN: The manifest crosses the public schema boundary.
+    const result = parsePluginManifest(source);
+
+    // THEN: Version two accepts only the event-keyed hook object.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.some(
+          (error) =>
+            error.includes("hooks") && error.includes("must be object"),
+        ),
+    );
+  });
 
   it("rejects unsupported schema versions before contract validation", () => {
     // GIVEN: A structurally complete manifest selects a future schema version.
@@ -267,30 +279,25 @@ describe("parsePluginManifest", () => {
     });
   });
 
-  it("keeps hook policies internal and rejects a required compatibility flag", () => {
-    // GIVEN: A hook attempts to expose policy and required fields in the manifest.
+  it("keeps matcher out of the refactored handler registration", () => {
+    // GIVEN: One handler attempts to add provider-specific matcher semantics.
     const invalid = {
       ...makeManifest(),
-      hooks: [
-        {
-          id: "adaptive-interaction",
-          required: true,
-          policies: ["style.json"],
-          bindings: [{ event: "userPromptSubmit", handler: "request.mjs" }],
-        },
-      ],
+      hooks: {
+        userPromptSubmit: [{ handler: "request.mjs", matcher: "Bash|Write" }],
+      },
     };
 
     // WHEN: The closed schema parses the provider-neutral declaration.
     const result = parsePluginManifest(JSON.stringify(invalid));
 
-    // THEN: Both unsupported public fields are rejected as manifest properties.
+    // THEN: The handler shape accepts only its path.
     assert.equal("manifest" in result, false);
     assert.ok(
       "errors" in result &&
-        result.errors.filter((error) =>
+        result.errors.some((error) =>
           error.includes("must NOT have additional properties"),
-        ).length >= 2,
+        ),
     );
   });
 
@@ -298,14 +305,9 @@ describe("parsePluginManifest", () => {
     // GIVEN: A v2 hook handler path contains a non-normalized dot segment.
     const source = JSON.stringify({
       ...makeManifest(),
-      hooks: [
-        {
-          id: "simple-logger",
-          bindings: [
-            { event: "userPromptSubmit", handler: "lib/./request.mjs" },
-          ],
-        },
-      ],
+      hooks: {
+        userPromptSubmit: [{ handler: "lib/./request.mjs" }],
+      },
     });
 
     // WHEN: The manifest crosses the public parsing boundary.
@@ -317,7 +319,7 @@ describe("parsePluginManifest", () => {
       "errors" in result &&
         result.errors.some(
           (error) =>
-            error.includes("hooks/0/bindings/0/handler") &&
+            error.includes("hooks/userPromptSubmit/0/handler") &&
             error.includes("must match pattern"),
         ),
     );

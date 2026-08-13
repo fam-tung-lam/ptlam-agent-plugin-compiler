@@ -2,7 +2,6 @@ import {
   createDriftEntry,
   createWriteResult,
   type DriftEntry,
-  type HookId,
   type Plugin,
   type ProjectPath,
   type ProviderId,
@@ -11,7 +10,7 @@ import {
   type WriteResultInput,
 } from "../core/index.js";
 
-/** Whether one universal hook binding was emitted or skipped for a provider. */
+/** Whether one universal hook handler was emitted or skipped for a provider. */
 export enum HookDiagnosticStatus {
   /** Provider-native configuration and shared handler resources are planned. */
   Generated = "generated",
@@ -19,31 +18,31 @@ export enum HookDiagnosticStatus {
   Skipped = "skipped",
 }
 
-/** Stable reason why a logical hook was skipped. */
+/** Stable reason why a hook handler was skipped. */
 export enum HookDiagnosticReason {
   /** The provider has no semantically equivalent native hook event. */
   ProviderDoesNotSupportHookEvent = "provider-does-not-support-hook-event",
 }
 
-/** Structured compatibility result for one selected provider and hook binding. */
+/** Structured compatibility result for one selected provider and hook handler. */
 export type HookDiagnostic =
   | {
       /** Selected target provider. */
       readonly provider: ProviderId;
-      /** Logical authored hook identifier. */
-      readonly hook: HookId;
-      /** Universal event evaluated for this binding. */
+      /** Universal event evaluated for this handler. */
       readonly event: UniversalHookEvent;
+      /** Authored handler path relative to `plugin/hooks/`. */
+      readonly handler: ProjectPath;
       /** Successful generation status. */
       readonly status: HookDiagnosticStatus.Generated;
     }
   | {
       /** Selected target provider. */
       readonly provider: ProviderId;
-      /** Logical authored hook identifier. */
-      readonly hook: HookId;
-      /** Universal event evaluated for this binding. */
+      /** Universal event evaluated for this handler. */
       readonly event: UniversalHookEvent;
+      /** Authored handler path relative to `plugin/hooks/`. */
+      readonly handler: ProjectPath;
       /** Non-fatal skip status. */
       readonly status: HookDiagnosticStatus.Skipped;
       /** Machine-readable compatibility reason. */

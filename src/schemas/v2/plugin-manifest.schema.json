@@ -35,8 +35,29 @@
     "license": { "$ref": "#/$defs/nonEmptyString" },
     "keywords": { "$ref": "#/$defs/stringList" },
     "hooks": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/hook" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sessionStart": { "$ref": "#/$defs/hookHandlerList" },
+        "sessionEnd": { "$ref": "#/$defs/hookHandlerList" },
+        "userPromptSubmit": { "$ref": "#/$defs/hookHandlerList" },
+        "userPromptExpansion": { "$ref": "#/$defs/hookHandlerList" },
+        "preToolUse": { "$ref": "#/$defs/hookHandlerList" },
+        "postToolUse": { "$ref": "#/$defs/hookHandlerList" },
+        "postToolUseFailure": { "$ref": "#/$defs/hookHandlerList" },
+        "permissionRequest": { "$ref": "#/$defs/hookHandlerList" },
+        "permissionDenied": { "$ref": "#/$defs/hookHandlerList" },
+        "subagentStart": { "$ref": "#/$defs/hookHandlerList" },
+        "subagentStop": { "$ref": "#/$defs/hookHandlerList" },
+        "preCompact": { "$ref": "#/$defs/hookHandlerList" },
+        "postCompact": { "$ref": "#/$defs/hookHandlerList" },
+        "stop": { "$ref": "#/$defs/hookHandlerList" },
+        "stopFailure": { "$ref": "#/$defs/hookHandlerList" },
+        "notification": { "$ref": "#/$defs/hookHandlerList" },
+        "fileChanged": { "$ref": "#/$defs/hookHandlerList" },
+        "cwdChanged": { "$ref": "#/$defs/hookHandlerList" },
+        "setup": { "$ref": "#/$defs/hookHandlerList" }
+      }
     },
     "categories": {
       "type": "array",
@@ -90,53 +111,21 @@
         "description": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
-    "hookBinding": {
+    "hookHandler": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event", "handler"],
+      "required": ["handler"],
       "properties": {
-        "event": {
-          "enum": [
-            "sessionStart",
-            "sessionEnd",
-            "userPromptSubmit",
-            "userPromptExpansion",
-            "preToolUse",
-            "postToolUse",
-            "postToolUseFailure",
-            "permissionRequest",
-            "permissionDenied",
-            "subagentStart",
-            "subagentStop",
-            "preCompact",
-            "postCompact",
-            "stop",
-            "stopFailure",
-            "notification",
-            "fileChanged",
-            "cwdChanged",
-            "setup"
-          ]
-        },
         "handler": {
           "type": "string",
           "pattern": "^(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)[A-Za-z0-9][A-Za-z0-9._/-]*\\.mjs$"
-        },
-        "matcher": { "$ref": "#/$defs/nonEmptyString" }
-      }
-    },
-    "hook": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["id", "bindings"],
-      "properties": {
-        "id": { "$ref": "#/$defs/identifier" },
-        "bindings": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "$ref": "#/$defs/hookBinding" }
         }
       }
+    },
+    "hookHandlerList": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/hookHandler" }
     },
     "skillRequirement": {
       "type": "object",

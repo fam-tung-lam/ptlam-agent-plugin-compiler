@@ -81,15 +81,25 @@ categories:
     name: Productivity
     description: Skills for everyday productivity workflows.
 
-# Hooks are optional in schema v2. Each binding maps a universal event to an
-# authored .mjs handler under plugin/hooks/<hook-id>/.
+# Hooks are optional in schema v2. Each universal event owns an ordered list of
+# authored .mjs handlers whose paths are relative to plugin/hooks/.
 # hooks:
-#   - id: simple-logger
-#     bindings:
-#       - event: userPromptSubmit
-#         handler: request.mjs
-#       - event: stop
-#         handler: response.mjs
+#   sessionStart:
+#     - handler: observability/audit.mjs
+#   userPromptSubmit:
+#     - handler: observability/audit.mjs
+#     - handler: simple-logger/request.mjs
+#   preToolUse:
+#     - handler: observability/audit.mjs
+#   postToolUseFailure:
+#     - handler: observability/audit.mjs
+#   permissionRequest:
+#     - handler: observability/audit.mjs
+#   stop:
+#     - handler: simple-logger/response.mjs
+#     - handler: observability/audit.mjs
+#   setup:
+#     - handler: observability/audit.mjs
 
 # Skills declare the public catalog, lifecycle, visibility, and dependencies.
 # Each id must have a matching plugin/skills/<id>/SKILL.md source file.

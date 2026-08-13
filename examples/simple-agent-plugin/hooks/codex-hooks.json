@@ -1,6 +1,28 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex sessionStart \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running sessionStart hook"
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex userPromptSubmit \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running userPromptSubmit hook"
+          }
+        ]
+      },
       {
         "hooks": [
           {
@@ -8,6 +30,66 @@
             "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex userPromptSubmit \"${PLUGIN_ROOT}/hooks/handlers/simple-logger/request.mjs\"",
             "timeout": 10,
             "statusMessage": "Running userPromptSubmit hook"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex preToolUse \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running preToolUse hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex postToolUse \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running postToolUse hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex postToolUseFailure \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running postToolUseFailure hook"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex permissionRequest \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running permissionRequest hook"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex notification \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running notification hook"
           }
         ]
       }
@@ -20,6 +102,28 @@
             "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex stop \"${PLUGIN_ROOT}/hooks/handlers/simple-logger/response.mjs\"",
             "timeout": 10,
             "statusMessage": "Running stop hook"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex stop \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running stop hook"
+          }
+        ]
+      }
+    ],
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" codex setup \"${PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running setup hook"
           }
         ]
       }

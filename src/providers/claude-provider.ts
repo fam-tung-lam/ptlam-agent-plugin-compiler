@@ -12,7 +12,7 @@ import {
   selectPublishedSkills,
 } from "../core/index.js";
 import {
-  hasMappedHookBindings,
+  hasMappedHookRegistrations,
   NESTED_HOOK_EVENT_MAP,
   renderNestedHookConfiguration,
   supportedHookEvents,
@@ -56,7 +56,7 @@ export class ClaudeProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
-    const hasHooks = hasMappedHookBindings(plugin, NESTED_HOOK_EVENT_MAP);
+    const hasHooks = hasMappedHookRegistrations(plugin, NESTED_HOOK_EVENT_MAP);
     const publishedSkills = selectPublishedSkills(plugin.skills);
     const pluginJson = renderJson({
       name: plugin.name,

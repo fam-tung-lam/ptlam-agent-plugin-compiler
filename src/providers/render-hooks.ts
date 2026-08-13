@@ -1,4 +1,4 @@
-import { type Hook, type Plugin, UniversalHookEvent } from "../core/index.js";
+import { type Plugin, UniversalHookEvent } from "../core/index.js";
 
 const dispatcher = "hooks/handlers/.runtime/portable-hook-dispatcher.mjs";
 const extensionPath = `\${extensionPath}`;
@@ -75,10 +75,9 @@ export function supportedHookEvents(
 }
 
 interface HookInvocation {
-  readonly hook: Hook;
   readonly event: UniversalHookEvent;
   readonly nativeEvent: string;
-  readonly matcher?: string;
+  readonly index: number;
   readonly command: string;
 }
 
@@ -89,24 +88,19 @@ function invocations(
   eventMap: NativeHookEventMap,
 ): readonly HookInvocation[] {
   return Object.freeze(
-    plugin.hooks.flatMap((hook) =>
-      hook.bindings.flatMap((binding) => {
-        const nativeEvent = eventMap[binding.event];
-        return nativeEvent === undefined
-          ? []
-          : [
-              {
-                hook,
-                event: binding.event,
-                nativeEvent,
-                ...(binding.matcher === undefined
-                  ? {}
-                  : { matcher: binding.matcher }),
-                command: `node "${pluginRoot}/${dispatcher}" ${provider} ${binding.event} "${pluginRoot}/hooks/handlers/${hook.id}/${binding.handler}"`,
-              },
-            ];
-      }),
-    ),
+    plugin.hooks.flatMap((hook, index) => {
+      const nativeEvent = eventMap[hook.event];
+      return nativeEvent === undefined
+        ? []
+        : [
+            {
+              event: hook.event,
+              nativeEvent,
+              index,
+              command: `node "${pluginRoot}/${dispatcher}" ${provider} ${hook.event} "${pluginRoot}/hooks/handlers/${hook.handler}"`,
+            },
+          ];
+    }),
   );
 }
 
@@ -120,14 +114,12 @@ function appendEvent(
   events[event] = values;
 }
 
-/** Whether a plugin contains at least one binding supported by a native map. */
-export function hasMappedHookBindings(
+/** Whether a plugin contains at least one registration supported by a native map. */
+export function hasMappedHookRegistrations(
   plugin: Plugin,
   eventMap: NativeHookEventMap,
 ): boolean {
-  return plugin.hooks.some((hook) =>
-    hook.bindings.some((binding) => eventMap[binding.event] !== undefined),
-  );
+  return plugin.hooks.some((hook) => eventMap[hook.event] !== undefined);
 }
 
 /** Render Claude/Codex nested command-hook configuration. */
@@ -148,9 +140,6 @@ export function renderNestedHookConfiguration({
     NESTED_HOOK_EVENT_MAP,
   )) {
     appendEvent(hooks, invocation.nativeEvent, {
-      ...(invocation.matcher === undefined
-        ? {}
-        : { matcher: invocation.matcher }),
       hooks: [
         {
           type: "command",
@@ -176,12 +165,9 @@ export function renderGeminiHookConfiguration(
     GEMINI_HOOK_EVENT_MAP,
   )) {
     appendEvent(hooks, invocation.nativeEvent, {
-      ...(invocation.matcher === undefined
-        ? {}
-        : { matcher: invocation.matcher }),
       hooks: [
         {
-          name: `${invocation.hook.id}-${invocation.event}`,
+          name: `${invocation.event}-${invocation.index}`,
           type: "command",
           command: invocation.command,
           timeout: 10000,
@@ -206,9 +192,6 @@ export function renderCopilotHookConfiguration(
     appendEvent(hooks, invocation.nativeEvent, {
       type: "command",
       command: invocation.command,
-      ...(invocation.matcher === undefined
-        ? {}
-        : { matcher: invocation.matcher }),
       timeoutSec: 10,
     });
   }
@@ -220,9 +203,6 @@ export function renderKimiHooks(plugin: Plugin): readonly unknown[] {
   return Object.freeze(
     invocations(plugin, "kimi", ".", KIMI_HOOK_EVENT_MAP).map((invocation) => ({
       event: invocation.nativeEvent,
-      ...(invocation.matcher === undefined
-        ? {}
-        : { matcher: invocation.matcher }),
       command: invocation.command,
       timeout: 10,
     })),

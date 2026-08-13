@@ -121,18 +121,12 @@ function filterPluginHooks(
   supportedEvents: Iterable<UniversalHookEvent>,
 ): Plugin {
   const supported = new Set(supportedEvents);
+  const hooks = plugin.hooks.filter((hook) => supported.has(hook.event));
   return Object.freeze({
     ...plugin,
-    hooks: Object.freeze(
-      plugin.hooks.flatMap((hook) => {
-        const bindings = hook.bindings.filter((binding) =>
-          supported.has(binding.event),
-        );
-        return bindings.length === 0
-          ? []
-          : [Object.freeze({ ...hook, bindings: Object.freeze(bindings) })];
-      }),
-    ),
+    hooks: Object.freeze(hooks),
+    hook_resources:
+      hooks.length === 0 ? Object.freeze([]) : plugin.hook_resources,
   });
 }
 
@@ -159,24 +153,22 @@ function resolveProviderSelection(
   const hookDiagnostics: HookDiagnostic[] = [];
   for (const provider of adapters) {
     for (const hook of plugin.hooks) {
-      for (const binding of hook.bindings) {
-        hookDiagnostics.push(
-          providerSupportsEvent(provider, binding.event)
-            ? {
-                provider: provider.id,
-                hook: hook.id,
-                event: binding.event,
-                status: HookDiagnosticStatus.Generated,
-              }
-            : {
-                provider: provider.id,
-                hook: hook.id,
-                event: binding.event,
-                status: HookDiagnosticStatus.Skipped,
-                reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
-              },
-        );
-      }
+      hookDiagnostics.push(
+        providerSupportsEvent(provider, hook.event)
+          ? {
+              provider: provider.id,
+              event: hook.event,
+              handler: hook.handler,
+              status: HookDiagnosticStatus.Generated,
+            }
+          : {
+              provider: provider.id,
+              event: hook.event,
+              handler: hook.handler,
+              status: HookDiagnosticStatus.Skipped,
+              reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+            },
+      );
     }
   }
   return Object.freeze({

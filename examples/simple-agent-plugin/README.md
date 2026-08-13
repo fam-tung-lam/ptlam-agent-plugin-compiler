@@ -3,18 +3,20 @@
 This example shows the smallest practical workflow for compiling an agent plugin
 for Claude and Codex.
 
-The authored source contains three skills and one logical universal hook:
+The authored source contains three skills and a cross-category set of universal
+hooks:
 
 - `prepare-change-plan` is public and requires `inspect-repository`;
 - `inspect-repository` is an internal dependency; and
 - `write-commit-message` is public and standalone.
-- `simple-logger` prints each request and response to standard error, then lets
-  the interaction continue unchanged.
+- `observability/audit.mjs` is reused by session, prompt, tool, permission,
+  lifecycle, and setup events; and
+- `simple-logger` adds event-specific prompt and response logging. The prompt
+  and stop events each declare two handlers to demonstrate ordered execution.
 
-Its source declaration is in `plugin/plugin.yml`; its two authored modules are
-`plugin/hooks/simple-logger/request.mjs` and `response.mjs`. The generated
-Claude and Codex configurations reuse one compiled copy of both handlers under
-`hooks/handlers/`.
+Its source declaration is in `plugin/plugin.yml`; its three authored modules are
+below `plugin/hooks/`. The generated Claude and Codex configurations reuse one
+compiled copy of each handler under `hooks/handlers/`.
 
 The compiler publishes the two public skills at the root of `skills/`. It embeds
 `inspect-repository` under `prepare-change-plan/skills/`, so the dependent skill
