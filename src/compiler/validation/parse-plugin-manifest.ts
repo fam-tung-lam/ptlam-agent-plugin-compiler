@@ -73,11 +73,17 @@ type JsonSkillArchive = Omit<SkillArchive, "replacement_skill_id"> & {
 
 type JsonSkillManifest = Omit<
   SkillManifest,
-  "archive" | "category_id" | "deprecation" | "id" | "required_skills"
+  | "archive"
+  | "category_id"
+  | "deprecation"
+  | "disable_model_invocation"
+  | "id"
+  | "required_skills"
 > & {
   readonly archive?: JsonSkillArchive;
   readonly category_id: string;
   readonly deprecation?: JsonSkillDeprecation;
+  readonly disable_model_invocation?: boolean;
   readonly id: string;
   readonly required_skills: readonly JsonSkillRequirement[];
 };
@@ -202,6 +208,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
     archive,
     category_id,
     deprecation,
+    disable_model_invocation = false,
     id,
     required_skills,
     ...metadata
@@ -209,6 +216,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
   return Object.freeze({
     ...metadata,
     id: createSkillId(id),
+    disable_model_invocation,
     category_id: createCategoryId(category_id),
     required_skills: Object.freeze(
       required_skills.map((requirement) =>

@@ -103,17 +103,25 @@ implementation.
 
 ## Skill
 
-| Field             | Contract                                       |
-| ----------------- | ---------------------------------------------- |
-| `id`              | Identifier; needs a matching `SKILL.md` source |
-| `description`     | Non-empty public description                   |
-| `category_id`     | ID of a declared category                      |
-| `visibility`      | `internal` or `public`                         |
-| `status`          | `draft`, `active`, `deprecated`, or `archived` |
-| `required_skills` | Dependency list; may be empty                  |
+| Field                      | Contract                                       |
+| -------------------------- | ---------------------------------------------- |
+| `id`                       | Identifier; needs a matching `SKILL.md` source |
+| `description`              | Non-empty public description                   |
+| `disable_model_invocation` | Optional v2 boolean; defaults to `false`       |
+| `category_id`              | ID of a declared category                      |
+| `visibility`               | `internal` or `public`                         |
+| `status`                   | `draft`, `active`, `deprecated`, or `archived` |
+| `required_skills`          | Dependency list; may be empty                  |
 
-All six are required. `deprecation` and `archive` are the only optional
-properties, and each is allowed for exactly one status.
+The original six fields remain required. Schema v2 additionally accepts
+`disable_model_invocation`; schema v1 rejects it. `deprecation` and `archive`
+remain lifecycle-specific optional properties.
+
+Set `disable_model_invocation: true` when a supported host should expose the
+skill for explicit user invocation without letting its model select the skill
+automatically. The compiler maps it to `disable-model-invocation: true` in every
+generated copy of that skill. See [Providers](/reference/providers) for current
+host behavior.
 
 ### Required skill
 

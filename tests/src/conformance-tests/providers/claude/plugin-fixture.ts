@@ -38,6 +38,7 @@ export function makeClaudeConformancePlugin(): Plugin {
       {
         id: createSkillId("active-skill"),
         description: "An active public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Active,

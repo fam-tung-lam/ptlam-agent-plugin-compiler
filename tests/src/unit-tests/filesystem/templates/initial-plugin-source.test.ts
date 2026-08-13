@@ -17,5 +17,12 @@ describe("INITIAL_PLUGIN_MANIFEST", () => {
     assert.ok("manifest" in result, result.errors.join("\n"));
     assert.deepEqual(result.manifest.providers, []);
     assert.doesNotMatch(source, /^marketplace:/mu);
+    assert.match(source, /# disable_model_invocation: true/u);
+    assert.equal(
+      result.manifest.skills.every(
+        (skill) => skill.disable_model_invocation === false,
+      ),
+      true,
+    );
   });
 });

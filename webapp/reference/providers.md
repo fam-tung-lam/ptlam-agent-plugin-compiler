@@ -14,6 +14,23 @@ The shared renderer owns `skills/**` and reusable hook handlers separately.
 | `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
 | `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
 
+## Manual-only skill invocation
+
+Schema v2 can emit `disable-model-invocation: true` in shared skill frontmatter.
+Current hosts handle that field as follows:
+
+| Provider  | Loads the skill | Prevents model invocation |
+| --------- | --------------- | ------------------------- |
+| `claude`  | Yes             | Yes                       |
+| `codex`   | Yes             | No; ignores the field     |
+| `copilot` | Yes             | Yes                       |
+| `gemini`  | Yes             | No; ignores the field     |
+| `kimi`    | Yes             | Yes                       |
+
+The shared field is syntactically compatible with every built-in provider, but
+it is behaviorally enforced only by Claude Code, GitHub Copilot CLI, and Kimi
+Code CLI. Do not rely on it as a Codex or Gemini safety boundary.
+
 ## Hook translation
 
 All built-in adapters currently advertise the binary `supportsHooks` capability.

@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added optional schema-v2 `disable_model_invocation` skill metadata, compiled
+  to `disable-model-invocation: true` in every generated root and embedded
+  `SKILL.md` copy.
+
 ## [0.2.0-alpha.1] - 2026-08-12
 
 ### Added

@@ -26,10 +26,18 @@ describe("validateAuthoredPlugin", () => {
     // GIVEN: A legacy plugin has an unrelated directory under plugin/hooks/.
     const manifest = makeManifest();
     const { hooks: _hooks, ...withoutHooks } = manifest;
+    const legacySkills = manifest.skills.map(
+      ({ disable_model_invocation: _disableModelInvocation, ...skill }) =>
+        skill,
+    );
     const source = makePluginSource({
       manifest,
       manifestSource: `${JSON.stringify(
-        { ...withoutHooks, schema_version: PluginSchemaVersion.V1 },
+        {
+          ...withoutHooks,
+          schema_version: PluginSchemaVersion.V1,
+          skills: legacySkills,
+        },
         null,
         2,
       )}\n`,

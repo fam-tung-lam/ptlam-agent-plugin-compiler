@@ -93,6 +93,8 @@ categories:
 
 # Skills declare the public catalog, lifecycle, visibility, and dependencies.
 # Each id must have a matching plugin/skills/<id>/SKILL.md source file.
+# Schema v2 skills may set disable_model_invocation: true when supported hosts
+# should allow explicit user invocation but not automatic model selection.
 skills:
   # Required/internal skill example. Internal skills can support public skills
   # without being published as standalone catalog entries.
@@ -111,6 +113,7 @@ skills:
   # TODO: Replace this example with a real standalone skill.
   - id: write-commit-message
     description: Write a concise conventional commit message.
+    # disable_model_invocation: true
     category_id: engineering
     visibility: public # Possible values: internal, public.
     status: active # Possible values: draft, active, deprecated, archived.

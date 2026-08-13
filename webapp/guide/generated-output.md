@@ -53,9 +53,10 @@ policy output is generated.
 For each published skill the compiler writes `skills/<skill-id>/SKILL.md`
 containing, in order:
 
-1. **Frontmatter** derived from the manifest: `name` is the skill ID and
-   `description` is the manifest description. Authored sources must not contain
-   frontmatter, so this metadata has exactly one owner.
+1. **Frontmatter** derived from the manifest: `name` is the skill ID,
+   `description` is the manifest description, and an enabled schema-v2
+   `disable_model_invocation` becomes `disable-model-invocation: true`. Authored
+   sources must not contain frontmatter, so this metadata has exactly one owner.
 2. **Your Markdown**, unchanged.
 3. **A `## Required skills` section**, one subsection per requirement, with the
    reason, the instructions, and a relative link to the nested copy. Its

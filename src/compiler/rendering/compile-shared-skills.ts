@@ -53,7 +53,13 @@ function normalizeNewlines(value: string): string {
 
 function renderFrontmatter(skill: Skill): string {
   return `---\n${stringify(
-    { name: skill.id, description: skill.description },
+    {
+      name: skill.id,
+      description: skill.description,
+      ...(skill.disable_model_invocation
+        ? { "disable-model-invocation": true }
+        : {}),
+    },
     { lineWidth: 0 },
   ).trimEnd()}\n---`;
 }

@@ -9,11 +9,23 @@ import {
   CODEX,
   PluginSchemaVersion,
 } from "../../../../../src/core/index.ts";
-import { makeManifest } from "../test-fixtures/plugin-fixture.ts";
+import { makeManifest, makeSkill } from "../test-fixtures/plugin-fixture.ts";
 
 const require = createRequire(import.meta.url);
 const pluginManifestSchemaV1 = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
 const pluginManifestSchemaV2 = require("../../../../../src/schemas/v2/plugin-manifest.schema.json");
+
+function removeV2SkillFields<
+  T extends { readonly skills: ReturnType<typeof makeManifest>["skills"] },
+>(manifest: T) {
+  return {
+    ...manifest,
+    skills: manifest.skills.map(
+      ({ disable_model_invocation: _disableModelInvocation, ...skill }) =>
+        skill,
+    ),
+  };
+}
 
 describe("parsePluginManifest", () => {
   it("uses the v2 JSON schema as the current manifest contract", () => {
@@ -54,7 +66,7 @@ describe("parsePluginManifest", () => {
       "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json",
     );
     assert.equal(pluginManifestSchemaV1.properties.hooks, undefined);
-    const manifest = makeManifest();
+    const manifest = removeV2SkillFields(makeManifest());
     const { hooks: _hooks, ...withoutHooks } = manifest;
     const legacy = {
       ...withoutHooks,
@@ -69,6 +81,66 @@ describe("parsePluginManifest", () => {
     // THEN: Version dispatch applies the closed v1 contract.
     assert.deepEqual(result, {
       errors: ["plugin/plugin.yml#/hooks: must NOT have additional properties"],
+    });
+  });
+
+  it("accepts manual-only skills in v2 and keeps the field out of v1", () => {
+    // GIVEN: One v2 skill disables model invocation while another omits the field.
+    const manualOnly = makeManifest({
+      skills: [
+        makeSkill({ id: "automatic-skill" }),
+        makeSkill({
+          id: "manual-skill",
+          disable_model_invocation: true,
+        }),
+      ],
+    });
+    const source = JSON.parse(JSON.stringify(manualOnly)) as Record<
+      string,
+      unknown
+    >;
+    const skills = source["skills"] as Record<string, unknown>[];
+    delete skills[0]?.["disable_model_invocation"];
+
+    // WHEN: V2, invalid-v2, and v1 variants cross the public schema boundary.
+    const current = parsePluginManifest(JSON.stringify(source));
+    const invalid = parsePluginManifest(
+      JSON.stringify({
+        ...source,
+        skills: [{ ...skills[0], disable_model_invocation: "true" }],
+      }),
+    );
+    const legacy = parsePluginManifest(
+      JSON.stringify({
+        ...source,
+        schema_version: PluginSchemaVersion.V1,
+        hooks: undefined,
+        skills: [{ ...skills[0], disable_model_invocation: true }],
+      }),
+    );
+
+    // THEN: Omission normalizes false, true remains true, and v1 rejects the field.
+    assert.equal(
+      "manifest" in current
+        ? current.manifest.skills[0]?.disable_model_invocation
+        : undefined,
+      false,
+    );
+    assert.equal(
+      "manifest" in current
+        ? current.manifest.skills[1]?.disable_model_invocation
+        : undefined,
+      true,
+    );
+    assert.deepEqual(invalid, {
+      errors: [
+        "plugin/plugin.yml/skills/0/disable_model_invocation: must be boolean",
+      ],
+    });
+    assert.deepEqual(legacy, {
+      errors: [
+        "plugin/plugin.yml/skills/0/disable_model_invocation: must NOT have additional properties",
+      ],
     });
   });
 
@@ -92,7 +164,7 @@ describe("parsePluginManifest", () => {
     const current = makeManifest();
     const { hooks: _hooks, ...currentWithoutHooks } = current;
     const legacyWithoutHooks = {
-      ...currentWithoutHooks,
+      ...removeV2SkillFields(currentWithoutHooks),
       schema_version: PluginSchemaVersion.V1,
     };
     const adaptive = {
