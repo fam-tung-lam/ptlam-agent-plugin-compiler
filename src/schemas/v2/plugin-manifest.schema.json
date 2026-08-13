@@ -158,6 +158,7 @@
       "properties": {
         "id": { "$ref": "#/$defs/identifier" },
         "description": { "$ref": "#/$defs/nonEmptyString" },
+        "disable_model_invocation": { "type": "boolean" },
         "category_id": { "$ref": "#/$defs/identifier" },
         "visibility": { "enum": ["internal", "public"] },
         "status": { "enum": ["draft", "active", "deprecated", "archived"] },

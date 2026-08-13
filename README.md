@@ -185,6 +185,24 @@ ownership. Every other path stays outside the write plan. Compilation is
 deterministic, so the same source always produces the same bytes and `check` can
 prove that committed output is current.
 
+Schema v2 also lets an author mark a workflow as manual-only:
+
+```yaml
+skills:
+  - id: deploy
+    description: Deploy the application after explicit user confirmation.
+    disable_model_invocation: true
+    category_id: engineering
+    visibility: public
+    status: active
+    required_skills: []
+```
+
+The compiler emits `disable-model-invocation: true` in the generated skill
+frontmatter. Claude Code, GitHub Copilot CLI, and Kimi Code CLI currently honor
+the restriction. Codex and Gemini CLI accept the skill but ignore this field, so
+they may still select it automatically.
+
 ## Dependency instructions are generated
 
 You write `plugin/skills/skill-a/SKILL.md` without mentioning `skill-b` at all:

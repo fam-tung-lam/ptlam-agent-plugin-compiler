@@ -40,6 +40,7 @@ type SkillArchiveFixture = Omit<SkillArchive, "replacement_skill_id"> & {
 interface SkillManifestFixture {
   readonly id: string;
   readonly description?: string;
+  readonly disable_model_invocation?: boolean;
   readonly category_id?: string;
   readonly visibility?: SkillVisibility;
   readonly status?: SkillStatus;
@@ -93,6 +94,7 @@ export function makeSkill(overrides: SkillManifestFixture): SkillManifest {
   return {
     id: createSkillId(overrides.id),
     description: overrides.description ?? `Description for ${overrides.id}.`,
+    disable_model_invocation: overrides.disable_model_invocation ?? false,
     category_id: createCategoryId(overrides.category_id ?? "engineering"),
     visibility: overrides.visibility ?? SkillVisibility.Public,
     status: overrides.status ?? SkillStatus.Active,

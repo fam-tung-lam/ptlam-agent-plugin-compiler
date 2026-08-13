@@ -47,6 +47,7 @@ export function makePluginFixture(
       {
         id: active,
         description: "An active public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Active,
@@ -58,6 +59,7 @@ export function makePluginFixture(
       {
         id: createSkillId("deprecated-skill"),
         description: "A deprecated public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Deprecated,
@@ -74,6 +76,7 @@ export function makePluginFixture(
       {
         id: createSkillId("internal-skill"),
         description: "An internal dependency.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Internal,
         status: SkillStatus.Active,
@@ -85,6 +88,7 @@ export function makePluginFixture(
       {
         id: createSkillId("draft-skill"),
         description: "A draft public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Draft,
