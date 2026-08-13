@@ -104,6 +104,38 @@ describe("validateAuthoredPlugin", () => {
     assert.equal(Object.isFrozen(result.plugin.hooks), true);
   });
 
+  it("rejects authored files in the compiler-owned hook runtime namespace", () => {
+    // GIVEN: A valid handler is accompanied by a file at the generated runtime path.
+    const manifest = makeManifest({
+      hooks: {
+        [UniversalHookEvent.UserPromptSubmit]: [
+          { handler: createProjectPath("request.mjs") },
+        ],
+      },
+    });
+    const source = makePluginSource({
+      manifest,
+      hookResources: {
+        "request.mjs": "export async function handle() {}\n",
+        ".runtime/portable-hook-dispatcher.mjs":
+          "export async function dispatch() {}\n",
+      },
+    });
+
+    // WHEN: Source validation evaluates the compiler-owned runtime namespace.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: The collision fails at the authored-source validation boundary.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.match(
+        error.message,
+        /plugin\/hooks\/\.runtime\/: reserved for compiler-managed hook runtime files/u,
+      );
+      return true;
+    });
+  });
+
   it("aggregates missing event-keyed handler resources", () => {
     // GIVEN: One event registers two handler paths that are absent from disk.
     const manifest = makeManifest({

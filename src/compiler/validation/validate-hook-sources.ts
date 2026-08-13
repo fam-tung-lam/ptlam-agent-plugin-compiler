@@ -11,6 +11,7 @@ import {
 import { SOURCE_MANIFEST_PATH } from "./parse-plugin-manifest.js";
 
 const SOURCE_HOOKS_PATH = "plugin/hooks";
+const RESERVED_HOOK_RUNTIME_PATH = `${SOURCE_HOOKS_PATH}/.runtime`;
 
 /** Loaded hook registrations, shared resources, and authored-layout diagnostics. */
 export interface HookSourceValidationResult {
@@ -53,6 +54,7 @@ export function validateHookSources(
   const errors: string[] = [];
   const seenPaths = new Set<string>();
   const files = new Map<string, Buffer>();
+  let reportedReservedRuntime = false;
   const entries = source.hookEntries.filter((entry) => {
     const entryPath = String(entry.path);
     if (seenPaths.has(entryPath)) {
@@ -70,6 +72,18 @@ export function validateHookSources(
       errors.push(
         `${entryPath}: hook source entry is outside ${SOURCE_HOOKS_PATH}/`,
       );
+      return false;
+    }
+    if (
+      entryPath === RESERVED_HOOK_RUNTIME_PATH ||
+      entryPath.startsWith(`${RESERVED_HOOK_RUNTIME_PATH}/`)
+    ) {
+      if (!reportedReservedRuntime) {
+        errors.push(
+          `${RESERVED_HOOK_RUNTIME_PATH}/: reserved for compiler-managed hook runtime files`,
+        );
+        reportedReservedRuntime = true;
+      }
       return false;
     }
     return true;

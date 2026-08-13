@@ -110,6 +110,9 @@ hook shape has no `required` or `policies` property: per-event provider
 capability decides whether native output is generated, while policies remain
 private to handler implementation.
 
+`plugin/hooks/.runtime/` is reserved for the compiler-managed dispatcher and
+cannot contain authored resources.
+
 ## Skill
 
 | Field                      | Contract                                       |
