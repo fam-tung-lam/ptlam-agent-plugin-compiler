@@ -19,7 +19,6 @@ import {
   createProviderId,
   createSkillId,
   type HookBinding,
-  type HookLifecycle,
   type HookManifest,
   type PluginCategory,
   type PluginManifest,
@@ -28,6 +27,7 @@ import {
   type SkillDeprecation,
   type SkillManifest,
   type SkillRequirement,
+  type UniversalHookEvent,
 } from "../../core/index.js";
 
 const require = createRequire(import.meta.url);
@@ -114,7 +114,8 @@ function createHookManifest(value: JsonHookManifest): HookManifest {
     bindings: Object.freeze(
       value.bindings.map((binding) =>
         Object.freeze({
-          lifecycle: binding.lifecycle as HookLifecycle,
+          ...binding,
+          event: binding.event as UniversalHookEvent,
           handler: createProjectPath(binding.handler),
         }),
       ),

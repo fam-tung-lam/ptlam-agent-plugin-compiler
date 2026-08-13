@@ -186,7 +186,7 @@ erDiagram
     PluginManifest ||--|| Plugin : "validates into"
     Plugin ||--|{ Skill : "contains"
     Plugin ||--o{ Hook : "contains"
-    Hook ||--|{ HookBinding : "maps lifecycle to handler"
+    Hook ||--|{ HookBinding : "maps universal event to handler"
     Plugin ||--|{ PlanFragment : "renders into"
     PlanFragment }|--|| WritePlan : "combines into"
     WritePlan ||--|{ Artifact : "contains"
@@ -300,7 +300,7 @@ flowchart LR
 
 | Type                      | Module      | Responsibility                                      | Invariant                                                 |
 | ------------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------- |
-| `ProviderAdapter`         | `core`      | Define host rendering and binary hook capability    | Has one valid `ProviderId` and returns one `PlanFragment` |
+| `ProviderAdapter`         | `core`      | Define host rendering and event-level hook support  | Has one valid `ProviderId` and returns one `PlanFragment` |
 | `ProviderContext`         | `core`      | Give adapters the validated plugin data they need   | Contains no live filesystem access                        |
 | `ClaudeProviderAdapter`   | `providers` | Render Claude manifests and hook config             | Owns only Claude exact paths                              |
 | `CodexProviderAdapter`    | `providers` | Render Codex manifest and hook config               | Owns only Codex exact paths                               |
@@ -321,9 +321,9 @@ flowchart LR
   explicit replacement and `--no-providers` is an explicit empty replacement.
 - `providers: []` still compiles the shared `skills/` fragment but selects no
   provider artifacts.
-- `supportsHooks` is one binary adapter capability. Omitted means unsupported;
-  the compiler removes hooks from that adapter's context, compiles its other
-  components, and returns one non-fatal skipped diagnostic per logical hook.
+- `supportedHookEvents` is an event-level adapter capability. Omitted events are
+  removed from that adapter's context while its other components compile, and
+  each binding receives a generated or non-fatal skipped diagnostic.
 - A malformed ID and a well-formed unknown ID are distinct failures; both are
   `cli` usage errors with exit code `2`.
 - Every registered adapter contributes its exact-file ownership. Selected
@@ -340,27 +340,25 @@ flowchart LR
 
 ## Portable hook seam
 
-A hook is one logical component with one or more lifecycle bindings. Manifest v2
-currently exposes only `before-request` and `before-response`, each bound to an
-authored `.mjs` handler under `plugin/hooks/<hook-id>/`. Handler-adjacent files
-are internal resources, so policy data can be shared without becoming a public
-manifest concept.
+A hook is one logical component with one or more universal event bindings.
+Manifest v2 exposes the standard session, prompt, tool, permission, subagent,
+context, lifecycle, and file events, each bound to an authored `.mjs` handler
+under `plugin/hooks/<hook-id>/`. Handler-adjacent files are internal resources,
+so policy data can be shared without becoming a public manifest concept.
 
 For v2, the shared renderer owns `hooks/handlers/**`, copies each logical hook
 there once, and adds a small dispatcher. An empty v2 hook list retains an empty
 owned root so stale resources are removed; v1 claims no hook paths. Provider
 adapters point their native command entries at that shared tree and translate
-event names, inputs, and results. Claude and Codex use
-`UserPromptSubmit`/`Stop`; Copilot uses `userPromptTransformed`/`agentStop`;
-Gemini uses `BeforeAgent`/`AfterAgent`; and Kimi uses `UserPromptSubmit`/`Stop`
-inline in its manifest.
+event names, inputs, and results. Adapters use explicit mappings and omit events
+without a semantic equivalent rather than approximating them.
 
-The dispatcher fails open on handler errors. `before-request` handlers return
-optional context and never replace intent in the provider-neutral model.
-`before-response` handlers may request a bounded continuation with a reason;
-provider translation selects the native block or deny shape. No fallback skill,
-`AGENTS.md`, provider instruction injection, hook `required` flag, or granular
-event capability matrix exists at this seam.
+The dispatcher fails open on handler errors. It passes `provider`, the universal
+`event`, the immutable native `input`, and common prompt/response fields to the
+handler. `userPromptSubmit` may return portable `additionalContext`, and `stop`
+may request a bounded continuation with a reason; other results pass through for
+native handling. No fallback skill, `AGENTS.md`, provider instruction injection,
+or hook `required` flag exists at this seam.
 
 The seam is open inside the process and has five real adapters. It is not a
 separate package or process ABI, and it needs neither an abstract base class nor

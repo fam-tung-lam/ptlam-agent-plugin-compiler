@@ -33,25 +33,46 @@ Code CLI. Do not rely on it as a Codex or Gemini safety boundary.
 
 ## Hook translation
 
-All built-in adapters currently advertise the binary `supportsHooks` capability.
-One authored handler tree is reused across compatible providers:
+Built-in adapters advertise `supportedHookEvents`. One authored handler tree is
+reused, while each binding is emitted only when the host exposes a semantically
+equivalent event:
 
-| Provider  | Request lifecycle       | Response lifecycle | Native hook output              |
-| --------- | ----------------------- | ------------------ | ------------------------------- |
-| `claude`  | `UserPromptSubmit`      | `Stop`             | `hooks/claude-hooks.json`       |
-| `codex`   | `UserPromptSubmit`      | `Stop`             | `hooks/codex-hooks.json`        |
-| `copilot` | `userPromptTransformed` | `agentStop`        | `hooks/copilot-hooks.json`      |
-| `gemini`  | `BeforeAgent`           | `AfterAgent`       | conventional `hooks/hooks.json` |
-| `kimi`    | `UserPromptSubmit`      | `Stop`             | inline in `kimi.plugin.json`    |
+| Universal event       | Claude/Codex          | Copilot               | Gemini         | Kimi                 |
+| --------------------- | --------------------- | --------------------- | -------------- | -------------------- |
+| `sessionStart`        | `SessionStart`        | `sessionStart`        | `SessionStart` | `SessionStart`       |
+| `sessionEnd`          | `SessionEnd`          | `sessionEnd`          | `SessionEnd`   | `SessionEnd`         |
+| `userPromptSubmit`    | `UserPromptSubmit`    | `userPromptSubmitted` | `BeforeAgent`  | `UserPromptSubmit`   |
+| `userPromptExpansion` | `UserPromptExpansion` | —                     | —              | —                    |
+| `preToolUse`          | `PreToolUse`          | `preToolUse`          | `BeforeTool`   | `PreToolUse`         |
+| `postToolUse`         | `PostToolUse`         | `postToolUse`         | `AfterTool`    | `PostToolUse`        |
+| `postToolUseFailure`  | `PostToolUseFailure`  | `postToolUseFailure`  | —              | `PostToolUseFailure` |
+| `permissionRequest`   | `PermissionRequest`   | `permissionRequest`   | —              | `PermissionRequest`  |
+| `permissionDenied`    | `PermissionDenied`    | —                     | —              | —                    |
+| `subagentStart`       | `SubagentStart`       | `subagentStart`       | —              | `SubagentStart`      |
+| `subagentStop`        | `SubagentStop`        | `subagentStop`        | —              | `SubagentStop`       |
+| `preCompact`          | `PreCompact`          | `preCompact`          | `PreCompress`  | `PreCompact`         |
+| `postCompact`         | `PostCompact`         | —                     | —              | `PostCompact`        |
+| `stop`                | `Stop`                | `agentStop`           | `AfterAgent`   | `Stop`               |
+| `stopFailure`         | `StopFailure`         | —                     | —              | `StopFailure`        |
+| `notification`        | `Notification`        | `notification`        | `Notification` | `Notification`       |
+| `fileChanged`         | `FileChanged`         | —                     | —              | —                    |
+| `cwdChanged`          | `CwdChanged`          | —                     | —              | —                    |
+| `setup`               | `Setup`               | —                     | —              | —                    |
 
-Provider-specific event names, input payloads, and response shapes stay out of
-the authored manifest. The generated dispatcher normalizes request text, final
-response text when the host exposes it, and retry state, then translates the
-handler result back to native context or continuation output.
+Native hook output is written to `hooks/claude-hooks.json`,
+`hooks/codex-hooks.json`, `hooks/copilot-hooks.json`, conventional
+`hooks/hooks.json` for Gemini, or inline in `kimi.plugin.json`.
 
-Hook handler failures are fail-open. A provider with no hook capability still
-compiles all its other components and returns a structured skipped diagnostic;
-the compiler does not emit fallback skills or provider instruction files.
+Provider-specific event names stay out of the authored manifest. The generated
+dispatcher exposes the universal event, provider ID, immutable native input,
+common prompt/response fields, and retry state. Portable `additionalContext` and
+stop-retry results are translated where supported; other handler results pass
+through to the native hook contract.
+
+Hook handler failures are fail-open. Unsupported events do not suppress
+compatible bindings or other provider output; each receives a structured skipped
+diagnostic. The compiler does not emit fallback skills or provider instruction
+files.
 
 Claude emits both its plugin manifest and local marketplace manifest. Codex and
 Kimi point at the generated `skills/` directory. Copilot and Gemini discover the
@@ -64,7 +85,7 @@ translations were checked against the current official references for
 [Codex](https://developers.openai.com/plugins/build/plugins),
 [GitHub Copilot CLI](https://docs.github.com/en/copilot/reference/hooks-reference),
 [Gemini CLI](https://geminicli.com/docs/hooks/reference/), and
-[Kimi Code CLI](https://moonshotai.github.io/kimi-code/en/customization/plugins.html#hooks-in-plugins).
+[Kimi Code CLI](https://www.kimi.com/code/docs/en/kimi-code-cli/customization/hooks.html).
 
 ## Default selection
 
@@ -98,9 +119,9 @@ hyphens, beginning with a letter.
 
 An adapter must declare stable exact-file paths. Complete-tree ownership is
 rejected so a provider cannot claim an open-ended repository directory. Set
-`supportsHooks: true` only when `compile()` emits a valid native configuration
-for both current provider-neutral lifecycle stages. Omit it otherwise; hook
-declarations are hidden from the adapter and reported as non-fatal skips.
+`supportedHookEvents` only for events that `compile()` emits with equivalent
+native semantics. Omitted bindings are hidden from the adapter and reported as
+non-fatal skips.
 
 Next: use provider constants through
 [Programmatic Usage](/guide/programmatic-usage), or review how selection affects

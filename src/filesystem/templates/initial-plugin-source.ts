@@ -81,14 +81,14 @@ categories:
     name: Productivity
     description: Skills for everyday productivity workflows.
 
-# Hooks are optional in schema v2. Each binding maps a portable lifecycle to an
+# Hooks are optional in schema v2. Each binding maps a universal event to an
 # authored .mjs handler under plugin/hooks/<hook-id>/.
 # hooks:
 #   - id: simple-logger
 #     bindings:
-#       - lifecycle: before-request
+#       - event: userPromptSubmit
 #         handler: request.mjs
-#       - lifecycle: before-response
+#       - event: stop
 #         handler: response.mjs
 
 # Skills declare the public catalog, lifecycle, visibility, and dependencies.

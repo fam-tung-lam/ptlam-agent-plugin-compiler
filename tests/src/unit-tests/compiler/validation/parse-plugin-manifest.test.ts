@@ -8,6 +8,7 @@ import {
   CLAUDE,
   CODEX,
   PluginSchemaVersion,
+  UniversalHookEvent,
 } from "../../../../../src/core/index.ts";
 import { makeManifest, makeSkill } from "../test-fixtures/plugin-fixture.ts";
 
@@ -159,8 +160,8 @@ describe("parsePluginManifest", () => {
     );
   });
 
-  it("normalizes omitted hooks and accepts two lifecycle bindings without a required flag", () => {
-    // GIVEN: Legacy source omits hooks while new source declares one two-stage hook.
+  it("normalizes omitted hooks and accepts every universal hook event", () => {
+    // GIVEN: Legacy source omits hooks while new source binds all universal events.
     const current = makeManifest();
     const { hooks: _hooks, ...currentWithoutHooks } = current;
     const legacyWithoutHooks = {
@@ -172,10 +173,13 @@ describe("parsePluginManifest", () => {
       hooks: [
         {
           id: "adaptive-interaction",
-          bindings: [
-            { lifecycle: "before-request", handler: "request.mjs" },
-            { lifecycle: "before-response", handler: "response.mjs" },
-          ],
+          bindings: Object.values(UniversalHookEvent).map((event, index) => ({
+            event,
+            handler: `event-${index}.mjs`,
+            ...(event === UniversalHookEvent.PreToolUse
+              ? { matcher: "Bash|Write" }
+              : {}),
+          })),
         },
       ],
     };
@@ -186,7 +190,7 @@ describe("parsePluginManifest", () => {
     );
     const adaptiveResult = parsePluginManifest(JSON.stringify(adaptive));
 
-    // THEN: Hook-free input stays valid and the hook has only logical bindings.
+    // THEN: Hook-free input stays valid and every standard event is preserved.
     assert.equal("manifest" in legacyResult, true);
     assert.deepEqual(
       "manifest" in legacyResult ? legacyResult.manifest.hooks : undefined,
@@ -195,14 +199,17 @@ describe("parsePluginManifest", () => {
     assert.equal("manifest" in adaptiveResult, true);
     assert.deepEqual(
       "manifest" in adaptiveResult
-        ? adaptiveResult.manifest.hooks[0]?.bindings.map(
-            ({ lifecycle, handler }) => ({ lifecycle, handler }),
-          )
+        ? adaptiveResult.manifest.hooks[0]?.bindings.map(({ event }) => event)
         : undefined,
-      [
-        { lifecycle: "before-request", handler: "request.mjs" },
-        { lifecycle: "before-response", handler: "response.mjs" },
-      ],
+      Object.values(UniversalHookEvent),
+    );
+    assert.equal(
+      "manifest" in adaptiveResult
+        ? adaptiveResult.manifest.hooks[0]?.bindings.find(
+            ({ event }) => event === UniversalHookEvent.PreToolUse,
+          )?.matcher
+        : undefined,
+      "Bash|Write",
     );
     assert.equal(
       "manifest" in adaptiveResult &&
@@ -211,6 +218,36 @@ describe("parsePluginManifest", () => {
       false,
     );
   });
+
+  it.each(["before-request", "before-response"])(
+    "rejects the legacy custom hook event %s",
+    (legacyEvent) => {
+      // GIVEN: A schema-v2 hook still uses one compiler-specific lifecycle value.
+      const source = JSON.stringify({
+        ...makeManifest(),
+        hooks: [
+          {
+            id: "adaptive-interaction",
+            bindings: [{ event: legacyEvent, handler: "request.mjs" }],
+          },
+        ],
+      });
+
+      // WHEN: The manifest crosses the public parsing boundary.
+      const result = parsePluginManifest(source);
+
+      // THEN: The closed universal-event enum rejects the legacy value.
+      assert.equal("manifest" in result, false);
+      assert.ok(
+        "errors" in result &&
+          result.errors.some(
+            (error) =>
+              error.includes("hooks/0/bindings/0/event") &&
+              error.includes("must be equal to one of the allowed values"),
+          ),
+      );
+    },
+  );
 
   it("rejects unsupported schema versions before contract validation", () => {
     // GIVEN: A structurally complete manifest selects a future schema version.
@@ -239,7 +276,7 @@ describe("parsePluginManifest", () => {
           id: "adaptive-interaction",
           required: true,
           policies: ["style.json"],
-          bindings: [{ lifecycle: "before-request", handler: "request.mjs" }],
+          bindings: [{ event: "userPromptSubmit", handler: "request.mjs" }],
         },
       ],
     };
@@ -265,7 +302,7 @@ describe("parsePluginManifest", () => {
         {
           id: "simple-logger",
           bindings: [
-            { lifecycle: "before-request", handler: "lib/./request.mjs" },
+            { event: "userPromptSubmit", handler: "lib/./request.mjs" },
           ],
         },
       ],

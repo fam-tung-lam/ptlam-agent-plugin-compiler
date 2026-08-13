@@ -15,7 +15,7 @@ const dispatcher = path.join(
 );
 
 function dispatch(
-  lifecycle: "before-request" | "before-response",
+  event: "userPromptSubmit" | "stop",
   handlerName: "request.mjs" | "response.mjs",
   input: Record<string, unknown>,
 ) {
@@ -24,7 +24,7 @@ function dispatch(
     [
       dispatcher,
       "codex",
-      lifecycle,
+      event,
       path.join(exampleRoot, "hooks/handlers/simple-logger", handlerName),
     ],
     { encoding: "utf8", input: JSON.stringify(input) },
@@ -37,7 +37,7 @@ describe("simple logger hook", () => {
     const prompt = "Rename old-name.ts to new-name.ts.";
 
     // WHEN: The request crosses the portable dispatcher.
-    const result = dispatch("before-request", "request.mjs", { prompt });
+    const result = dispatch("userPromptSubmit", "request.mjs", { prompt });
 
     // THEN: The hook logs the request and returns an empty pass-through output.
     assert.equal(result.status, 0);
@@ -50,7 +50,7 @@ describe("simple logger hook", () => {
     const response = "Renamed the file.";
 
     // WHEN: The response crosses the portable dispatcher.
-    const result = dispatch("before-response", "response.mjs", {
+    const result = dispatch("stop", "response.mjs", {
       last_assistant_message: response,
     });
 

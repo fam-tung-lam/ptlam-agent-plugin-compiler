@@ -10,7 +10,12 @@ import {
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
-import { renderGeminiHookConfiguration } from "./render-hooks.js";
+import {
+  GEMINI_HOOK_EVENT_MAP,
+  hasMappedHookBindings,
+  renderGeminiHookConfiguration,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const extensionPath = createProjectPath("gemini-extension.json");
@@ -36,8 +41,8 @@ const hooksPath = createProjectPath("hooks/hooks.json");
 export class GeminiProviderAdapter implements ProviderAdapter {
   /** Built-in Gemini provider identifier. */
   readonly id: ProviderId = GEMINI;
-  /** Gemini CLI supports both provider-neutral agent lifecycle stages. */
-  readonly supportsHooks = true;
+  /** Universal events with native Gemini CLI equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(GEMINI_HOOK_EVENT_MAP);
 
   /**
    * Render the Gemini extension manifest from a validated plugin.
@@ -47,6 +52,7 @@ export class GeminiProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
+    const hasHooks = hasMappedHookBindings(plugin, GEMINI_HOOK_EVENT_MAP);
     const extensionJson = renderJson({
       name: plugin.name,
       version: plugin.version,
@@ -65,7 +71,7 @@ export class GeminiProviderAdapter implements ProviderAdapter {
           path: extensionPath,
           content: extensionJson,
         },
-        ...(plugin.hooks.length === 0
+        ...(!hasHooks
           ? []
           : [
               {

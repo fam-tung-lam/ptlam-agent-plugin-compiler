@@ -82,19 +82,18 @@ root `README.md` stay outside compiler ownership.
 ## Hook compilation while developing
 
 Manifest v1 is frozen and hook-free. Manifest v2 adds `PluginManifest.hooks`,
-which contains provider-neutral logical hooks. Each binding maps
-`before-request` or `before-response` to an authored `.mjs` handler under
-`plugin/hooks/<hook-id>/`. Validation loads every file in that directory as an
-internal hook resource, but only bindings are public manifest entries.
+which contains provider-neutral logical hooks. Each binding maps one universal
+event to an authored `.mjs` handler under `plugin/hooks/<hook-id>/` and may
+carry a provider-native matcher. Validation loads every file in that directory
+as an internal hook resource, but only bindings are public manifest entries.
 
-`ProviderAdapter.supportsHooks` is deliberately binary. A true adapter renders
-native hook configuration; an omitted or false capability receives a hook-free
-provider context and produces a structured skipped diagnostic. Schema v2 owns
-the shared `hooks/handlers/**` tree and each built-in provider's hook-config
-path even when no hook artifact is desired, so later compiles can remove stale
-output. Handler resources are emitted only when at least one selected adapter
-supports hooks. Do not implement fallback skills, provider instructions, or
-per-event capability negotiation at this seam.
+`ProviderAdapter.supportedHookEvents` lists only events with semantically
+equivalent native events. The compiler filters each adapter's context and emits
+one generated or skipped diagnostic per binding. Schema v2 owns the shared
+`hooks/handlers/**` tree and each built-in provider's hook-config path even when
+no hook artifact is desired, so later compiles can remove stale output. Handler
+resources are emitted when at least one selected adapter supports a binding. Do
+not implement fallback skills or provider instruction files at this seam.
 
 ## Test layers
 

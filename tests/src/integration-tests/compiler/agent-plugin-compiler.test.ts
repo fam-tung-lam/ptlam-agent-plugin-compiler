@@ -26,10 +26,12 @@ import {
   DriftReason,
   OwnershipKind,
   type ProviderAdapter,
+  UniversalHookEvent,
 } from "../../../../src/core/index.ts";
 import * as filesystem from "../../../../src/filesystem/index.ts";
 import {
   CODEX,
+  GEMINI,
   ProviderAdapterRegistry,
 } from "../../../../src/providers/index.ts";
 import {
@@ -69,6 +71,13 @@ describe("AgentPluginCompiler", () => {
       {
         provider: CODEX,
         hook: "adaptive-interaction",
+        event: UniversalHookEvent.UserPromptSubmit,
+        status: HookDiagnosticStatus.Generated,
+      },
+      {
+        provider: CODEX,
+        hook: "adaptive-interaction",
+        event: UniversalHookEvent.Stop,
         status: HookDiagnosticStatus.Generated,
       },
     ]);
@@ -167,8 +176,16 @@ describe("AgentPluginCompiler", () => {
       {
         provider: providerId,
         hook: "adaptive-interaction",
+        event: UniversalHookEvent.UserPromptSubmit,
         status: HookDiagnosticStatus.Skipped,
-        reason: HookDiagnosticReason.ProviderDoesNotSupportHooks,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+      },
+      {
+        provider: providerId,
+        hook: "adaptive-interaction",
+        event: UniversalHookEvent.Stop,
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
       },
     ]);
     assert.equal(
@@ -199,6 +216,51 @@ describe("AgentPluginCompiler", () => {
       "utf8",
     );
     assert.doesNotMatch(generatedSkills, /adaptive-interaction/u);
+  });
+
+  it("generates compatible bindings and skips unsupported events independently", async () => {
+    // GIVEN: Gemini supports two bindings in a hook but not permissionDenied.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir, [
+      { event: "userPromptSubmit", handler: "request.mjs" },
+      { event: "permissionDenied", handler: "response.mjs" },
+      { event: "stop", handler: "response.mjs" },
+    ]);
+    const compiler = new AgentPluginCompiler({
+      rootDir,
+      providers: [GEMINI],
+    });
+
+    // WHEN: Compilation resolves compatibility per universal event.
+    const result = await compiler.compile();
+    const hooks = JSON.parse(
+      await readFile(path.join(rootDir, "hooks", "hooks.json"), "utf8"),
+    ) as { hooks: Record<string, unknown> };
+
+    // THEN: Supported output is generated and the unsupported binding is explicit.
+    assert.equal(result.verified, true);
+    assert.deepEqual(Object.keys(hooks.hooks), ["BeforeAgent", "AfterAgent"]);
+    assert.deepEqual(result.hookDiagnostics, [
+      {
+        provider: GEMINI,
+        hook: "adaptive-interaction",
+        event: UniversalHookEvent.UserPromptSubmit,
+        status: HookDiagnosticStatus.Generated,
+      },
+      {
+        provider: GEMINI,
+        hook: "adaptive-interaction",
+        event: UniversalHookEvent.PermissionDenied,
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+      },
+      {
+        provider: GEMINI,
+        hook: "adaptive-interaction",
+        event: UniversalHookEvent.Stop,
+        status: HookDiagnosticStatus.Generated,
+      },
+    ]);
   });
   it("compiles only the shared skills tree for an empty provider selection", async () => {
     // GIVEN: A valid repository explicitly overrides its manifest with no providers.

@@ -5,9 +5,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude before-request \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/request.mjs\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude userPromptSubmit \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/request.mjs\"",
             "timeout": 10,
-            "statusMessage": "Running request hook"
+            "statusMessage": "Running userPromptSubmit hook"
           }
         ]
       }
@@ -17,9 +17,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude before-response \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/response.mjs\"",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude stop \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/response.mjs\"",
             "timeout": 10,
-            "statusMessage": "Running response hook"
+            "statusMessage": "Running stop hook"
           }
         ]
       }

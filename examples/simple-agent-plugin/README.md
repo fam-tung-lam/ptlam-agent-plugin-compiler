@@ -3,7 +3,7 @@
 This example shows the smallest practical workflow for compiling an agent plugin
 for Claude and Codex.
 
-The authored source contains three skills and one logical lifecycle hook:
+The authored source contains three skills and one logical universal hook:
 
 - `prepare-change-plan` is public and requires `inspect-repository`;
 - `inspect-repository` is an internal dependency; and

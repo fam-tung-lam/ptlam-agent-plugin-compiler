@@ -80,7 +80,7 @@ const manifestPath = createProjectPath(".external-plugin/plugin.json");
 
 const adapter = {
   id: EXTERNAL,
-  // Omit supportsHooks to compile other output and skip declared hooks.
+  // Omit supportedHookEvents to compile other output and skip hook bindings.
   compile: ({ plugin }) =>
     createPlanFragment({
       ownerId: EXTERNAL,
@@ -110,11 +110,11 @@ await externalCompiler.compile();
 ```
 
 Each registry is immutable and isolated. `register()` returns a new registry,
-and adapters must use stable exact-file ownership. Hook support is binary:
-setting `supportsHooks: true` promises that the adapter compiles both logical
-lifecycle stages into valid native configuration. Omitted or false adapters
-receive a hook-free plugin view, and results contain a non-fatal skipped
-diagnostic for each affected hook.
+and adapters must use stable exact-file ownership. Hook support is event-level:
+`supportedHookEvents` promises that the adapter compiles those universal events
+into valid native configuration. Omitted events are removed from its plugin
+view, and results contain a non-fatal skipped diagnostic for each affected
+binding.
 
 Next: compare the [built-in providers](/reference/providers), or see how the
 same check runs in [continuous integration](/guide/continuous-integration).

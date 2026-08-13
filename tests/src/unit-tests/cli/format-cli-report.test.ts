@@ -21,6 +21,7 @@ import {
   createProjectPath,
   DriftReason,
   type Plugin,
+  UniversalHookEvent,
 } from "../../../../src/core/index.ts";
 import { CLAUDE, CODEX } from "../../../../src/providers/index.ts";
 
@@ -76,6 +77,7 @@ describe("formatCliResult", () => {
         {
           provider: CODEX,
           hook: createHookId("adaptive-interaction"),
+          event: UniversalHookEvent.UserPromptSubmit,
           status: HookDiagnosticStatus.Generated,
         },
       ],
@@ -94,7 +96,7 @@ describe("formatCliResult", () => {
       "Scope: /repository; providers: claude, codex; provider source: manifest.",
       "Validated fixture-skills@1.2.3: 2 skills in 1 category.",
       "Hooks:",
-      "- codex/adaptive-interaction: generated",
+      "- codex/adaptive-interaction/userPromptSubmit: generated",
     ]);
     assert.deepEqual(report.stderr, ["Warnings:", "- legacy dependency"]);
     assert.equal(Object.isFrozen(report.stdout), true);

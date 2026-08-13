@@ -1,26 +1,43 @@
 import type { HookId, ProjectPath } from "../identifiers.js";
 
-/** Provider-neutral lifecycle stages currently supported by the compiler. */
-export enum HookLifecycle {
-  /** Runs after a user submits a request and before the agent processes it. */
-  BeforeRequest = "before-request",
-  /** Runs after the agent drafts its final response and before returning it. */
-  BeforeResponse = "before-response",
+/** Provider-neutral hook events supported by the schema-v2 contract. */
+export enum UniversalHookEvent {
+  SessionStart = "sessionStart",
+  SessionEnd = "sessionEnd",
+  UserPromptSubmit = "userPromptSubmit",
+  UserPromptExpansion = "userPromptExpansion",
+  PreToolUse = "preToolUse",
+  PostToolUse = "postToolUse",
+  PostToolUseFailure = "postToolUseFailure",
+  PermissionRequest = "permissionRequest",
+  PermissionDenied = "permissionDenied",
+  SubagentStart = "subagentStart",
+  SubagentStop = "subagentStop",
+  PreCompact = "preCompact",
+  PostCompact = "postCompact",
+  Stop = "stop",
+  StopFailure = "stopFailure",
+  Notification = "notification",
+  FileChanged = "fileChanged",
+  CwdChanged = "cwdChanged",
+  Setup = "setup",
 }
 
-/** One lifecycle-to-handler mapping declared by a logical hook. */
+/** One universal-event-to-handler mapping declared by a logical hook. */
 export interface HookBinding {
-  /** Provider-neutral lifecycle stage. */
-  readonly lifecycle: HookLifecycle;
+  /** Provider-neutral event whose native equivalent invokes the handler. */
+  readonly event: UniversalHookEvent;
   /** Path to an ES module relative to `plugin/hooks/<hook-id>/`. */
   readonly handler: ProjectPath;
+  /** Optional provider-native matcher applied before handler invocation. */
+  readonly matcher?: string;
 }
 
 /** One logical authored hook before source files are attached. */
 export interface HookManifest {
   /** Stable logical hook identifier. */
   readonly id: HookId;
-  /** Lifecycle stages owned by separate handler modules. */
+  /** Universal events owned by separate handler modules. */
   readonly bindings: readonly HookBinding[];
 }
 

@@ -49,15 +49,15 @@ function validateHookBindings(
   files: ReadonlyMap<string, Buffer>,
   errors: string[],
 ): void {
-  const seenLifecycles = new Set<string>();
+  const seenEvents = new Set<string>();
   for (const [bindingIndex, binding] of hook.bindings.entries()) {
     const field = `${SOURCE_MANIFEST_PATH}#/hooks/${hookIndex}/bindings/${bindingIndex}`;
-    if (seenLifecycles.has(binding.lifecycle)) {
+    if (seenEvents.has(binding.event)) {
       errors.push(
-        `${field}/lifecycle: duplicate lifecycle ${JSON.stringify(binding.lifecycle)} in hook ${JSON.stringify(hook.id)}`,
+        `${field}/event: duplicate event ${JSON.stringify(binding.event)} in hook ${JSON.stringify(hook.id)}`,
       );
     }
-    seenLifecycles.add(binding.lifecycle);
+    seenEvents.add(binding.event);
     if (!String(binding.handler).endsWith(".mjs")) {
       errors.push(`${field}/handler: hook handlers must be .mjs modules`);
     }
