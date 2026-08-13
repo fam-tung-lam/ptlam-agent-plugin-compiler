@@ -6,7 +6,6 @@ import {
   validateAuthoredPlugin,
 } from "../../../../../src/compiler/validation/index.ts";
 import {
-  createHookId,
   createProjectPath,
   PluginSchemaVersion,
   REQUIRED_SKILLS_MARKER,
@@ -62,80 +61,67 @@ describe("validateAuthoredPlugin", () => {
     assert.deepEqual(result.plugin.hooks, []);
   });
 
-  it("loads separate hook handlers and keeps policy files as internal resources", () => {
-    // GIVEN: One logical hook binds two .mjs handlers and ships a private policy file.
+  it("loads event-keyed handlers and keeps policy files as internal resources", () => {
+    // GIVEN: Two universal events name handlers under the shared hook source root.
     const manifest = makeManifest({
-      hooks: [
-        {
-          id: createHookId("adaptive-interaction"),
-          bindings: [
-            {
-              event: UniversalHookEvent.UserPromptSubmit,
-              handler: createProjectPath("request.mjs"),
-            },
-            {
-              event: UniversalHookEvent.Stop,
-              handler: createProjectPath("response.mjs"),
-            },
-          ],
-        },
-      ],
+      hooks: {
+        [UniversalHookEvent.UserPromptSubmit]: [
+          { handler: createProjectPath("adaptive-interaction/request.mjs") },
+        ],
+        [UniversalHookEvent.Stop]: [
+          { handler: createProjectPath("adaptive-interaction/response.mjs") },
+        ],
+      },
     });
     const source = makePluginSource({
       manifest,
       hookResources: {
-        "adaptive-interaction": {
-          "request.mjs": "export async function handle() {}\n",
-          "response.mjs": "export async function handle() {}\n",
-          "policies/style.json": '{"concise":true}\n',
-        },
+        "adaptive-interaction/request.mjs":
+          "export async function handle() {}\n",
+        "adaptive-interaction/response.mjs":
+          "export async function handle() {}\n",
+        "adaptive-interaction/policies/style.json": '{"concise":true}\n',
       },
     });
 
     // WHEN: Authored plugin validation attaches source resources.
     const result = validateAuthoredPlugin(source);
 
-    // THEN: The public hook has two bindings while all three files stay resources.
-    assert.equal(result.plugin.hooks.length, 1);
+    // THEN: Both registrations and all three source files remain immutable.
+    assert.equal(result.plugin.hooks.length, 2);
     assert.deepEqual(
-      result.plugin.hooks[0]?.bindings.map(({ event }) => event),
+      result.plugin.hooks.map(({ event }) => event),
       [UniversalHookEvent.UserPromptSubmit, UniversalHookEvent.Stop],
     );
     assert.deepEqual(
-      result.plugin.hooks[0]?.resources.map(({ path }) => path),
-      ["policies/style.json", "request.mjs", "response.mjs"],
+      result.plugin.hook_resources.map(({ path }) => path),
+      [
+        "adaptive-interaction/policies/style.json",
+        "adaptive-interaction/request.mjs",
+        "adaptive-interaction/response.mjs",
+      ],
     );
     assert.equal(Object.isFrozen(result.plugin.hooks), true);
   });
 
-  it("aggregates duplicate events and missing handler resources", () => {
-    // GIVEN: A logical hook repeats an event and references absent handlers.
+  it("aggregates missing event-keyed handler resources", () => {
+    // GIVEN: One event registers two handler paths that are absent from disk.
     const manifest = makeManifest({
-      hooks: [
-        {
-          id: createHookId("adaptive-interaction"),
-          bindings: [
-            {
-              event: UniversalHookEvent.UserPromptSubmit,
-              handler: createProjectPath("request.mjs"),
-            },
-            {
-              event: UniversalHookEvent.UserPromptSubmit,
-              handler: createProjectPath("other.mjs"),
-            },
-          ],
-        },
-      ],
+      hooks: {
+        [UniversalHookEvent.UserPromptSubmit]: [
+          { handler: createProjectPath("adaptive-interaction/request.mjs") },
+          { handler: createProjectPath("adaptive-interaction/other.mjs") },
+        ],
+      },
     });
     const source = makePluginSource({ manifest });
 
-    // WHEN: Validation evaluates hook identity, event, and source mapping.
+    // WHEN: Validation evaluates the event-keyed source mapping.
     const validation = () => validateAuthoredPlugin(source);
 
-    // THEN: Both semantic and missing-resource failures remain visible together.
+    // THEN: Both missing-resource failures remain visible together.
     assert.throws(validation, (error: unknown) => {
       assert.ok(error instanceof PluginValidationError);
-      assert.match(error.message, /duplicate event/u);
       assert.match(error.message, /expected .*request\.mjs/u);
       assert.match(error.message, /expected .*other\.mjs/u);
       return true;

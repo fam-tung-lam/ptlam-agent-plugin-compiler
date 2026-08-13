@@ -11,7 +11,7 @@ import {
 
 describe("compileSharedHooks", () => {
   it("copies authored handlers and internal resources once for every provider", () => {
-    // GIVEN: One logical hook contains two handlers and one internal policy resource.
+    // GIVEN: Two event-keyed handlers share one internal policy resource.
     const plugin = makeHookPluginFixture();
 
     // WHEN: The provider-neutral hook tree is compiled.
@@ -39,7 +39,7 @@ describe("compileSharedHooks", () => {
   });
 
   it("keeps the v2 hook tree owned after all hooks are removed", () => {
-    // GIVEN: A v2 plugin no longer declares logical hooks.
+    // GIVEN: A v2 plugin no longer registers hook handlers.
     const plugin = makeHookPluginFixture();
     const hookFree = Object.freeze({ ...plugin, hooks: Object.freeze([]) });
 

@@ -1,7 +1,6 @@
 import {
   CLAUDE,
   createCategoryId,
-  createHookId,
   createPlugin,
   createProjectPath,
   createSkillId,
@@ -110,32 +109,26 @@ export function makeHookPluginFixture(): Plugin {
     categories: plugin.categories,
     hooks: [
       {
-        id: createHookId("adaptive-interaction"),
-        bindings: [
-          {
-            event: UniversalHookEvent.UserPromptSubmit,
-            handler: createProjectPath("request.mjs"),
-          },
-          {
-            event: UniversalHookEvent.Stop,
-            handler: createProjectPath("response.mjs"),
-          },
-        ],
-        source_path: createProjectPath("plugin/hooks/adaptive-interaction"),
-        resources: [
-          {
-            path: createProjectPath("request.mjs"),
-            content: Buffer.from("export async function handle() {}\n"),
-          },
-          {
-            path: createProjectPath("response.mjs"),
-            content: Buffer.from("export async function handle() {}\n"),
-          },
-          {
-            path: createProjectPath("policies/style.json"),
-            content: Buffer.from('{"concise":true}\n'),
-          },
-        ],
+        event: UniversalHookEvent.UserPromptSubmit,
+        handler: createProjectPath("adaptive-interaction/request.mjs"),
+      },
+      {
+        event: UniversalHookEvent.Stop,
+        handler: createProjectPath("adaptive-interaction/response.mjs"),
+      },
+    ],
+    hook_resources: [
+      {
+        path: createProjectPath("adaptive-interaction/request.mjs"),
+        content: Buffer.from("export async function handle() {}\n"),
+      },
+      {
+        path: createProjectPath("adaptive-interaction/response.mjs"),
+        content: Buffer.from("export async function handle() {}\n"),
+      },
+      {
+        path: createProjectPath("adaptive-interaction/policies/style.json"),
+        content: Buffer.from('{"concise":true}\n'),
       },
     ],
     skills: plugin.skills,

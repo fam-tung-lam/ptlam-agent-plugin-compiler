@@ -89,10 +89,9 @@ export async function createCompilerRepository(): Promise<string> {
 /** Add one valid adaptive hook to a compiler repository fixture. */
 export async function addAdaptiveHook(
   rootDir: string,
-  bindings: readonly {
+  handlers: readonly {
     readonly event: string;
     readonly handler: "request.mjs" | "response.mjs";
-    readonly matcher?: string;
   }[] = [
     { event: "userPromptSubmit", handler: "request.mjs" },
     { event: "stop", handler: "response.mjs" },
@@ -101,15 +100,15 @@ export async function addAdaptiveHook(
   const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
     schema_version: number;
-    hooks?: unknown[];
+    hooks?: Record<string, unknown>;
   };
   manifest.schema_version = 2;
-  manifest.hooks = [
-    {
-      id: "adaptive-interaction",
-      bindings,
-    },
-  ];
+  manifest.hooks = Object.fromEntries(
+    handlers.map(({ event, handler }) => [
+      event,
+      [{ handler: `adaptive-interaction/${handler}` }],
+    ]),
+  );
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   const hookRoot = path.join(
     rootDir,

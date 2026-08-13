@@ -185,8 +185,8 @@ erDiagram
     PluginSource ||--|| PluginManifest : "parses into"
     PluginManifest ||--|| Plugin : "validates into"
     Plugin ||--|{ Skill : "contains"
-    Plugin ||--o{ Hook : "contains"
-    Hook ||--|{ HookBinding : "maps universal event to handler"
+    PluginManifest ||--o{ HookHandler : "keys by universal event"
+    Plugin ||--o{ HookRegistration : "normalizes handlers"
     Plugin ||--|{ PlanFragment : "renders into"
     PlanFragment }|--|| WritePlan : "combines into"
     WritePlan ||--|{ Artifact : "contains"
@@ -213,8 +213,8 @@ erDiagram
 - `PluginManifest` is the typed expression of the public versioned schema
   contract; `Plugin` is the validated domain value used by rendering and
   providers.
-- `ProjectPath`, `SkillId`, `HookId`, `CategoryId`, and `ProviderId` are branded
-  strings created by smart constructors.
+- `ProjectPath`, `SkillId`, `CategoryId`, and `ProviderId` are branded strings
+  created by smart constructors.
 - Branded identifiers prevent references from being mixed at compile time; graph
   and source validation still prove runtime relationships and files.
 - Domain constructors follow `XInput -> X`: they normalize, copy mutable values,
@@ -323,7 +323,8 @@ flowchart LR
   provider artifacts.
 - `supportedHookEvents` is an event-level adapter capability. Omitted events are
   removed from that adapter's context while its other components compile, and
-  each binding receives a generated or non-fatal skipped diagnostic.
+  each handler registration receives a generated or non-fatal skipped
+  diagnostic.
 - A malformed ID and a well-formed unknown ID are distinct failures; both are
   `cli` usage errors with exit code `2`.
 - Every registered adapter contributes its exact-file ownership. Selected
@@ -340,18 +341,18 @@ flowchart LR
 
 ## Portable hook seam
 
-A hook is one logical component with one or more universal event bindings.
 Manifest v2 exposes the standard session, prompt, tool, permission, subagent,
-context, lifecycle, and file events, each bound to an authored `.mjs` handler
-under `plugin/hooks/<hook-id>/`. Handler-adjacent files are internal resources,
-so policy data can be shared without becoming a public manifest concept.
+context, lifecycle, and file events as keys whose values are ordered lists of
+authored `.mjs` handlers below `plugin/hooks/`. Handler-adjacent files are
+internal resources, so policy data can be shared without becoming a public
+manifest concept.
 
-For v2, the shared renderer owns `hooks/handlers/**`, copies each logical hook
-there once, and adds a small dispatcher. An empty v2 hook list retains an empty
-owned root so stale resources are removed; v1 claims no hook paths. Provider
-adapters point their native command entries at that shared tree and translate
-event names, inputs, and results. Adapters use explicit mappings and omit events
-without a semantic equivalent rather than approximating them.
+For v2, the shared renderer owns `hooks/handlers/**`, copies the shared authored
+hook tree once, and adds a small dispatcher. An empty v2 hook map retains an
+empty owned root so stale resources are removed; v1 claims no hook paths.
+Provider adapters point their native command entries at that shared tree and
+translate event names, inputs, and results. Adapters use explicit mappings and
+omit events without a semantic equivalent rather than approximating them.
 
 The dispatcher fails open on handler errors. It passes `provider`, the universal
 `event`, the immutable native `input`, and common prompt/response fields to the

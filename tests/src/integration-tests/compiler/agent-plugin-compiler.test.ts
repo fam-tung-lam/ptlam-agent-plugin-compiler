@@ -70,14 +70,14 @@ describe("AgentPluginCompiler", () => {
     assert.deepEqual(compiled.hookDiagnostics, [
       {
         provider: CODEX,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
         status: HookDiagnosticStatus.Generated,
       },
       {
         provider: CODEX,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
         status: HookDiagnosticStatus.Generated,
       },
     ]);
@@ -175,15 +175,15 @@ describe("AgentPluginCompiler", () => {
     assert.deepEqual(result.hookDiagnostics, [
       {
         provider: providerId,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
         status: HookDiagnosticStatus.Skipped,
         reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
       },
       {
         provider: providerId,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
         status: HookDiagnosticStatus.Skipped,
         reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
       },
@@ -218,8 +218,8 @@ describe("AgentPluginCompiler", () => {
     assert.doesNotMatch(generatedSkills, /adaptive-interaction/u);
   });
 
-  it("generates compatible bindings and skips unsupported events independently", async () => {
-    // GIVEN: Gemini supports two bindings in a hook but not permissionDenied.
+  it("generates compatible handlers and skips unsupported events independently", async () => {
+    // GIVEN: Gemini supports two registered events but not permissionDenied.
     const rootDir = await createCompilerRepository();
     await addAdaptiveHook(rootDir, [
       { event: "userPromptSubmit", handler: "request.mjs" },
@@ -237,27 +237,27 @@ describe("AgentPluginCompiler", () => {
       await readFile(path.join(rootDir, "hooks", "hooks.json"), "utf8"),
     ) as { hooks: Record<string, unknown> };
 
-    // THEN: Supported output is generated and the unsupported binding is explicit.
+    // THEN: Supported output is generated and the unsupported handler is explicit.
     assert.equal(result.verified, true);
     assert.deepEqual(Object.keys(hooks.hooks), ["BeforeAgent", "AfterAgent"]);
     assert.deepEqual(result.hookDiagnostics, [
       {
         provider: GEMINI,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
         status: HookDiagnosticStatus.Generated,
       },
       {
         provider: GEMINI,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.PermissionDenied,
+        handler: "adaptive-interaction/response.mjs",
         status: HookDiagnosticStatus.Skipped,
         reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
       },
       {
         provider: GEMINI,
-        hook: "adaptive-interaction",
         event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
         status: HookDiagnosticStatus.Generated,
       },
     ]);

@@ -11,7 +11,7 @@ import {
   type ProviderId,
 } from "../core/index.js";
 import {
-  hasMappedHookBindings,
+  hasMappedHookRegistrations,
   NESTED_HOOK_EVENT_MAP,
   renderNestedHookConfiguration,
   supportedHookEvents,
@@ -53,7 +53,7 @@ export class CodexProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
-    const hasHooks = hasMappedHookBindings(plugin, NESTED_HOOK_EVENT_MAP);
+    const hasHooks = hasMappedHookRegistrations(plugin, NESTED_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       name: plugin.name,
       version: plugin.version,

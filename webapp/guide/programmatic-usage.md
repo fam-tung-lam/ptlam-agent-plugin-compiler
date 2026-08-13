@@ -80,7 +80,7 @@ const manifestPath = createProjectPath(".external-plugin/plugin.json");
 
 const adapter = {
   id: EXTERNAL,
-  // Omit supportedHookEvents to compile other output and skip hook bindings.
+  // Omit supportedHookEvents to compile other output and skip hook handlers.
   compile: ({ plugin }) =>
     createPlanFragment({
       ownerId: EXTERNAL,
@@ -114,7 +114,7 @@ and adapters must use stable exact-file ownership. Hook support is event-level:
 `supportedHookEvents` promises that the adapter compiles those universal events
 into valid native configuration. Omitted events are removed from its plugin
 view, and results contain a non-fatal skipped diagnostic for each affected
-binding.
+handler.
 
 Next: compare the [built-in providers](/reference/providers), or see how the
 same check runs in [continuous integration](/guide/continuous-integration).

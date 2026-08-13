@@ -130,7 +130,7 @@ export function makeManifest(
     license: "MIT",
     keywords: ["agent-skills"],
     ...values,
-    hooks: hooks ?? [],
+    hooks: hooks ?? {},
     categories: (
       categories ?? [
         {
@@ -160,40 +160,29 @@ export function makePluginSource({
   readonly manifestSource?: string;
   readonly skillSources?: Readonly<Record<string, string>>;
   readonly resources?: Readonly<Record<string, string | Uint8Array>>;
-  readonly hookResources?: Readonly<
-    Record<string, Readonly<Record<string, string | Uint8Array>>>
-  >;
+  readonly hookResources?: Readonly<Record<string, string | Uint8Array>>;
   readonly hookExtraEntries?: readonly SourceEntryInput[];
   readonly extraEntries?: readonly SourceEntryInput[];
 } = {}): PluginSource {
   const hookEntries: SourceEntryInput[] = [];
   const skillEntries: SourceEntryInput[] = [];
-  for (const hook of manifest.hooks) {
-    const hookRoot = `plugin/hooks/${hook.id}`;
+  const hookDirectories = new Set<string>();
+  for (const [relativePath, content] of Object.entries(hookResources)) {
+    const segments = relativePath.split("/");
+    for (let index = 1; index < segments.length; index += 1) {
+      hookDirectories.add(segments.slice(0, index).join("/"));
+    }
+    hookEntries.push({
+      kind: SourceEntryKind.File,
+      path: createProjectPath(`plugin/hooks/${relativePath}`),
+      content: Buffer.from(content),
+    });
+  }
+  for (const directory of hookDirectories) {
     hookEntries.push({
       kind: SourceEntryKind.Directory,
-      path: createProjectPath(hookRoot),
+      path: createProjectPath(`plugin/hooks/${directory}`),
     });
-    const directories = new Set<string>();
-    for (const [relativePath, content] of Object.entries(
-      hookResources[hook.id] ?? {},
-    )) {
-      const segments = relativePath.split("/");
-      for (let index = 1; index < segments.length; index += 1) {
-        directories.add(segments.slice(0, index).join("/"));
-      }
-      hookEntries.push({
-        kind: SourceEntryKind.File,
-        path: createProjectPath(`${hookRoot}/${relativePath}`),
-        content: Buffer.from(content),
-      });
-    }
-    for (const directory of directories) {
-      hookEntries.push({
-        kind: SourceEntryKind.Directory,
-        path: createProjectPath(`${hookRoot}/${directory}`),
-      });
-    }
   }
   hookEntries.push(...hookExtraEntries);
   for (const skill of manifest.skills) {
@@ -261,6 +250,7 @@ export function makePlugin(): Plugin {
   return createPlugin({
     ...makeManifest(),
     hooks: [],
+    hook_resources: [],
     categories: [
       {
         id: createCategoryId("engineering"),

@@ -1,4 +1,4 @@
-import type { HookId, ProjectPath } from "../identifiers.js";
+import type { ProjectPath } from "../identifiers.js";
 
 /** Provider-neutral hook events supported by the schema-v2 contract. */
 export enum UniversalHookEvent {
@@ -23,80 +23,57 @@ export enum UniversalHookEvent {
   Setup = "setup",
 }
 
-/** One universal-event-to-handler mapping declared by a logical hook. */
-export interface HookBinding {
-  /** Provider-neutral event whose native equivalent invokes the handler. */
-  readonly event: UniversalHookEvent;
-  /** Path to an ES module relative to `plugin/hooks/<hook-id>/`. */
+/** One handler registered under a universal event in the authored manifest. */
+export interface HookHandler {
+  /** Path to an ES module relative to `plugin/hooks/`. */
   readonly handler: ProjectPath;
-  /** Optional provider-native matcher applied before handler invocation. */
-  readonly matcher?: string;
 }
 
-/** One logical authored hook before source files are attached. */
-export interface HookManifest {
-  /** Stable logical hook identifier. */
-  readonly id: HookId;
-  /** Universal events owned by separate handler modules. */
-  readonly bindings: readonly HookBinding[];
+/** Event-keyed authored hook declarations. */
+export type HookManifest = Readonly<
+  Partial<Record<UniversalHookEvent, readonly HookHandler[]>>
+>;
+
+/** One normalized universal-event-to-handler registration. */
+export interface HookRegistration extends HookHandler {
+  /** Provider-neutral event whose native equivalent invokes the handler. */
+  readonly event: UniversalHookEvent;
 }
+
+/** Mutable-input form of a normalized hook registration. */
+export type HookInput = HookRegistration;
+
+/** Immutable normalized hook registration used by providers. */
+export type Hook = HookRegistration;
 
 /** Mutable-input form of one authored hook resource. */
 export interface HookResourceInput {
-  /** Path relative to the hook's authored source directory. */
+  /** Path relative to `plugin/hooks/`. */
   readonly path: ProjectPath;
-  /** Resource bytes copied into the immutable hook model. */
+  /** Resource bytes copied into the immutable plugin model. */
   readonly content: Uint8Array;
 }
 
 /** Immutable authored hook resource. */
 export interface HookResource {
-  /** Path relative to the hook's authored source directory. */
+  /** Path relative to `plugin/hooks/`. */
   readonly path: ProjectPath;
   /** A fresh copy of resource bytes on every read. */
   readonly content: Buffer;
 }
 
-/** Mutable-input form of a validated logical hook and loaded resources. */
-export interface HookInput extends Omit<HookManifest, "bindings"> {
-  /** Lifecycle bindings to copy into the immutable model. */
-  readonly bindings: Iterable<HookBinding>;
-  /** Canonical authored source directory. */
-  readonly source_path: ProjectPath;
-  /** Every authored handler and internal runtime resource. */
-  readonly resources: Iterable<HookResourceInput>;
+/** Create one immutable normalized hook registration. */
+export function createHook(input: HookInput): Hook {
+  return Object.freeze({ ...input });
 }
 
-/** Validated logical hook with loaded handler and resource bytes. */
-export interface Hook extends HookManifest {
-  /** Canonical authored source directory. */
-  readonly source_path: ProjectPath;
-  /** Every authored handler and internal runtime resource. */
-  readonly resources: readonly HookResource[];
-}
-
-function createHookResource(input: HookResourceInput): HookResource {
+/** Create one immutable hook resource with defensive byte copies. */
+export function createHookResource(input: HookResourceInput): HookResource {
   const bytes = Buffer.from(input.content);
   return Object.freeze({
     path: input.path,
     get content(): Buffer {
       return Buffer.from(bytes);
     },
-  });
-}
-
-/**
- * Create one deeply immutable logical hook.
- *
- * @param input - Validated declaration and authored resource bytes.
- * @returns An immutable hook whose resource bytes cannot be mutated by aliases.
- */
-export function createHook(input: HookInput): Hook {
-  return Object.freeze({
-    ...input,
-    bindings: Object.freeze(
-      [...input.bindings].map((binding) => Object.freeze({ ...binding })),
-    ),
-    resources: Object.freeze([...input.resources].map(createHookResource)),
   });
 }

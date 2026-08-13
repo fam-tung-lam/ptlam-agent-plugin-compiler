@@ -12,7 +12,7 @@ import {
 } from "../core/index.js";
 import {
   GEMINI_HOOK_EVENT_MAP,
-  hasMappedHookBindings,
+  hasMappedHookRegistrations,
   renderGeminiHookConfiguration,
   supportedHookEvents,
 } from "./render-hooks.js";
@@ -52,7 +52,7 @@ export class GeminiProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
-    const hasHooks = hasMappedHookBindings(plugin, GEMINI_HOOK_EVENT_MAP);
+    const hasHooks = hasMappedHookRegistrations(plugin, GEMINI_HOOK_EVENT_MAP);
     const extensionJson = renderJson({
       name: plugin.name,
       version: plugin.version,

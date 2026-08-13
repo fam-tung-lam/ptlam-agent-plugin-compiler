@@ -12,7 +12,7 @@ import {
 } from "../core/index.js";
 import {
   COPILOT_HOOK_EVENT_MAP,
-  hasMappedHookBindings,
+  hasMappedHookRegistrations,
   renderCopilotHookConfiguration,
   supportedHookEvents,
 } from "./render-hooks.js";
@@ -54,7 +54,7 @@ export class CopilotProviderAdapter implements ProviderAdapter {
    */
   compile({ plugin }: ProviderContext): PlanFragment {
     const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
-    const hasHooks = hasMappedHookBindings(plugin, COPILOT_HOOK_EVENT_MAP);
+    const hasHooks = hasMappedHookRegistrations(plugin, COPILOT_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       $schema: portablePluginSchema,
       name: plugin.name,

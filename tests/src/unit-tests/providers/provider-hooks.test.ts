@@ -42,26 +42,16 @@ function generatedJson(
 
 function universalHookPlugin(): Plugin {
   const plugin = makeHookPluginFixture();
-  const hook = plugin.hooks[0];
-  assert.ok(hook);
   return Object.freeze({
     ...plugin,
-    hooks: Object.freeze([
-      Object.freeze({
-        ...hook,
-        bindings: Object.freeze(
-          Object.values(UniversalHookEvent).map((event) =>
-            Object.freeze({
-              event,
-              handler: createProjectPath("request.mjs"),
-              ...(event === UniversalHookEvent.PreToolUse
-                ? { matcher: "Bash|Write" }
-                : {}),
-            }),
-          ),
-        ),
-      }),
-    ]),
+    hooks: Object.freeze(
+      Object.values(UniversalHookEvent).map((event) =>
+        Object.freeze({
+          event,
+          handler: createProjectPath("adaptive-interaction/request.mjs"),
+        }),
+      ),
+    ),
   });
 }
 
@@ -90,8 +80,8 @@ describe("built-in provider hook compilation", () => {
     });
   });
 
-  it("maps one logical hook into Claude and Codex lifecycle files", () => {
-    // GIVEN: One logical hook binds separate request and response handlers.
+  it("maps event-keyed handlers into Claude and Codex lifecycle files", () => {
+    // GIVEN: Separate request and response handlers are keyed by universal event.
     const claude = new ClaudeProviderAdapter();
     const codex = new CodexProviderAdapter();
 
@@ -121,12 +111,45 @@ describe("built-in provider hook compilation", () => {
     assert.match(JSON.stringify(claudeHooks), /response\.mjs/u);
   });
 
+  it("preserves declaration order for multiple handlers on one event", () => {
+    // GIVEN: One universal event registers two authored handlers in order.
+    const base = makeHookPluginFixture();
+    const plugin = Object.freeze({
+      ...base,
+      hooks: Object.freeze([
+        Object.freeze({
+          event: UniversalHookEvent.UserPromptSubmit,
+          handler: createProjectPath("adaptive-interaction/request.mjs"),
+        }),
+        Object.freeze({
+          event: UniversalHookEvent.UserPromptSubmit,
+          handler: createProjectPath("adaptive-interaction/response.mjs"),
+        }),
+      ]),
+    });
+
+    // WHEN: Claude renders the event-keyed registrations.
+    const hooks = generatedJson(
+      new ClaudeProviderAdapter(),
+      "hooks/claude-hooks.json",
+      plugin,
+    );
+    const registrations = (hooks["hooks"] as Record<string, unknown[]>)[
+      "UserPromptSubmit"
+    ];
+
+    // THEN: Native registrations retain the authored handler order.
+    assert.ok(registrations);
+    assert.match(JSON.stringify(registrations[0]), /request\.mjs/u);
+    assert.match(JSON.stringify(registrations[1]), /response\.mjs/u);
+  });
+
   it("uses Copilot mutation events and Gemini agent events", () => {
     // GIVEN: Copilot and Gemini expose different native lifecycle vocabularies.
     const copilot = new CopilotProviderAdapter();
     const gemini = new GeminiProviderAdapter();
 
-    // WHEN: Both adapters compile the same logical bindings.
+    // WHEN: Both adapters compile the same event-keyed handlers.
     const copilotHooks = generatedJson(copilot, "hooks/copilot-hooks.json");
     const geminiHooks = generatedJson(gemini, "hooks/hooks.json");
 
@@ -156,7 +179,7 @@ describe("built-in provider hook compilation", () => {
     // WHEN: The Kimi adapter compiles the logical adaptive hook.
     const manifest = generatedJson(kimi, "kimi.plugin.json");
 
-    // THEN: Only the two handler bindings become first-class hook entries.
+    // THEN: Only the two handlers become first-class hook entries.
     assert.ok(
       kimi.supportedHookEvents.includes(UniversalHookEvent.UserPromptSubmit),
     );
@@ -168,7 +191,7 @@ describe("built-in provider hook compilation", () => {
   });
 
   it("maps all semantically equivalent universal events for each provider", () => {
-    // GIVEN: One logical hook binds every universal event and a tool matcher.
+    // GIVEN: The manifest registers one handler for every universal event.
     const plugin = universalHookPlugin();
 
     // WHEN: Each partially compatible provider renders its native hook config.
@@ -188,7 +211,7 @@ describe("built-in provider hook compilation", () => {
       plugin,
     );
 
-    // THEN: Native keys include only equivalent events and preserve matchers.
+    // THEN: Native keys include only semantically equivalent events.
     assert.deepEqual(Object.keys(copilotHooks["hooks"] as object), [
       "sessionStart",
       "sessionEnd",
@@ -232,8 +255,8 @@ describe("built-in provider hook compilation", () => {
         "Notification",
       ],
     );
-    assert.match(JSON.stringify(copilotHooks), /Bash\|Write/u);
-    assert.match(JSON.stringify(geminiHooks), /Bash\|Write/u);
-    assert.match(JSON.stringify(kimiManifest), /Bash\|Write/u);
+    assert.doesNotMatch(JSON.stringify(copilotHooks), /matcher/u);
+    assert.doesNotMatch(JSON.stringify(geminiHooks), /matcher/u);
+    assert.doesNotMatch(JSON.stringify(kimiManifest), /matcher/u);
   });
 });

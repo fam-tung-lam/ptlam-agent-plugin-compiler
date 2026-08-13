@@ -10,7 +10,7 @@ import {
   type ProviderId,
 } from "../core/index.js";
 import {
-  hasMappedHookBindings,
+  hasMappedHookRegistrations,
   KIMI_HOOK_EVENT_MAP,
   renderKimiHooks,
   supportedHookEvents,
@@ -38,7 +38,7 @@ export class KimiProviderAdapter implements ProviderAdapter {
    * @returns An exact-file fragment containing the Kimi manifest.
    */
   compile({ plugin }: ProviderContext): PlanFragment {
-    const hasHooks = hasMappedHookBindings(plugin, KIMI_HOOK_EVENT_MAP);
+    const hasHooks = hasMappedHookRegistrations(plugin, KIMI_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       name: plugin.name,
       version: plugin.version,

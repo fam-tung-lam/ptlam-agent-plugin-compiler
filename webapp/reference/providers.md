@@ -34,8 +34,8 @@ Code CLI. Do not rely on it as a Codex or Gemini safety boundary.
 ## Hook translation
 
 Built-in adapters advertise `supportedHookEvents`. One authored handler tree is
-reused, while each binding is emitted only when the host exposes a semantically
-equivalent event:
+reused, while each registration is emitted only when the host exposes a
+semantically equivalent event:
 
 | Universal event       | Claude/Codex          | Copilot               | Gemini         | Kimi                 |
 | --------------------- | --------------------- | --------------------- | -------------- | -------------------- |
@@ -70,7 +70,7 @@ stop-retry results are translated where supported; other handler results pass
 through to the native hook contract.
 
 Hook handler failures are fail-open. Unsupported events do not suppress
-compatible bindings or other provider output; each receives a structured skipped
+compatible handlers or other provider output; each receives a structured skipped
 diagnostic. The compiler does not emit fallback skills or provider instruction
 files.
 
@@ -120,8 +120,8 @@ hyphens, beginning with a letter.
 An adapter must declare stable exact-file paths. Complete-tree ownership is
 rejected so a provider cannot claim an open-ended repository directory. Set
 `supportedHookEvents` only for events that `compile()` emits with equivalent
-native semantics. Omitted bindings are hidden from the adapter and reported as
-non-fatal skips.
+native semantics. Omitted handler registrations are hidden from the adapter and
+reported as non-fatal skips.
 
 Next: use provider constants through
 [Programmatic Usage](/guide/programmatic-usage), or review how selection affects

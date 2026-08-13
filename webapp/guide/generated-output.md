@@ -31,8 +31,8 @@ tests, documentation, and your own `README.md` are never read or written.
 
 ## Generated hooks
 
-Every declared logical hook is copied once to `hooks/handlers/<hook-id>/`,
-including handler-adjacent internal resources. The compiler also writes
+The authored `plugin/hooks/` tree is copied once to `hooks/handlers/`, including
+handler-adjacent internal resources. The compiler also writes
 `hooks/handlers/.runtime/portable-hook-dispatcher.mjs`. Compatible provider
 configurations point at these shared files; handlers are not duplicated per
 provider.

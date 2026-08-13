@@ -14,11 +14,10 @@ import {
 } from "yaml";
 import {
   createCategoryId,
-  createHookId,
   createProjectPath,
   createProviderId,
   createSkillId,
-  type HookBinding,
+  type HookHandler,
   type HookManifest,
   type PluginCategory,
   type PluginManifest,
@@ -50,14 +49,13 @@ type JsonPluginCategory = Omit<PluginCategory, "id"> & {
   readonly id: string;
 };
 
-type JsonHookBinding = Omit<HookBinding, "handler"> & {
+type JsonHookHandler = Omit<HookHandler, "handler"> & {
   readonly handler: string;
 };
 
-type JsonHookManifest = Omit<HookManifest, "bindings" | "id"> & {
-  readonly id: string;
-  readonly bindings: readonly JsonHookBinding[];
-};
+type JsonHookManifest = Readonly<
+  Partial<Record<UniversalHookEvent, readonly JsonHookHandler[]>>
+>;
 
 type JsonSkillRequirement = Omit<SkillRequirement, "skill_id"> & {
   readonly skill_id: string;
@@ -103,24 +101,26 @@ type JsonPluginManifestV1 = JsonPluginManifestBase & {
 
 type JsonPluginManifestV2 = JsonPluginManifestBase & {
   readonly schema_version: PluginSchemaVersion.V2;
-  readonly hooks?: readonly JsonHookManifest[];
+  readonly hooks?: JsonHookManifest;
 };
 
 type JsonPluginManifest = JsonPluginManifestV1 | JsonPluginManifestV2;
 
 function createHookManifest(value: JsonHookManifest): HookManifest {
-  return Object.freeze({
-    id: createHookId(value.id),
-    bindings: Object.freeze(
-      value.bindings.map((binding) =>
-        Object.freeze({
-          ...binding,
-          event: binding.event as UniversalHookEvent,
-          handler: createProjectPath(binding.handler),
-        }),
-      ),
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(value).map(([event, handlers]) => [
+        event,
+        Object.freeze(
+          handlers.map((handler) =>
+            Object.freeze({
+              handler: createProjectPath(handler.handler),
+            }),
+          ),
+        ),
+      ]),
     ),
-  });
+  ) as HookManifest;
 }
 
 /** Result of strict YAML, JSON-schema, identifier, and public-metadata parsing. */
@@ -236,7 +236,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
 
 /** Snapshot schema-validated JSON through the only branded-ID constructors. */
 function createPluginManifest(value: JsonPluginManifest): PluginManifest {
-  const hooks = "hooks" in value ? (value.hooks ?? []) : [];
+  const hooks = "hooks" in value ? (value.hooks ?? {}) : {};
   return Object.freeze({
     ...value,
     author: Object.freeze({ ...value.author }),
@@ -250,7 +250,7 @@ function createPluginManifest(value: JsonPluginManifest): PluginManifest {
         }),
       ),
     ),
-    hooks: Object.freeze(hooks.map(createHookManifest)),
+    hooks: createHookManifest(hooks),
     skills: Object.freeze(value.skills.map(createSkillManifest)),
   });
 }

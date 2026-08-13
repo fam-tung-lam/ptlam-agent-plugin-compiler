@@ -1,9 +1,12 @@
 import type { CategoryId, ProviderId } from "../identifiers.js";
 import {
   createHook,
+  createHookResource,
   type Hook,
   type HookInput,
   type HookManifest,
+  type HookResource,
+  type HookResourceInput,
 } from "./hook.js";
 import {
   createSkill,
@@ -75,8 +78,8 @@ export interface PluginManifest {
   readonly keywords: readonly string[];
   /** Skill categories declared by the plugin. */
   readonly categories: readonly PluginCategory[];
-  /** Provider-neutral universal hooks; omitted manifests normalize to an empty list. */
-  readonly hooks: readonly HookManifest[];
+  /** Event-keyed universal hooks; omitted manifests normalize to an empty map. */
+  readonly hooks: HookManifest;
   /** Authored skill declarations before source files are attached. */
   readonly skills: readonly SkillManifest[];
 }
@@ -93,8 +96,10 @@ export interface PluginManifest {
  * ```
  */
 export interface Plugin extends Omit<PluginManifest, "hooks" | "skills"> {
-  /** Validated hooks with loaded handler modules and internal resources. */
+  /** Validated universal-event-to-handler registrations. */
   readonly hooks: readonly Hook[];
+  /** Every authored handler module and internal hook resource. */
+  readonly hook_resources: readonly HookResource[];
   /** Validated skills with their authored source documents and resources. */
   readonly skills: readonly Skill[];
 }
@@ -104,8 +109,10 @@ export interface PluginInput
   extends Omit<PluginManifest, "categories" | "hooks" | "skills"> {
   /** Skill categories to copy into the immutable model. */
   readonly categories: Iterable<PluginCategory>;
-  /** Validated logical hooks to copy into the immutable model. */
+  /** Validated hook registrations to copy into the immutable model. */
   readonly hooks?: Iterable<HookInput>;
+  /** Authored hook resources to copy into the immutable model. */
+  readonly hook_resources?: Iterable<HookResourceInput>;
   /** Validated skills to copy into the immutable model. */
   readonly skills: Iterable<SkillInput>;
 }
@@ -126,6 +133,9 @@ export function createPlugin(input: PluginInput): Plugin {
       [...input.categories].map((category) => Object.freeze({ ...category })),
     ),
     hooks: Object.freeze([...(input.hooks ?? [])].map(createHook)),
+    hook_resources: Object.freeze(
+      [...(input.hook_resources ?? [])].map(createHookResource),
+    ),
     skills: Object.freeze([...input.skills].map(createSkill)),
   });
 }

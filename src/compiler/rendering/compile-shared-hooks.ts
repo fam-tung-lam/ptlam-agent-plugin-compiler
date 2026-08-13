@@ -134,10 +134,8 @@ export function compileSharedHooks(plugin: Plugin): PlanFragment | null {
   const files = new Map<string, Buffer>();
   if (plugin.hooks.length > 0) {
     files.set(RUNTIME_PATH, Buffer.from(PORTABLE_HOOK_DISPATCHER));
-  }
-  for (const hook of plugin.hooks) {
-    for (const resource of hook.resources) {
-      const outputPath = `hooks/handlers/${hook.id}/${resource.path}`;
+    for (const resource of plugin.hook_resources) {
+      const outputPath = `hooks/handlers/${resource.path}`;
       if (files.has(outputPath)) {
         throw new Error(`${outputPath}: duplicate generated hook resource`);
       }

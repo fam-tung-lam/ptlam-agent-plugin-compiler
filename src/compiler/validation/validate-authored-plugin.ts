@@ -53,7 +53,11 @@ export function validateAuthoredPlugin(
   const graph = validateSkillGraph(manifest.categories, manifest.skills);
   const hooks =
     manifest.schema_version === PluginSchemaVersion.V1
-      ? { hooks: Object.freeze([]), errors: Object.freeze([]) }
+      ? {
+          hooks: Object.freeze([]),
+          resources: Object.freeze([]),
+          errors: Object.freeze([]),
+        }
       : validateHookSources(source, manifest.hooks);
   const sources = validateSkillSources(source, manifest.skills);
   const errors = [...graph.errors, ...hooks.errors, ...sources.errors];
@@ -63,6 +67,7 @@ export function validateAuthoredPlugin(
     ...manifest,
     categories: manifest.categories,
     hooks: hooks.hooks,
+    hook_resources: hooks.resources,
     skills: sources.skills,
   });
   return Object.freeze({

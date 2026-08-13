@@ -18,7 +18,7 @@ plugin/
 │       ├── SKILL.md
 │       └── optional-supporting-files
 └── hooks/
-    └── <hook-id>/
+    └── optional-grouping-directory/
         ├── request.mjs
         ├── response.mjs
         └── optional-internal-resources
@@ -33,9 +33,9 @@ these files.
 
 ## Identifiers
 
-`name`, every category `id`, every skill or hook `id`, and every reference to
-them (`category_id`, `skill_id`, `replacement_skill_id`) share one identifier
-type: lowercase kebab-case matching `^[a-z0-9]+(?:-[a-z0-9]+)*$`, at most 64
+`name`, every category or skill `id`, and every reference to them
+(`category_id`, `skill_id`, `replacement_skill_id`) share one identifier type:
+lowercase kebab-case matching `^[a-z0-9]+(?:-[a-z0-9]+)*$`, at most 64
 characters. Underscores and uppercase letters are rejected.
 
 ## Top-level fields
@@ -54,7 +54,7 @@ characters. Underscores and uppercase letters are rejected.
 | `keywords`       | unique string list | At least one item                                     |
 | `categories`     | category list      | At least one category                                 |
 | `skills`         | skill list         | At least one skill                                    |
-| `hooks`          | hook list          | Optional in v2; rejected by v1                        |
+| `hooks`          | event-keyed object | Optional in v2; rejected by v1                        |
 
 The schema validates `homepage` and `repository` as non-empty strings. Use full
 HTTPS URLs so generated provider manifests are useful to consumers.
@@ -75,26 +75,23 @@ Every skill `category_id` must reference a declared category.
 
 Hooks require `schema_version: 2`. To migrate a valid v1 manifest, change only
 `schema_version` to `2`; its existing fields remain valid and an omitted `hooks`
-field normalizes to an empty list.
+field normalizes to an empty object.
 
-One logical hook contains universal event bindings whose handler paths are
-relative to `plugin/hooks/<hook-id>/`:
+The `hooks` object keys handler lists directly by universal event. Handler paths
+are relative to `plugin/hooks/`:
 
 ```yaml
 hooks:
-  - id: simple-logger
-    bindings:
-      - event: userPromptSubmit
-        handler: request.mjs
-      - event: stop
-        handler: response.mjs
+  userPromptSubmit:
+    - handler: simple-logger/request.mjs
+  stop:
+    - handler: simple-logger/response.mjs
 ```
 
-`id` and a non-empty `bindings` list are required. A binding requires a
-universal event and a normalized `.mjs` handler path; `matcher` is optional and
-is copied to compatible native formats. Each event may appear only once per
-logical hook, every handler must exist, and each manifest hook needs a matching
-`plugin/hooks/<hook-id>/` directory.
+Each declared event requires a non-empty list of handler objects. Every object
+contains one normalized `.mjs` path, every handler must exist below
+`plugin/hooks/`, and handlers run in declaration order. Provider-specific
+matcher configuration is intentionally outside this provider-neutral contract.
 
 | Category   | Universal events                                  |
 | ---------- | ------------------------------------------------- |
