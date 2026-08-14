@@ -14,6 +14,13 @@ and this project adheres to
   hooks, so clean Git checkouts no longer report a missing empty
   `hooks/handlers/` directory.
 
+## [0.2.0-beta.1] - 2026-08-14
+
+### Changed
+
+- Promoted the schema-v2 hook and skill-metadata contracts from alpha to beta
+  without changing their behavior.
+
 ## [0.2.0-alpha.2] - 2026-08-13
 
 ### Added
@@ -186,7 +193,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.2...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.1...HEAD
+[0.2.0-beta.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.2...v0.2.0-beta.1
 [0.2.0-alpha.2]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.1...v0.2.0-alpha.2
 [0.2.0-alpha.1]:
