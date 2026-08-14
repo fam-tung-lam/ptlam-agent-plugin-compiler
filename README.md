@@ -1,27 +1,17 @@
-<!-- markdownlint-disable MD013 MD033 MD041 -->
-<p align="center">
-  <img src="https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/webapp/public/logo.svg" alt="" height="96" />
-</p>
+# Agent Plugin Compiler
 
-<h1 align="center">Agent Plugin Compiler</h1>
+![Agent Plugin Compiler logo](https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/webapp/public/logo.svg)
 
-<p align="center">
-  <strong>Author once. Validate the graph. Compile every host manifest.</strong>
-</p>
+**Author once. Validate the graph. Compile every host manifest.**
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@fam-tung-lam/ptlam-agent-plugin-compiler"><img alt="npm version" src="https://img.shields.io/npm/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
-  <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/actions/workflows/ci.yml"><img alt="CI status" src="https://img.shields.io/github/actions/workflow/status/fam-tung-lam/ptlam-agent-plugin-compiler/ci.yml?branch=main&style=flat-square&label=ci" /></a>
-  <a href="https://nodejs.org"><img alt="Required Node.js version" src="https://img.shields.io/node/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
-  <a href="https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square" /></a>
-</p>
+[![npm version](https://img.shields.io/npm/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square)](https://www.npmjs.com/package/@fam-tung-lam/ptlam-agent-plugin-compiler)
+[![CI status](https://img.shields.io/github/actions/workflow/status/fam-tung-lam/ptlam-agent-plugin-compiler/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/actions/workflows/ci.yml)
+[![Required Node.js version](https://img.shields.io/node/v/@fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square)](https://nodejs.org)
+[![License](https://img.shields.io/github/license/fam-tung-lam/ptlam-agent-plugin-compiler?style=flat-square)](https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/blob/main/LICENSE)
 
-<p align="center">
-  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/introduction">Docs</a> ·
-  <a href="https://agent-plugin-compiler.phamtunglam.com/guide/quick-start">Quick Start</a> ·
-  <a href="https://agent-plugin-compiler.phamtunglam.com/reference/">Reference</a>
-</p>
-<!-- markdownlint-enable MD013 MD033 MD041 -->
+[Docs](https://agent-plugin-compiler.phamtunglam.com/guide/introduction) ·
+[Quick Start](https://agent-plugin-compiler.phamtunglam.com/guide/quick-start) ·
+[Reference](https://agent-plugin-compiler.phamtunglam.com/reference/)
 
 Markdown-based agent skills have no build step. Agent Plugin Compiler adds one:
 declare your skills and their dependencies in a single manifest, and compile
