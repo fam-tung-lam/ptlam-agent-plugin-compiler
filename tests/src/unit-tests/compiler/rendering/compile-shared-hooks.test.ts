@@ -38,22 +38,20 @@ describe("compileSharedHooks", () => {
     );
   });
 
-  it("keeps the v2 hook tree owned after all hooks are removed", () => {
+  it("omits hook output ownership when a v2 plugin has no hooks", () => {
     // GIVEN: A v2 plugin no longer registers hook handlers.
     const plugin = makeHookPluginFixture();
-    const hookFree = Object.freeze({ ...plugin, hooks: Object.freeze([]) });
+    const hookFree = Object.freeze({
+      ...plugin,
+      hooks: Object.freeze([]),
+      hook_resources: Object.freeze([]),
+    });
 
     // WHEN: Shared hook rendering evaluates the plugin.
     const fragment = compileSharedHooks(hookFree);
 
-    // THEN: The empty owned root can remove stale generated handler resources.
-    assert.ok(fragment !== null);
-    assert.deepEqual(fragment.artifacts, [
-      {
-        kind: ArtifactKind.Directory,
-        path: "hooks/handlers",
-      },
-    ]);
+    // THEN: No empty complete-tree fragment can drift in a clean checkout.
+    assert.equal(fragment, null);
   });
 
   it("leaves legacy v1 plugins without a generated hook tree", () => {
