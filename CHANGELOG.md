@@ -8,6 +8,13 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-14
+
+### Changed
+
+- Promoted the schema-v2 hook and skill-metadata contracts from beta to stable
+  without changing their behavior.
+
 ## [0.2.0-beta.2] - 2026-08-14
 
 ### Fixed
@@ -195,7 +202,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.2...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...HEAD
+[0.2.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.2...v0.2.0
 [0.2.0-beta.2]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]:
