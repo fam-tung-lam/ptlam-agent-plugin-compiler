@@ -126,21 +126,25 @@ try {
  * Compile one shared handler tree reused by every compatible selected provider.
  *
  * @param plugin - Validated plugin with loaded authored hooks.
- * @returns The v2-owned complete tree, or `null` for a legacy v1 plugin.
+ * @returns The owned complete tree, or `null` when no effective hooks exist.
  */
 export function compileSharedHooks(plugin: Plugin): PlanFragment | null {
-  if (plugin.schema_version === PluginSchemaVersion.V1) return null;
+  if (
+    plugin.schema_version === PluginSchemaVersion.V1 ||
+    plugin.hooks.length === 0
+  ) {
+    return null;
+  }
 
-  const files = new Map<string, Buffer>();
-  if (plugin.hooks.length > 0) {
-    files.set(RUNTIME_PATH, Buffer.from(PORTABLE_HOOK_DISPATCHER));
-    for (const resource of plugin.hook_resources) {
-      const outputPath = `hooks/handlers/${resource.path}`;
-      if (files.has(outputPath)) {
-        throw new Error(`${outputPath}: duplicate generated hook resource`);
-      }
-      files.set(outputPath, resource.content);
+  const files = new Map<string, Buffer>([
+    [RUNTIME_PATH, Buffer.from(PORTABLE_HOOK_DISPATCHER)],
+  ]);
+  for (const resource of plugin.hook_resources) {
+    const outputPath = `hooks/handlers/${resource.path}`;
+    if (files.has(outputPath)) {
+      throw new Error(`${outputPath}: duplicate generated hook resource`);
     }
+    files.set(outputPath, resource.content);
   }
 
   const artifacts: ArtifactInput[] = [

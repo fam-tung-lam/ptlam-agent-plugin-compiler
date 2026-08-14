@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {
   lstat,
   mkdir,
-  readdir,
   readFile,
   rm,
   symlink,
@@ -40,6 +39,7 @@ import {
   DISABLED_CLAUDE_BYTES,
   DISABLED_CLAUDE_MARKETPLACE_BYTES,
   removeAdaptiveHook,
+  useSchemaVersion2,
 } from "./test-fixtures/compiler-repository-fixture.ts";
 
 function codexCompiler(rootDir: string): AgentPluginCompiler {
@@ -100,7 +100,7 @@ describe("AgentPluginCompiler", () => {
     ]);
   });
 
-  it("removes stale v2 hook output after the declaration is removed", async () => {
+  it("stops owning shared hook output after the declaration is removed", async () => {
     // GIVEN: A v2 plugin has compiled one portable hook for Codex.
     const rootDir = await createCompilerRepository();
     await addAdaptiveHook(rootDir);
@@ -112,7 +112,7 @@ describe("AgentPluginCompiler", () => {
     const checked = await compiler.check();
     const compiled = await compiler.compile();
 
-    // THEN: The config and resources are diagnosed, removed, and left verified.
+    // THEN: Native config is removed while the unowned shared tree is ignored.
     assert.equal(
       checked.drift.some(
         (entry) => String(entry.path) === "hooks/codex-hooks.json",
@@ -121,9 +121,9 @@ describe("AgentPluginCompiler", () => {
     );
     assert.equal(
       checked.drift.some((entry) =>
-        String(entry.path).startsWith("hooks/handlers/"),
+        String(entry.path).startsWith("hooks/handlers"),
       ),
-      true,
+      false,
     );
     assert.equal(compiled.verified, true);
     await assert.rejects(
@@ -132,10 +132,40 @@ describe("AgentPluginCompiler", () => {
         code: "ENOENT",
       },
     );
-    assert.deepEqual(
-      await readdir(path.join(rootDir, "hooks", "handlers")),
-      [],
+    assert.equal(
+      (
+        await lstat(
+          path.join(
+            rootDir,
+            "hooks",
+            "handlers",
+            "adaptive-interaction",
+            "request.mjs",
+          ),
+        )
+      ).isFile(),
+      true,
     );
+  });
+
+  it("checks a clean checkout of a hook-free v2 plugin without drift", async () => {
+    // GIVEN: A hook-free v2 plugin is compiled and empty directories are absent as in Git.
+    const rootDir = await createCompilerRepository();
+    await useSchemaVersion2(rootDir);
+    const compiler = codexCompiler(rootDir);
+    const compiled = await compiler.compile();
+    await rm(path.join(rootDir, "hooks"), { force: true, recursive: true });
+
+    // WHEN: The public facade checks the clean-checkout filesystem state.
+    const checked = await compiler.check();
+
+    // THEN: No hook tree is generated or required by the output plan.
+    assert.equal(compiled.verified, true);
+    assert.equal(checked.upToDate, true);
+    assert.deepEqual(checked.drift, []);
+    await assert.rejects(lstat(path.join(rootDir, "hooks")), {
+      code: "ENOENT",
+    });
   });
 
   it("skips hooks non-fatally for an incompatible provider without fallback output", async () => {
@@ -192,22 +222,9 @@ describe("AgentPluginCompiler", () => {
       await readFile(path.join(rootDir, outputPath), "utf8"),
       "external\n",
     );
-    assert.equal(
-      (await lstat(path.join(rootDir, "hooks", "handlers"))).isDirectory(),
-      true,
-    );
-    await assert.rejects(
-      lstat(
-        path.join(
-          rootDir,
-          "hooks",
-          "handlers",
-          ".runtime",
-          "portable-hook-dispatcher.mjs",
-        ),
-      ),
-      { code: "ENOENT" },
-    );
+    await assert.rejects(lstat(path.join(rootDir, "hooks", "handlers")), {
+      code: "ENOENT",
+    });
     await assert.rejects(lstat(path.join(rootDir, "AGENTS.md")), {
       code: "ENOENT",
     });

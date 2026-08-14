@@ -86,6 +86,16 @@ export async function createCompilerRepository(): Promise<string> {
   return rootDir;
 }
 
+/** Upgrade a compiler repository fixture to the hook-optional v2 schema. */
+export async function useSchemaVersion2(rootDir: string): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    schema_version: number;
+  };
+  manifest.schema_version = 2;
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 /** Add one valid adaptive hook to a compiler repository fixture. */
 export async function addAdaptiveHook(
   rootDir: string,

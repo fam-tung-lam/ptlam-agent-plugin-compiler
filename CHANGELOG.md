@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- Omitted shared hook output ownership when a schema-v2 plugin has no effective
+  hooks, so clean Git checkouts no longer report a missing empty
+  `hooks/handlers/` directory.
+
 ## [0.2.0-beta.1] - 2026-08-14
 
 ### Changed

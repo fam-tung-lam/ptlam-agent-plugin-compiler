@@ -10,10 +10,12 @@ happens to files it finds there that the source does not imply.
 
 Ownership comes in two kinds, and the difference matters.
 
-The root `skills/` directory is owned as a **complete tree**. For a schema-v2
-plugin, `hooks/handlers/` is a second complete tree; schema v1 claims no hook
-paths. The compiler decides the entire contents. A file you add inside an owned
-tree is reported by `check` as `unexpected` and removed by the next `compile`:
+The root `skills/` directory is owned as a **complete tree**. When a schema-v2
+plugin has effective hooks for at least one selected provider, `hooks/handlers/`
+is a second complete tree. Hook-free plugins and selections with no compatible
+hook events claim no shared hook paths. The compiler decides the entire contents
+of each owned tree. A file you add inside one is reported by `check` as
+`unexpected` and removed by the next `compile`:
 
 ```text
 Output check found 2 drift entries:
@@ -39,11 +41,12 @@ provider.
 
 Native hook configuration remains exact-file-owned by the corresponding adapter.
 `check` reports content or missing-file drift in both the shared handler tree
-and provider-native configuration. Removing every v2 hook leaves an empty owned
-handler root and makes native config files desired absent, cleaning stale
-output. A selected adapter without hook support receives a structured skip; its
-ordinary manifest and the shared skills still compile, but no handler resources
-are emitted for that selection.
+and provider-native configuration. Removing every v2 hook makes native config
+files desired absent and stops claiming the shared handler tree; any prior
+handler files become unowned rather than being deleted. A selected adapter
+without compatible hook events receives a structured skip; its ordinary manifest
+and the shared skills still compile, but no handler resources or empty hook
+directories are emitted for that selection.
 
 No fallback skill, `AGENTS.md`, equivalent instruction file, or first-class
 policy output is generated.
