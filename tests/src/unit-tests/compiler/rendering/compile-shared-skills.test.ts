@@ -46,6 +46,11 @@ describe("compileSharedSkills", () => {
     );
     assert.match(catalog ?? "", /`public-skill`/u);
     assert.match(catalog ?? "", /`old-skill`/u);
+    assert.match(catalog ?? "", /\| Skill\s+\| Category\s+\| Visibility\s+\|/u);
+    assert.match(
+      catalog ?? "",
+      /\| `public-skill`\s+\| Engineering\s+\| public\s+\|/u,
+    );
     assert.doesNotMatch(catalog ?? "", /draft-skill|base-skill/u);
     assert.equal(catalog?.endsWith("\n"), true);
     assert.equal(Object.isFrozen(fragment), true);
