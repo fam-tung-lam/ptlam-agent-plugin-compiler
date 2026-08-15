@@ -80,8 +80,8 @@ export function renderSkillsCatalog(
     return [
       `\`${skill.id}\``,
       requireCategoryName(categoryNames, skill),
-      skill.visibility,
       skill.description,
+      skill.visibility,
       status,
       replacement,
     ];
@@ -94,8 +94,8 @@ export function renderSkillsCatalog(
       [
         "Skill",
         "Category",
-        "Visibility",
         "Description",
+        "Visibility",
         "Status",
         "Replacement",
       ],
