@@ -80,6 +80,7 @@ export function renderSkillsCatalog(
     return [
       `\`${skill.id}\``,
       requireCategoryName(categoryNames, skill),
+      skill.visibility,
       skill.description,
       status,
       replacement,
@@ -90,7 +91,14 @@ export function renderSkillsCatalog(
     "## Available skills",
     "",
     renderMarkdownTable(
-      ["Skill", "Category", "Description", "Status", "Replacement"],
+      [
+        "Skill",
+        "Category",
+        "Visibility",
+        "Description",
+        "Status",
+        "Replacement",
+      ],
       rows,
     ),
   ].join("\n")}\n`;
