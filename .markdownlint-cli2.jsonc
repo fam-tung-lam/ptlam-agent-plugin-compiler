@@ -40,6 +40,12 @@
       "siblings_only": true
     },
 
+    // Keep the README logo centered and explicitly sized without allowing
+    // unrelated inline HTML throughout maintained Markdown.
+    "no-inline-html": {
+      "allowed_elements": ["p", "img"]
+    },
+
     // Allow compact and aligned tables, but reject mixed column styles.
     "table-column-style": {
       "style": "any"
