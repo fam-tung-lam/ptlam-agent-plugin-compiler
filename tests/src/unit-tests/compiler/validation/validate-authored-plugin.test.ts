@@ -271,6 +271,149 @@ describe("validateAuthoredPlugin", () => {
     assert.equal(result.plugin.skills[1]?.required_skills.length, 0);
   });
 
+  it("rejects exact required-skill IDs across authored Markdown forms", () => {
+    // GIVEN: One skill repeats its manifest dependency in prose, code, and a link.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "alpha-skill",
+          required_skills: [
+            {
+              skill_id: "beta-skill",
+              reason: "Provides beta rules.",
+              instructions: "Read beta first.",
+            },
+          ],
+        }),
+        makeSkill({
+          id: "beta-skill",
+          visibility: SkillVisibility.Internal,
+        }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSources: {
+        "alpha-skill": `# Alpha
+
+Use beta-skill in prose.
+Read \`beta-skill\` before continuing.
+[Beta](https://example.test/beta-skill)
+`,
+      },
+    });
+
+    // WHEN: Authored-source validation checks dependency-contract ownership.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: Every Markdown form reports its authored line and both skill IDs.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.equal(error.errors.length, 3);
+      for (const line of [3, 4, 5]) {
+        assert.ok(
+          error.errors.some((diagnostic) =>
+            diagnostic.startsWith(
+              `plugin/skills/alpha-skill/SKILL.md:${line}:`,
+            ),
+          ),
+        );
+      }
+      for (const diagnostic of error.errors) {
+        assert.match(diagnostic, /owning skill "alpha-skill"/u);
+        assert.match(diagnostic, /required skill "beta-skill"/u);
+        assert.match(diagnostic, /plugin\/plugin\.yml/u);
+        assert.match(diagnostic, /generated top-level required-skills block/u);
+      }
+      return true;
+    });
+  });
+
+  it("rejects exact required-skill IDs in nested authored references", () => {
+    // GIVEN: A nested Markdown reference repeats its owning skill's dependency.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "alpha-skill",
+          required_skills: [
+            {
+              skill_id: "beta-skill",
+              reason: "Provides beta rules.",
+              instructions: "Read beta first.",
+            },
+          ],
+        }),
+        makeSkill({
+          id: "beta-skill",
+          visibility: SkillVisibility.Internal,
+        }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      resources: {
+        "alpha-skill/references/guides/nested.md":
+          "# Nested guide\n\nApply beta-skill here.\n",
+      },
+    });
+
+    // WHEN: Authored-source validation traverses nested references.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: The nested authored path and exact line identify the violation.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.equal(error.errors.length, 1);
+      assert.match(
+        error.errors[0] ?? "",
+        /^plugin\/skills\/alpha-skill\/references\/guides\/nested\.md:3:\d+: owning skill "alpha-skill" repeats required skill "beta-skill"/u,
+      );
+      return true;
+    });
+  });
+
+  it("accepts token-prefix self-references and non-owned dependency prose", () => {
+    // GIVEN: A specialization names itself, unrelated skills, and domain vocabulary.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "ptlam-code-style-flutter",
+          required_skills: [
+            {
+              skill_id: "ptlam-code-style",
+              reason: "Provides shared style rules.",
+              instructions: "Apply the generated contract.",
+            },
+          ],
+        }),
+        makeSkill({
+          id: "ptlam-code-style",
+          visibility: SkillVisibility.Internal,
+        }),
+        makeSkill({ id: "unrelated-skill" }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSources: {
+        "ptlam-code-style-flutter":
+          "# Flutter style\n\nptlam-code-style-flutter uses foundation and dependency vocabulary and may cross-reference unrelated-skill.\n",
+        "unrelated-skill":
+          "# Unrelated\n\nptlam-code-style is not this skill's declared dependency.\n",
+      },
+      resources: {
+        "ptlam-code-style-flutter/references/nested/rules.md":
+          "The ptlam-code-style-flutter specialization owns these runtime dependency notes.\n",
+      },
+    });
+
+    // WHEN: Manifest-aware token-boundary validation inspects every package.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: Prefix self-references and text not owned by required_skills remain valid.
+    assert.equal(result.plugin.skills.length, 3);
+  });
+
   it("aggregates graph, source mapping, reserved path, and link failures", () => {
     // GIVEN: Logical facts contain independent graph and authored-source violations.
     const manifest = makeManifest({
