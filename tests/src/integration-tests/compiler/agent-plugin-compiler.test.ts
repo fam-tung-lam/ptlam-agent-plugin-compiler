@@ -702,6 +702,36 @@ describe("AgentPluginCompiler", () => {
     });
   });
 
+  it("rejects repeated dependency contracts from every compiler operation", async () => {
+    // GIVEN: A real authored skill repeats one of its manifest-owned dependencies.
+    const rootDir = await createCompilerRepository();
+    await useSkillDependencyGraph(rootDir);
+    await writeFile(
+      path.join(rootDir, "plugin", "skills", "alpha-skill", "SKILL.md"),
+      "# Alpha skill\n\nRead middle-skill before continuing.\n",
+    );
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: Each public operation loads the same invalid authored repository.
+    const operations = [
+      () => compiler.validate(),
+      () => compiler.check(),
+      () => compiler.compile(),
+    ];
+
+    // THEN: Validation stops validate, check, and compile at the shared boundary.
+    for (const operation of operations) {
+      await assert.rejects(operation(), (error: unknown) => {
+        assert.ok(error instanceof PluginValidationError);
+        assert.match(
+          error.message,
+          /plugin\/skills\/alpha-skill\/SKILL\.md:3:\d+: owning skill "alpha-skill" repeats required skill "middle-skill"/u,
+        );
+        return true;
+      });
+    }
+  });
+
   it("reports one canonical error when the manifest is unavailable", async () => {
     // GIVEN: The canonical manifest file is missing from an otherwise valid source tree.
     const rootDir = await createCompilerRepository();

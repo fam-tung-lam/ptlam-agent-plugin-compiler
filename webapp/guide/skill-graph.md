@@ -28,6 +28,11 @@ All three fields are required. The authored
 `inspect-repository` at all; the compiler writes the dependency section into the
 generated skill from this declaration.
 
+`plugin/plugin.yml` is the sole authored owner of the dependency contract.
+Authored `SKILL.md` files and Markdown below `references/` must not repeat a
+declared required-skill ID; the generated top-level required-skills block is the
+only dependency contract in a compiled skill package.
+
 Dependencies may be nested: a required skill can require further skills, and the
 compiler follows the chain.
 
@@ -166,6 +171,8 @@ rejected by the schema.
 - the same skill is required twice by the same parent;
 - a skill requires itself;
 - requirements form a cycle;
+- an authored `SKILL.md` or nested Markdown reference repeats that skill's exact
+  declared required-skill ID;
 - a skill references a category that is not declared;
 - two skills or two categories share an ID;
 - an active or deprecated skill requires a `draft` skill;
