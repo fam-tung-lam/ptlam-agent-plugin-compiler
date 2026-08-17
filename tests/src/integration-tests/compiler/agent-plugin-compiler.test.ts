@@ -40,6 +40,7 @@ import {
   DISABLED_CLAUDE_MARKETPLACE_BYTES,
   removeAdaptiveHook,
   useSchemaVersion2,
+  useSkillDependencyGraph,
 } from "./test-fixtures/compiler-repository-fixture.ts";
 
 function codexCompiler(rootDir: string): AgentPluginCompiler {
@@ -47,6 +48,42 @@ function codexCompiler(rootDir: string): AgentPluginCompiler {
 }
 
 describe("AgentPluginCompiler", () => {
+  it("writes a deterministic published skill dependency graph", async () => {
+    // GIVEN: A valid repository contains direct, transitive, shared, isolated, deprecated, and excluded skills.
+    const rootDir = await createCompilerRepository();
+    await useSkillDependencyGraph(rootDir);
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: The public facade compiles the repository twice.
+    const firstResult = await compiler.compile();
+    const firstCatalog = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+    const secondResult = await compiler.compile();
+    const secondCatalog = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+
+    // THEN: The written graph is complete, excludes unpublished skills, and is byte-identical.
+    assert.equal(firstResult.verified, true);
+    assert.equal(secondResult.verified, true);
+    assert.equal(secondCatalog, firstCatalog);
+    assert.match(firstCatalog, /## Skill dependency graph/u);
+    assert.match(firstCatalog, /skill_1 --> skill_0/u);
+    assert.match(firstCatalog, /skill_2 --> skill_1/u);
+    assert.match(firstCatalog, /skill_2 --> skill_0/u);
+    assert.match(firstCatalog, /skill_3 --> skill_0/u);
+    assert.match(firstCatalog, /skill_4\["isolated-skill \[public root\]"\]/u);
+    assert.match(firstCatalog, /class skill_3 publicRoot/u);
+    assert.match(firstCatalog, /class skill_3 deprecated/u);
+    assert.doesNotMatch(
+      firstCatalog,
+      /draft-skill|unreachable-skill|archived-skill/u,
+    );
+  });
+
   it("compiles shared hook resources and native configuration with drift detection", async () => {
     // GIVEN: A valid plugin declares one two-stage adaptive hook for Codex.
     const rootDir = await createCompilerRepository();

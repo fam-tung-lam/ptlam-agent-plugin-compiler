@@ -79,19 +79,27 @@ covers the rules that decide which skills become roots and what gets nested.
 ## The generated catalog
 
 `skills/README.md` lists every published skill with its category, description,
-lifecycle status, and replacement:
+visibility, lifecycle status, and replacement:
 
 <!-- prettier-ignore -->
 ```markdown
 ## Available skills
 
-| Skill                 | Category    | Description                                                    | Status | Replacement |
-| --------------------- | ----------- | -------------------------------------------------------------- | ------ | ----------- |
-| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | Active | —           |
+| Skill                 | Category    | Description                                                    | Visibility | Status | Replacement |
+| --------------------- | ----------- | -------------------------------------------------------------- | ---------- | ------ | ----------- |
+| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | public     | Active | —           |
 ```
 
 A deprecated skill appears with its migration guidance in the status column, so
 the catalog is a truthful index of what the plugin currently offers.
+
+The catalog follows the table with a GitHub-renderable Mermaid dependency graph.
+It includes every published root, every transitive required skill that can be
+reached from those roots, and isolated roots that have no dependencies. Each
+arrow points from a dependent skill to the skill it requires. Node labels and
+styles distinguish public roots, internal dependencies, and deprecated skills.
+Draft, archived, and unreachable internal skills stay out of the graph because
+they are not part of the published package.
 
 ## Host manifests
 

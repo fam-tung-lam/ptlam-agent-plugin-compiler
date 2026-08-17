@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added a deterministic Mermaid dependency graph to generated skill catalogs,
+  including published roots, reachable internal dependencies, isolated skills,
+  deprecated-state styling, and a readable empty state.
+
 ## [0.2.0] - 2026-08-14
 
 ### Changed
