@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-08-17
+
 ### Added
 
 - Added a deterministic Mermaid dependency graph to generated skill catalogs,
@@ -208,7 +210,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...HEAD
+[0.2.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...v0.2.1
 [0.2.0]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.2...v0.2.0
 [0.2.0-beta.2]:
