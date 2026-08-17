@@ -54,7 +54,8 @@ describe("compileSharedSkills", () => {
       catalog ?? "",
       /\| `public-skill`\s+\| Engineering\s+\| Description for public-skill\.\s+\| public\s+\|/u,
     );
-    assert.doesNotMatch(catalog ?? "", /draft-skill|base-skill/u);
+    assert.match(catalog ?? "", /base-skill \[internal dependency\]/u);
+    assert.doesNotMatch(catalog ?? "", /draft-skill/u);
     assert.equal(catalog?.endsWith("\n"), true);
     assert.equal(Object.isFrozen(fragment), true);
     assert.equal(Object.isFrozen(fragment.artifacts), true);
@@ -130,6 +131,14 @@ describe("compileSharedSkills", () => {
     assert.deepEqual(
       fragment.artifacts.map((artifact) => String(artifact.path)),
       ["skills", "skills/README.md"],
+    );
+    const catalog = fragment.artifacts.find(
+      (artifact) => String(artifact.path) === "skills/README.md",
+    );
+    assert.ok(catalog?.kind === ArtifactKind.File);
+    assert.match(
+      catalog.content.toString("utf8"),
+      /## Skill dependency graph\n\nNo skills are currently published\./u,
     );
   });
 

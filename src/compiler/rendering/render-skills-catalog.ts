@@ -4,7 +4,9 @@ import {
   type CategoryId,
   type Plugin,
   type Skill,
+  type SkillId,
   SkillStatus,
+  SkillVisibility,
 } from "../../core/index.js";
 
 function markdownCell(value: string): string {
@@ -49,13 +51,118 @@ function requireCategoryName(
   return categoryName;
 }
 
+function mermaidLabel(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function collectCatalogSkills(
+  plugin: Plugin,
+  publishedSkills: readonly Skill[],
+): readonly Skill[] {
+  const skillsById = new Map(plugin.skills.map((skill) => [skill.id, skill]));
+  const reachableSkillIds = new Set<SkillId>();
+
+  function visitSkill(skill: Skill): void {
+    if (reachableSkillIds.has(skill.id)) return;
+    reachableSkillIds.add(skill.id);
+    for (const requirement of skill.required_skills) {
+      const requiredSkill = skillsById.get(requirement.skill_id);
+      if (requiredSkill === undefined) {
+        throw new Error(
+          `Skill ${skill.id} references missing skill ${requirement.skill_id}`,
+        );
+      }
+      visitSkill(requiredSkill);
+    }
+  }
+
+  publishedSkills.forEach(visitSkill);
+  return plugin.skills.filter((skill) => reachableSkillIds.has(skill.id));
+}
+
+function renderSkillDependencyGraph(
+  plugin: Plugin,
+  publishedSkills: readonly Skill[],
+): string {
+  if (publishedSkills.length === 0) {
+    return [
+      "## Skill dependency graph",
+      "",
+      "No skills are currently published.",
+    ].join("\n");
+  }
+
+  const graphSkills = collectCatalogSkills(plugin, publishedSkills);
+  const nodeIds = new Map(
+    plugin.skills.map((skill, index) => [skill.id, `skill_${index}`]),
+  );
+  const graphSkillIds = new Set(graphSkills.map((skill) => skill.id));
+  const lines = [
+    "## Skill dependency graph",
+    "",
+    "Arrows point from a dependent skill to the skill it requires.",
+    "",
+    "```mermaid",
+    "flowchart LR",
+  ];
+
+  for (const skill of graphSkills) {
+    const visibility =
+      skill.visibility === SkillVisibility.Public
+        ? "public root"
+        : "internal dependency";
+    const lifecycle =
+      skill.status === SkillStatus.Deprecated ? ", deprecated" : "";
+    lines.push(
+      `  ${nodeIds.get(skill.id)}["${mermaidLabel(
+        `${skill.id} [${visibility}${lifecycle}]`,
+      )}"]`,
+    );
+  }
+
+  const renderedEdges = new Set<string>();
+  for (const skill of graphSkills) {
+    for (const requirement of skill.required_skills) {
+      if (!graphSkillIds.has(requirement.skill_id)) continue;
+      const edge = `${skill.id}\0${requirement.skill_id}`;
+      if (renderedEdges.has(edge)) continue;
+      renderedEdges.add(edge);
+      lines.push(
+        `  ${nodeIds.get(skill.id)} --> ${nodeIds.get(requirement.skill_id)}`,
+      );
+    }
+  }
+
+  lines.push(
+    "  classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554",
+    "  classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5",
+    "  classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f",
+  );
+  for (const skill of graphSkills) {
+    const visibilityClass =
+      skill.visibility === SkillVisibility.Public
+        ? "publicRoot"
+        : "internalDependency";
+    lines.push(`  class ${nodeIds.get(skill.id)} ${visibilityClass}`);
+    if (skill.status === SkillStatus.Deprecated) {
+      lines.push(`  class ${nodeIds.get(skill.id)} deprecated`);
+    }
+  }
+  lines.push("```");
+  return lines.join("\n");
+}
+
 /**
  * Renders the generated skills catalog body without root README markers.
  *
  * @param plugin - Validated plugin supplying category metadata.
  * @param publishedSkills - Published skills to list, in desired row order.
  * @returns A newline-terminated Markdown catalog section.
- * @throws {Error} If a skill references an unknown category, deprecated metadata is missing, or a table cell contains unsupported characters.
+ * @throws {Error} If a skill references unknown category or dependency data, deprecated metadata is missing, or a table cell contains unsupported characters.
  */
 export function renderSkillsCatalog(
   plugin: Plugin,
@@ -101,5 +208,7 @@ export function renderSkillsCatalog(
       ],
       rows,
     ),
+    "",
+    renderSkillDependencyGraph(plugin, publishedSkills),
   ].join("\n")}\n`;
 }

@@ -212,16 +212,21 @@ Read [inspect-repository](skills/inspect-repository/SKILL.md).
 2. Order the implementation and verification steps.
 ```
 
-`skills/README.md` is the generated catalog of installable skills:
+`skills/README.md` begins with the generated table of installable skills:
 
 <!-- prettier-ignore -->
 ```markdown
 ## Available skills
 
-| Skill                 | Category    | Description                                                    | Status | Replacement |
-| --------------------- | ----------- | -------------------------------------------------------------- | ------ | ----------- |
-| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | Active | —           |
+| Skill                 | Category    | Description                                                    | Visibility | Status | Replacement |
+| --------------------- | ----------- | -------------------------------------------------------------- | ---------- | ------ | ----------- |
+| `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | public     | Active | —           |
 ```
+
+The same file follows the table with a Mermaid graph whose arrows point from
+dependent skills to their requirements. The graph also shows internal
+dependencies that are nested into a published root rather than installed on
+their own.
 
 `.claude-plugin/plugin.json` is the host manifest, projected from the same
 validated model:

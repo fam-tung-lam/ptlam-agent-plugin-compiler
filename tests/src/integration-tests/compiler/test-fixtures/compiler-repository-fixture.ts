@@ -96,6 +96,120 @@ export async function useSchemaVersion2(rootDir: string): Promise<void> {
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
+/** Replace the fixture catalog with every supported dependency-graph shape. */
+export async function useSkillDependencyGraph(rootDir: string): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    skills: Record<string, unknown>[];
+  };
+  manifest.skills = [
+    {
+      id: "shared-skill",
+      description: "Shared internal dependency.",
+      category_id: "engineering",
+      visibility: "internal",
+      status: "active",
+      required_skills: [],
+    },
+    {
+      id: "middle-skill",
+      description: "Transitive internal dependency.",
+      category_id: "engineering",
+      visibility: "internal",
+      status: "active",
+      required_skills: [
+        {
+          skill_id: "shared-skill",
+          reason: "Provides shared rules.",
+          instructions: "Read the shared skill first.",
+        },
+      ],
+    },
+    {
+      id: "alpha-skill",
+      description: "Dependent public skill.",
+      category_id: "engineering",
+      visibility: "public",
+      status: "active",
+      required_skills: [
+        {
+          skill_id: "middle-skill",
+          reason: "Provides the intermediate workflow.",
+          instructions: "Read the middle skill first.",
+        },
+        {
+          skill_id: "shared-skill",
+          reason: "Provides shared rules directly.",
+          instructions: "Also read the shared skill.",
+        },
+      ],
+    },
+    {
+      id: "legacy-skill",
+      description: "Deprecated public skill.",
+      category_id: "engineering",
+      visibility: "public",
+      status: "deprecated",
+      required_skills: [
+        {
+          skill_id: "shared-skill",
+          reason: "Provides legacy shared rules.",
+          instructions: "Read the shared skill first.",
+        },
+      ],
+      deprecation: {
+        reason: "A replacement exists.",
+        instructions: "Use alpha-skill.",
+        replacement_skill_id: "alpha-skill",
+      },
+    },
+    {
+      id: "isolated-skill",
+      description: "Independent public skill.",
+      category_id: "engineering",
+      visibility: "public",
+      status: "active",
+      required_skills: [],
+    },
+    {
+      id: "draft-skill",
+      description: "Unpublished draft skill.",
+      category_id: "engineering",
+      visibility: "public",
+      status: "draft",
+      required_skills: [],
+    },
+    {
+      id: "unreachable-skill",
+      description: "Unreachable internal skill.",
+      category_id: "engineering",
+      visibility: "internal",
+      status: "active",
+      required_skills: [],
+    },
+    {
+      id: "archived-skill",
+      description: "Archived internal skill.",
+      category_id: "engineering",
+      visibility: "internal",
+      status: "archived",
+      required_skills: [],
+      archive: { reason: "No longer supported." },
+    },
+  ];
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  for (const skill of manifest.skills) {
+    const skillId = String(skill["id"]);
+    const skillRoot = path.join(rootDir, "plugin", "skills", skillId);
+    await mkdir(skillRoot, { recursive: true });
+    await writeFile(
+      path.join(skillRoot, "SKILL.md"),
+      `# ${skillId}\n\n${REQUIRED_SKILLS_MARKER}\n`,
+    );
+  }
+}
+
 /** Add one valid adaptive hook to a compiler repository fixture. */
 export async function addAdaptiveHook(
   rootDir: string,
