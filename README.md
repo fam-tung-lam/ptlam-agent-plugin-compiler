@@ -293,10 +293,10 @@ Either way, installing `skill-a` alone gets everything it needs.
 `skills/README.md` is the generated catalog of published skills. Its Mermaid
 dependency graph includes every published root and reachable required skill;
 each skill appears in its category subgraph, arrows point from each dependent
-skill to its requirement, and labels and styles distinguish public, internal,
-and deprecated skills. `status` controls publication over time: `active` and
-`deprecated` skills are published as root skills, while `draft` and `archived`
-ones are not.
+skill to its requirement, and each multiline label shows the skill's status and
+visibility. Styles also distinguish public, internal, and deprecated skills.
+`status` controls publication over time: `active` and `deprecated` skills are
+published as root skills, while `draft` and `archived` ones are not.
 
 ## Install
 

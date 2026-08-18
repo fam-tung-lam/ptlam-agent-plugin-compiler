@@ -96,11 +96,11 @@ the catalog is a truthful index of what the plugin currently offers.
 The catalog follows the table with a GitHub-renderable Mermaid dependency graph.
 It includes every published root, every transitive required skill that can be
 reached from those roots, and isolated roots that have no dependencies. Each
-arrow points from a dependent skill to the skill it requires. Node labels and
-styles distinguish public roots, internal dependencies, and deprecated skills,
-while category subgraphs show where each skill belongs. Draft, archived, and
-unreachable internal skills stay out of the graph because they are not part of
-the published package.
+arrow points from a dependent skill to the skill it requires. Each multiline
+node label shows the skill's lifecycle status and visibility. Styles distinguish
+public, internal, and deprecated skills, while category subgraphs show where
+each skill belongs. Draft, archived, and unreachable internal skills stay out of
+the graph because they are not part of the published package.
 
 ## Host manifests
 

@@ -109,16 +109,11 @@ function renderSkillCategorySubgraphs(
       `    subgraph SkillCategory${categoryIndex}["${mermaidLabel(category.name)}"]`,
     );
     for (const skill of categorySkills) {
-      const visibility =
-        skill.visibility === SkillVisibility.Public
-          ? "public root"
-          : "internal dependency";
-      const lifecycle =
-        skill.status === SkillStatus.Deprecated ? ", deprecated" : "";
       lines.push(
-        `        ${nodeIds.get(skill.id)}["${mermaidLabel(
-          `${skill.id} [${visibility}${lifecycle}]`,
-        )}"]`,
+        `        ${nodeIds.get(skill.id)}["\``,
+        `            ${mermaidLabel(skill.id)}`,
+        `            (${skill.status}/${skill.visibility})`,
+        '        `"]',
       );
     }
     lines.push("    end");
@@ -149,7 +144,11 @@ function renderSkillDependencyGraph(
     "Arrows point from a dependent skill to the skill it requires.",
     "",
     "```mermaid",
-    "flowchart LR",
+    "---",
+    "config:",
+    "  htmlLabels: false",
+    "---",
+    "flowchart TB",
     ...renderSkillCategorySubgraphs(plugin, graphSkills, nodeIds),
   ];
 
@@ -167,18 +166,18 @@ function renderSkillDependencyGraph(
   }
 
   lines.push(
-    "    classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554",
-    "    classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5",
-    "    classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f",
+    "    classDef publicSkill fill:#dbeafe,stroke:#1d4ed8,color:#172554",
+    "    classDef internalSkill fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5",
+    "    classDef deprecatedSkill fill:#fef3c7,stroke:#b45309,color:#78350f",
   );
   for (const skill of graphSkills) {
     const visibilityClass =
       skill.visibility === SkillVisibility.Public
-        ? "publicRoot"
-        : "internalDependency";
+        ? "publicSkill"
+        : "internalSkill";
     lines.push(`    class ${nodeIds.get(skill.id)} ${visibilityClass}`);
     if (skill.status === SkillStatus.Deprecated) {
-      lines.push(`    class ${nodeIds.get(skill.id)} deprecated`);
+      lines.push(`    class ${nodeIds.get(skill.id)} deprecatedSkill`);
     }
   }
   lines.push("```");

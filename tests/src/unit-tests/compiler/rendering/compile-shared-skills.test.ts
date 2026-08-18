@@ -54,7 +54,10 @@ describe("compileSharedSkills", () => {
       catalog ?? "",
       /\| `public-skill`\s+\| Engineering\s+\| Description for public-skill\.\s+\| public\s+\|/u,
     );
-    assert.match(catalog ?? "", /base-skill \[internal dependency\]/u);
+    assert.match(
+      catalog ?? "",
+      /SkillNode0\["`\s+base-skill\s+\(active\/internal\)\s+`"\]/u,
+    );
     assert.doesNotMatch(catalog ?? "", /draft-skill/u);
     assert.equal(catalog?.endsWith("\n"), true);
     assert.equal(Object.isFrozen(fragment), true);

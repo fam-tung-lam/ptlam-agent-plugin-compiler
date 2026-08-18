@@ -127,29 +127,48 @@ describe("renderSkillsCatalog", () => {
 Arrows point from a dependent skill to the skill it requires.
 
 \`\`\`mermaid
-flowchart LR
+---
+config:
+  htmlLabels: false
+---
+flowchart TB
     subgraph SkillCategory0["Engineering"]
-        SkillNode2["public-skill [public root]"]
-        SkillNode3["old-skill [public root, deprecated]"]
-        SkillNode4["isolated-skill [public root]"]
+        SkillNode2["\`
+            public-skill
+            (active/public)
+        \`"]
+        SkillNode3["\`
+            old-skill
+            (deprecated/public)
+        \`"]
+        SkillNode4["\`
+            isolated-skill
+            (active/public)
+        \`"]
     end
     subgraph SkillCategory1["Foundations"]
-        SkillNode0["shared-skill [internal dependency]"]
-        SkillNode1["middle-skill [internal dependency]"]
+        SkillNode0["\`
+            shared-skill
+            (active/internal)
+        \`"]
+        SkillNode1["\`
+            middle-skill
+            (active/internal)
+        \`"]
     end
     SkillNode1 --> SkillNode0
     SkillNode2 --> SkillNode1
     SkillNode2 --> SkillNode0
     SkillNode3 --> SkillNode0
-    classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554
-    classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
-    classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f
-    class SkillNode0 internalDependency
-    class SkillNode1 internalDependency
-    class SkillNode2 publicRoot
-    class SkillNode3 publicRoot
-    class SkillNode3 deprecated
-    class SkillNode4 publicRoot
+    classDef publicSkill fill:#dbeafe,stroke:#1d4ed8,color:#172554
+    classDef internalSkill fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
+    classDef deprecatedSkill fill:#fef3c7,stroke:#b45309,color:#78350f
+    class SkillNode0 internalSkill
+    class SkillNode1 internalSkill
+    class SkillNode2 publicSkill
+    class SkillNode3 publicSkill
+    class SkillNode3 deprecatedSkill
+    class SkillNode4 publicSkill
 \`\`\`
 `,
     );
@@ -204,7 +223,7 @@ flowchart LR
     // THEN: A stable generated node ID carries an entity-escaped display label.
     assert.match(
       catalog,
-      /SkillNode0\["unsafe&quot;&amp;&lt;&gt; \[public root\]"\]/u,
+      /SkillNode0\["`\s+unsafe&quot;&amp;&lt;&gt;\s+\(active\/public\)\s+`"\]/u,
     );
     assert.doesNotMatch(catalog, /unsafe"&<> \[public root\]/u);
   });
