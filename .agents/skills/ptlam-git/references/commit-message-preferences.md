@@ -1,24 +1,45 @@
-# Commit message preferences
+# Commit Message Preferences
 
-Apply current user instructions and repository or collaboration policy before
-verified project Git context. Use these defaults only for choices those sources
-leave unconstrained. This lets `CONTEXT.md` replace them for one project without
-requiring a skill release.
+This reference owns preference precedence, message content, and the final
+message check.
 
-- Use Conventional Commits with an outcome-focused subject:
-  `<type>(<scope>): <description>`, omitting the scope only when it adds no
-  useful context. Preferred types are `feat`, `fix`, `docs`, `style`,
-  `refactor`, `perf`, `test`, `chore`, and `ci`.
-- Make the subject explain why the change exists: name the outcome or
-  capability, the broken behavior fixed, or the reason for a refactor—not the
-  implementation mechanics. Use imperative mood, capitalize the description,
-  omit the final period, aim for 50 characters, and never exceed 72.
-- Add a short, concrete body when the subject cannot carry enough context. For
-  features, show sample usage or explain the new capability. For fixes, state
-  the cause and how the change prevents the failure. Prefer why over a
-  step-by-step account of the implementation.
-- When a commit resolves an issue, add `Fixes #<issue-number>` or
-  `Closes #<issue-number>` in the body. When it contributes to resolving an
-  issue but is not the final commit that closes it, add
-  `Relates #<issue-number>`. Use the full issue URL for an issue in another
-  repository.
+## Apply preferences in order
+
+1. Follow the current user's explicit message instructions.
+2. Follow applicable `AGENTS.md` or equivalent repository instructions for
+   choices the user left open.
+3. Follow a repository policy file that those instructions identify.
+4. Use the portable defaults below for every remaining choice.
+
+Report a conflict instead of silently applying a lower-precedence preference. Do
+not treat neighboring commit history as policy unless the user or repository
+instructions tell you to use it.
+
+## Use portable defaults
+
+- Use Conventional Commits: `<type>(<scope>): <description>`. Omit the scope
+  when it adds no useful context.
+- Prefer `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`,
+  and `ci` as types.
+- Make the subject name the outcome, capability, fixed behavior, or refactor
+  reason rather than only the implementation.
+- Start `<description>` with a lowercase imperative verb: `update dependencies`,
+  not `Update dependencies`.
+- Use imperative mood, omit the final period, aim for 50 characters, and never
+  exceed 72 characters.
+- Add a short body when the subject cannot carry necessary rationale or impact.
+  Prefer why the change exists over a step-by-step account.
+- Add `Fixes #<issue>` or `Closes #<issue>` only when the commit resolves a
+  verified issue. Use `Relates #<issue>` when it contributes without closing.
+- Use the full issue URL when the issue belongs to another repository.
+
+## Verify the message
+
+Read the subject in isolation. Confirm that it matches the staged change, uses
+the selected type and scope accurately, starts its description with a lowercase
+imperative verb, satisfies active length and style rules, and agrees with the
+body.
+
+Verify every issue reference from the request or repository evidence. Return the
+exact subject and body with real line breaks, and disclose anything not fully
+verified.

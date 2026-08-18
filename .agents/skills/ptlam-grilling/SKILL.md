@@ -1,126 +1,153 @@
 ---
 name: ptlam-grilling
 description:
-  Conduct a persistent, interactive stress test of a plan, decision, or idea
-  through one user-owned decision at a time. Use when the user explicitly
-  requests a sequential grilling interview or explicitly asks to resume a prior
-  grilling session; handle ordinary critique or risk-review requests as direct
-  analysis. Research discoverable facts independently, expose assumptions,
-  contradictions, risks, and trade-offs, recommend an answer for every decision,
-  wait after each question, and require confirmed shared understanding before
-  any resulting action.
+  Stress-test a plan, decision, or idea through a persistent interview that
+  resolves one user-owned decision at a time, records confirmed understanding
+  for later continuation, sharpens contested business terms, and captures
+  decisions that are expensive to reverse.
+disable-model-invocation: true
 ---
 
 # PTLam Grilling
 
-Stress-test a plan, decision, or idea through a deliberate sequence of user-owned
-decisions. Resolve evidence independently, expose trade-offs, and keep the user
-in control of consequential choices.
+Stress-test a plan, decision, or idea through one consequential user-owned
+choice at a time. The agent resolves discoverable facts and recommends an
+answer; the user owns each outcome-changing decision.
 
-## Persist the grilling session
+Every session has one persisted record so another agent can resume from the
+latest decision map without relying on chat history.
 
-Capture the task's initial workspace root before the first substantive question
-and keep that root fixed for the session. Do not replace it with a discovered
-repository root or a shell working directory changed later. When the host
-exposes multiple workspace roots and the destination is ambiguous, ask which
-root should own the record.
+## Required skills
 
-Treat invocation of this skill as authority to create and update only its
-session directory and the current session file. Obtain separate authorization
-before staging, committing, publishing, or changing unrelated project files.
-Create new grilling sessions at:
+### `ptlam-modeling-domain`
 
-```text
-<workspace-root>/.ptlam-agent-plugin/skills/productivity/ptlam-grilling/<YYYY-MM-DD>_<title>.md
+**Reason:** Keeps contested business language and context boundaries durable while the interview is still resolving them.
+
+**Instructions:** Read ptlam-modeling-domain before the interview loop.
+Apply it when a business term is contested, overloaded, or newly
+coined, or when a business context boundary becomes unclear.
+Let it own the glossary, context boundaries, and business process map
+in CONTEXT.md.
+Keep this skill's ownership of the questions, decision map, session
+record, and confirmation loop.
+
+Read [ptlam-modeling-domain](skills/ptlam-modeling-domain/SKILL.md).
+
+### `ptlam-creating-adr`
+
+**Reason:** Preserves consequential architectural decisions when the interview makes them concrete enough to evaluate and record.
+
+**Instructions:** Read ptlam-creating-adr before the interview loop.
+Apply its qualification gate when a decision becomes expensive to
+reverse, constrains future architecture, or carries material rejected
+alternatives.
+Let it own the ADR qualification verdict, destination, shape, and
+verification.
+Keep this skill's ownership of the questions, decision map, session
+record, and confirmation loop.
+
+Read [ptlam-creating-adr](skills/ptlam-creating-adr/SKILL.md).
+
+## How does one unresolved decision become persisted shared understanding?
+
+```mermaid
+flowchart LR
+    ResolveRecord["Resolve one session record"] --> BuildDecisionMap["Build and persist the decision map"]
+    BuildDecisionMap --> AskQuestion["Ask one consequential question"]
+    AskQuestion --> PersistAnswer["Persist the answer and updated map"]
+    PersistAnswer --> ChoiceRemains{"Outcome-changing choice remains?"}
+    ChoiceRemains -->|"Yes"| AskQuestion
+    ChoiceRemains -->|"No"| ConfirmUnderstanding["Confirm shared understanding"]
+    ConfirmUnderstanding --> CloseSession["Complete or defer the session"]
 ```
 
-Use the session's creation date and a short, filesystem-safe, descriptive title.
-Prefer words that identify the actual decision over generic titles such as
-`planning` or `discussion`. Inspect the candidate path and same-topic records
-before creating a file. Resume one clear non-complete match unless the user
-explicitly asks to start fresh. If several records plausibly match, ask which one
-to continue. For a fresh session, use the base filename when available;
-otherwise append the first available suffix before `.md`, such as `_2`, `_3`,
-and so on. Never overwrite or truncate an existing record.
+| Concern      | Boundary                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| Decision     | The agent recommends; the user owns every outcome-changing choice.                                         |
+| File effect  | This invocation may write its session record, domain context, and qualifying ADRs at their resolved paths. |
+| Later action | Implementation, Git operations, and publication require separate authority.                                |
+| Done         | The user confirms the persisted decision map, or the record names each deferred choice and consequence.    |
 
-Read a resumed file completely, recheck drift-prone evidence, and continue from
-its next unresolved decision without repeating settled questions. Treat records
-under the earlier flat `.ptlam-agent-plugin/skills/ptlam-grilling/` directory,
-including its `sessions/` subdirectory, as resumable in place, but create new
-records only in the canonical categorized directory.
+## 1. Resolve the session record
 
-Before creating or updating a session file, read and follow the canonical
-[grilling session schema](references/grilling-session-schema.md). Keep the file
-concise, readable without chat history, and sufficient for a new agent to
-continue.
+1. Read the [grilling session schema](references/grilling-session-schema.md). It
+   defines the fixed workspace root, canonical directory, record shape, and
+   status lifecycle.
+2. Inspect that directory, the candidate path, and same-topic records.
+3. Resume one clear non-complete match unless the user asks to start fresh. If
+   several records plausibly match, ask which one to continue.
+4. Read a resumed record completely. Recheck drift-prone evidence and continue
+   from its next unresolved decision without repeating settled questions.
+5. Before the first substantive question, have each injected artifact owner
+   resolve the additional destination it owns. Present the session-record path
+   and every additional destination together so the user can narrow or refuse
+   the write authority before any file is written there. When an exact future
+   filename depends on a decision not yet known, disclose the resolved directory
+   and naming rule now, then present the exact path before its first write.
 
-Complete persistence setup when the initial workspace root is fixed, the schema
-is loaded, one unique new or resumable path is resolved, the initial checkpoint
-is written successfully, and the user has been told the path.
+Complete this step when the fixed workspace root, schema, one unique new or
+resumable path, every possible write destination, prior state, and write
+authority are known and disclosed.
 
-Record conclusions and evidence, not a turn-by-turn transcript or hidden
-reasoning. Never persist secrets, credentials, or unrelated personal data.
+## 2. Build the decision map and write the checkpoint
 
-Use judgment about useful checkpoints, but never let the file lag behind a
-materially changed decision map. Update it after a consequential answer or new
-evidence changes the map, before yielding with the next substantive question,
-before a summary or handoff, and when the session becomes confirmed, deferred,
-blocked, or complete. If persistence fails, report the failed path and reason
-instead of silently claiming the session is resumable.
-
-## Establish the decision map
-
-1. State the intended outcome, known constraints, and the artifact or action the
-   discussion would eventually enable.
+1. State the intended outcome, known constraints, non-goals, and the artifact or
+   action the discussion would eventually enable.
 2. Inspect repository files, tools, prior decisions, and other available
-   evidence for discoverable facts. Do not ask the user to retrieve facts that
-   can be checked safely.
-3. Build an internal decision map. Mark prerequisites, downstream effects,
-   assumptions, conflicts, and branches that are already resolved.
-4. Separate user-owned choices from reversible implementation mechanics. State
-   a reasonable default for low-impact mechanics instead of spending a question
-   on each one.
+   evidence. Do not ask the user to retrieve facts that can be checked safely.
+3. Map prerequisites, downstream effects, assumptions, conflicts, resolved
+   branches, and open user-owned decisions.
+4. Separate consequential choices from reversible implementation mechanics.
+   Choose and state a reasonable default for low-impact mechanics.
+5. Create or update the session record with the current map. For a new session,
+   write the initial checkpoint before asking the first substantive question.
+   Tell the user the record path after the write succeeds.
 
-Complete the decision map when the outcome, non-goals, constraints, relevant
-evidence, prerequisites, assumptions, conflicts, and known user-owned choices
-are represented and the highest-impact answerable decision is identifiable.
+If persistence fails, report the path and reason. Do not claim the session is
+resumable or ask the next substantive question.
 
-## Interview one decision at a time
+Complete this step when the map contains the outcome, non-goals, constraints,
+evidence, prerequisites, assumptions, conflicts, and known choices; the
+highest-impact answerable decision is identifiable; and the persisted record
+matches that state.
+
+## 3. Interview one decision at a time
 
 1. Select the highest-impact unresolved decision whose prerequisites are known.
-2. Ask exactly one question. Include:
-   - why the decision matters now;
-   - the recommended answer and its rationale;
-   - the strongest material alternative; and
-   - the main trade-off or consequence.
+2. Ask exactly one question. State why it matters now, the recommended answer
+   and rationale, the strongest material alternative, and the main trade-off.
 3. Wait for the user's answer before asking another question.
-4. Record the answer, update the decision map, and identify what it resolves or
-   invalidates downstream. Persist the updated checkpoint before yielding with
-   the next question.
+4. Record the answer, then update the map to show what it resolves, changes, or
+   invalidates downstream.
 5. Challenge contradictions with evidence. Reopen an earlier branch when a new
-   answer makes it inconsistent; never smooth over incompatible decisions.
-6. Continue until every outcome-changing branch is resolved or explicitly
+   answer makes it inconsistent.
+6. Persist the checkpoint before yielding with the next substantive question.
+7. Continue until every outcome-changing branch is resolved or explicitly
    deferred with an owner and consequence.
 
-Keep questions concrete. Use scenarios and counterexamples when an abstract
-answer could hide different interpretations. Recommend decisively, but never
-present the recommendation as the user's decision.
+Use concrete scenarios and counterexamples when an abstract answer could hide
+different interpretations. Recommend decisively, but never present the
+recommendation as the user's decision.
 
-## Reach shared understanding
+Complete this step when no answerable outcome-changing decision remains and the
+record reflects every resolved, invalidated, deferred, or open branch.
+
+## 4. Confirm shared understanding
 
 Summarize the outcome, non-goals, resolved decisions, accepted assumptions,
-risks, deferred decisions, and next authorized action. Ask whether this is the
-shared understanding and wait for confirmation. Persist the summary before
-asking for confirmation, then record the user's confirmation or corrections.
+risks, deferred decisions, and next authorized action. Persist that summary, ask
+whether it represents the shared understanding, and wait.
 
-If the user corrects the summary, update the decision map and resume from the
-highest-impact unresolved decision. If the user asks to stop or act before
-confirmation, persist the session as deferred and report the unresolved
-decisions and consequences; an early action request is not confirmation. Treat
-any subsequent request to act as a separate task with new authority, not as
-completion of the grilling session.
+If the user corrects it, update the map and resume from the highest-impact open
+decision. If the user asks to stop or act before confirmation, persist the
+session as `deferred` and report the unresolved decisions and consequences. An
+early action request is not confirmation. Treat later implementation as a
+separate task with new authority.
 
-Act on the confirmed grilling result only after the user confirms shared
-understanding. Complete the grilling session when every outcome-changing
-decision is resolved or explicitly deferred, the confirmation is persisted, no
-material open decision remains, and the status is `complete`.
+Act on the result only after explicit confirmation. Complete the session when
+every outcome-changing decision is resolved or explicitly deferred, the user has
+confirmed the shared understanding, the confirmation is persisted, and the
+status is `complete`.
+
+See [acknowledgements](ACKNOWLEDGEMENTS.md) for the source that inspired this
+workflow.
