@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-08-18
+
+### Changed
+
+- Grouped generated skill dependency graphs by category, laid them out from top
+  to bottom, and showed each skill's lifecycle status and visibility in its
+  label.
+
 ## [0.2.1] - 2026-08-17
 
 ### Added
@@ -210,7 +218,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...HEAD
+[0.2.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...v0.2.2
 [0.2.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...v0.2.1
 [0.2.0]:
