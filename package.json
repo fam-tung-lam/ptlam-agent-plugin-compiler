@@ -68,7 +68,7 @@
     "ajv": "8.20.0",
     "mdast-util-from-markdown": "2.0.3",
     "prettier": "3.9.6",
-    "string-width": "8.2.1",
+    "string-width": "8.2.2",
     "yaml": "2.9.0"
   },
   "devDependencies": {
