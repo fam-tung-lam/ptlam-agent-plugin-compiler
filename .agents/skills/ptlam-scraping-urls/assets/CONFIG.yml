@@ -1,3 +1,0 @@
-OUTPUT_DIRECTORY: .ptlam-agent-plugin/skills/utilities/ptlam-scraping-urls/output
-MAX_PARALLEL_TASKS: 5
-CACHE_TTL_HOURS: 168
