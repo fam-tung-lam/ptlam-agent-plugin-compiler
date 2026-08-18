@@ -84,6 +84,43 @@ function collectCatalogSkills(
   return plugin.skills.filter((skill) => reachableSkillIds.has(skill.id));
 }
 
+function renderSkillCategorySubgraphs(
+  plugin: Plugin,
+  graphSkills: readonly Skill[],
+  nodeIds: ReadonlyMap<SkillId, string>,
+): readonly string[] {
+  const skillsByCategory = new Map<CategoryId, Skill[]>(
+    plugin.categories.map((category) => [category.id, []]),
+  );
+  for (const skill of graphSkills) {
+    const categorySkills = skillsByCategory.get(skill.category_id);
+    if (categorySkills === undefined) {
+      throw new Error(`Skill ${skill.id} references an unknown category`);
+    }
+    categorySkills.push(skill);
+  }
+
+  const lines: string[] = [];
+  plugin.categories.forEach((category, categoryIndex) => {
+    const categorySkills = skillsByCategory.get(category.id) ?? [];
+    if (categorySkills.length === 0) return;
+
+    lines.push(
+      `    subgraph SkillCategory${categoryIndex}["${mermaidLabel(category.name)}"]`,
+    );
+    for (const skill of categorySkills) {
+      lines.push(
+        `        ${nodeIds.get(skill.id)}["\``,
+        `            ${mermaidLabel(skill.id)}`,
+        `            (${skill.status}/${skill.visibility})`,
+        '        `"]',
+      );
+    }
+    lines.push("    end");
+  });
+  return lines;
+}
+
 function renderSkillDependencyGraph(
   plugin: Plugin,
   publishedSkills: readonly Skill[],
@@ -98,7 +135,7 @@ function renderSkillDependencyGraph(
 
   const graphSkills = collectCatalogSkills(plugin, publishedSkills);
   const nodeIds = new Map(
-    plugin.skills.map((skill, index) => [skill.id, `skill_${index}`]),
+    plugin.skills.map((skill, index) => [skill.id, `SkillNode${index}`]),
   );
   const graphSkillIds = new Set(graphSkills.map((skill) => skill.id));
   const lines = [
@@ -107,22 +144,13 @@ function renderSkillDependencyGraph(
     "Arrows point from a dependent skill to the skill it requires.",
     "",
     "```mermaid",
-    "flowchart LR",
+    "---",
+    "config:",
+    "  htmlLabels: false",
+    "---",
+    "flowchart TB",
+    ...renderSkillCategorySubgraphs(plugin, graphSkills, nodeIds),
   ];
-
-  for (const skill of graphSkills) {
-    const visibility =
-      skill.visibility === SkillVisibility.Public
-        ? "public root"
-        : "internal dependency";
-    const lifecycle =
-      skill.status === SkillStatus.Deprecated ? ", deprecated" : "";
-    lines.push(
-      `  ${nodeIds.get(skill.id)}["${mermaidLabel(
-        `${skill.id} [${visibility}${lifecycle}]`,
-      )}"]`,
-    );
-  }
 
   const renderedEdges = new Set<string>();
   for (const skill of graphSkills) {
@@ -132,24 +160,24 @@ function renderSkillDependencyGraph(
       if (renderedEdges.has(edge)) continue;
       renderedEdges.add(edge);
       lines.push(
-        `  ${nodeIds.get(skill.id)} --> ${nodeIds.get(requirement.skill_id)}`,
+        `    ${nodeIds.get(skill.id)} --> ${nodeIds.get(requirement.skill_id)}`,
       );
     }
   }
 
   lines.push(
-    "  classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554",
-    "  classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5",
-    "  classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f",
+    "    classDef publicSkill fill:#dbeafe,stroke:#1d4ed8,color:#172554",
+    "    classDef internalSkill fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5",
+    "    classDef deprecatedSkill fill:#fef3c7,stroke:#b45309,color:#78350f",
   );
   for (const skill of graphSkills) {
     const visibilityClass =
       skill.visibility === SkillVisibility.Public
-        ? "publicRoot"
-        : "internalDependency";
-    lines.push(`  class ${nodeIds.get(skill.id)} ${visibilityClass}`);
+        ? "publicSkill"
+        : "internalSkill";
+    lines.push(`    class ${nodeIds.get(skill.id)} ${visibilityClass}`);
     if (skill.status === SkillStatus.Deprecated) {
-      lines.push(`  class ${nodeIds.get(skill.id)} deprecated`);
+      lines.push(`    class ${nodeIds.get(skill.id)} deprecatedSkill`);
     }
   }
   lines.push("```");

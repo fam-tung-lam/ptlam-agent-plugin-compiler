@@ -100,13 +100,19 @@ export async function useSchemaVersion2(rootDir: string): Promise<void> {
 export async function useSkillDependencyGraph(rootDir: string): Promise<void> {
   const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    categories: Record<string, unknown>[];
     skills: Record<string, unknown>[];
   };
+  manifest.categories.push({
+    id: "foundations",
+    name: "Foundations",
+    description: "Foundational skills.",
+  });
   manifest.skills = [
     {
       id: "shared-skill",
       description: "Shared internal dependency.",
-      category_id: "engineering",
+      category_id: "foundations",
       visibility: "internal",
       status: "active",
       required_skills: [],
@@ -114,7 +120,7 @@ export async function useSkillDependencyGraph(rootDir: string): Promise<void> {
     {
       id: "middle-skill",
       description: "Transitive internal dependency.",
-      category_id: "engineering",
+      category_id: "foundations",
       visibility: "internal",
       status: "active",
       required_skills: [
