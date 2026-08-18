@@ -347,12 +347,16 @@ authored `.mjs` handlers below `plugin/hooks/`. Handler-adjacent files are
 internal resources, so policy data can be shared without becoming a public
 manifest concept.
 
-For v2, the shared renderer owns `hooks/handlers/**`, copies the shared authored
-hook tree once, and adds a small dispatcher. An empty v2 hook map retains an
-empty owned root so stale resources are removed; v1 claims no hook paths.
-Provider adapters point their native command entries at that shared tree and
-translate event names, inputs, and results. Adapters use explicit mappings and
-omit events without a semantic equivalent rather than approximating them.
+For v2, the shared renderer owns `hooks/handlers/**` only when at least one
+selected provider supports an authored event. It then copies the shared authored
+hook tree once and adds a small dispatcher. With no effective hooks it
+contributes no shared fragment, so a pre-existing handler tree is unowned rather
+than deleted; v1 claims no hook paths. Built-in provider adapters still own the
+stable exact files that carry native hook configuration under v2, allowing stale
+configuration to be removed. They point native command entries at the shared
+tree and translate event names, inputs, and results. Adapters use explicit
+mappings and omit events without a semantic equivalent rather than approximating
+them.
 
 The dispatcher fails open on handler errors. It passes `provider`, the universal
 `event`, the immutable native `input`, and common prompt/response fields to the

@@ -224,9 +224,10 @@ Read [inspect-repository](skills/inspect-repository/SKILL.md).
 ```
 
 The same file follows the table with a Mermaid graph whose arrows point from
-dependent skills to their requirements. The graph also shows internal
-dependencies that are nested into a published root rather than installed on
-their own.
+dependent skills to their requirements. It groups skills by category, labels
+each node with lifecycle status and visibility, and styles public, internal, and
+deprecated skills differently. Internal dependencies appear when they are nested
+into a published root, even though users cannot install them on their own.
 
 `.claude-plugin/plugin.json` is the host manifest, projected from the same
 validated model:

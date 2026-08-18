@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Expanded the public feature overview around generated dependency graphs,
+  portable hooks, lifecycle controls, provider output, and deterministic CI
+  verification, and corrected stale hook-ownership guidance.
+
 ## [0.2.2] - 2026-08-18
 
 ### Changed

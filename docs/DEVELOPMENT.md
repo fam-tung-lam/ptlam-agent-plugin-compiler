@@ -89,11 +89,13 @@ entries. Provider-specific matchers remain outside the portable contract.
 
 `ProviderAdapter.supportedHookEvents` lists only events with semantically
 equivalent native events. The compiler filters each adapter's context and emits
-one generated or skipped diagnostic per handler. Schema v2 owns the shared
-`hooks/handlers/**` tree and each built-in provider's hook-config path even when
-no hook artifact is desired, so later compiles can remove stale output. Handler
-resources are emitted when at least one selected adapter supports an event. Do
-not implement fallback skills or provider instruction files at this seam.
+one generated or skipped diagnostic per handler. Under schema v2, the built-in
+provider adapters retain stable exact-file ownership for the files that carry
+native hook configuration so later compiles can remove stale output. The shared
+`hooks/handlers/**` tree is owned and emitted only when at least one selected
+adapter supports an authored event; otherwise a pre-existing shared tree is
+outside the write plan. Do not implement fallback skills or provider instruction
+files at this seam.
 
 ## Test layers
 
