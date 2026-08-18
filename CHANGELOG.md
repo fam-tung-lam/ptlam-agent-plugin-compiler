@@ -11,8 +11,8 @@ and this project adheres to
 ### Changed
 
 - Expanded the public feature overview around generated dependency graphs,
-  portable hooks, lifecycle controls, provider output, and deterministic CI
-  verification, and corrected stale hook-ownership guidance.
+  recursive packaging, portable hooks, lifecycle and invocation controls,
+  provider output, and deterministic CI verification.
 
 ## [0.2.2] - 2026-08-18
 

@@ -81,17 +81,17 @@ root `README.md` stay outside compiler ownership.
 
 ## Hook compilation while developing
 
-Manifest v1 is frozen and hook-free. Manifest v2 adds `PluginManifest.hooks`,
-which keys ordered handler lists by universal event. Every handler path is
-relative to `plugin/hooks/`. Validation loads files below that shared root as
-internal hook resources, while only handler registrations are public manifest
-entries. Provider-specific matchers remain outside the portable contract.
+`PluginManifest.hooks` keys ordered handler lists by universal event. Every
+handler path is relative to `plugin/hooks/`. Validation loads files below that
+shared root as internal hook resources, while only handler registrations are
+public manifest entries. Provider-specific matchers remain outside the portable
+contract.
 
 `ProviderAdapter.supportedHookEvents` lists only events with semantically
 equivalent native events. The compiler filters each adapter's context and emits
-one generated or skipped diagnostic per handler. Under schema v2, the built-in
-provider adapters retain stable exact-file ownership for the files that carry
-native hook configuration so later compiles can remove stale output. The shared
+one generated or skipped diagnostic per handler. Built-in provider adapters
+retain stable exact-file ownership for files that carry native hook
+configuration so later compiles can remove stale output. The shared
 `hooks/handlers/**` tree is owned and emitted only when at least one selected
 adapter supports an authored event; otherwise a pre-existing shared tree is
 outside the write plan. Do not implement fallback skills or provider instruction

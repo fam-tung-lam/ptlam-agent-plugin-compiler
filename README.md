@@ -34,8 +34,8 @@ Full docs at
   table with a Mermaid dependency graph grouped by category and labelled with
   lifecycle status and visibility.
 - **Publication and invocation controls.** Visibility and lifecycle metadata
-  decide what ships, while schema v2 can mark supported-host workflows for
-  explicit invocation only.
+  decide what ships, while invocation metadata can keep supported-host workflows
+  explicit-only.
 - **Portable hooks.** One ordered handler tree maps 19 universal events to each
   selected host where equivalent native semantics exist.
 - **Five built-in hosts and an extension seam.** Generate Claude, Codex, GitHub
@@ -204,17 +204,16 @@ instruction files.
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
 source and compile again. The compiler always owns the root `skills/` tree.
-Under schema v2, the built-in provider adapters also retain stable exact-file
-ownership for the files that carry native hook configuration, so removing a hook
-cleans stale native output. The compiler owns the shared `hooks/handlers/**`
-tree only while at least one selected provider supports an authored event; when
-no effective hooks remain, an existing shared handler tree becomes unowned
-rather than being deleted. Schema v1 retains its original hook-free ownership.
-Every other path stays outside the write plan. Compilation is deterministic, so
-the same source always produces the same bytes and `check` can prove that
-committed output is current.
+Built-in provider adapters retain stable exact-file ownership for files that
+carry native hook configuration, so removing a hook cleans stale native output.
+The compiler owns the shared `hooks/handlers/**` tree only while at least one
+selected provider supports an authored event; when no effective hooks remain, an
+existing shared handler tree becomes unowned rather than being deleted. Every
+other path stays outside the write plan. Compilation is deterministic, so the
+same source always produces the same bytes and `check` can prove that committed
+output is current.
 
-Schema v2 also lets an author mark a workflow as manual-only:
+Invocation controls also let an author mark a workflow as manual-only:
 
 ```yaml
 skills:
@@ -412,7 +411,7 @@ Every flag, precedence rule, and exit code →
 | `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
 | `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
 
-Schema v2 accepts the 19 universal hook events documented in the
+The portable hook contract accepts the 19 universal events documented in the
 [manifest reference](https://agent-plugin-compiler.phamtunglam.com/reference/manifest#hook).
 Each built-in adapter declares the events for which its host has an equivalent.
 Custom adapters expose `supportedHookEvents`; omitted events produce structured,
