@@ -1,7 +1,7 @@
 # Agent Plugin Compiler
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/webapp/public/logo.svg" alt="Agent Plugin Compiler logo" height="100" />
+  <img src="https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/webapp/public/logo.svg" alt="Agent Plugin Compiler logo" height="200" />
 </p>
 
 **Author once. Validate the graph. Compile every host manifest.**
