@@ -71,13 +71,24 @@ describe("AgentPluginCompiler", () => {
     assert.equal(secondResult.verified, true);
     assert.equal(secondCatalog, firstCatalog);
     assert.match(firstCatalog, /## Skill dependency graph/u);
-    assert.match(firstCatalog, /skill_1 --> skill_0/u);
-    assert.match(firstCatalog, /skill_2 --> skill_1/u);
-    assert.match(firstCatalog, /skill_2 --> skill_0/u);
-    assert.match(firstCatalog, /skill_3 --> skill_0/u);
-    assert.match(firstCatalog, /skill_4\["isolated-skill \[public root\]"\]/u);
-    assert.match(firstCatalog, /class skill_3 publicRoot/u);
-    assert.match(firstCatalog, /class skill_3 deprecated/u);
+    assert.match(
+      firstCatalog,
+      /subgraph SkillCategory0\["Engineering"\][\s\S]*SkillNode2\["alpha-skill \[public root\]"\][\s\S]*end/u,
+    );
+    assert.match(
+      firstCatalog,
+      /subgraph SkillCategory1\["Foundations"\][\s\S]*SkillNode0\["shared-skill \[internal dependency\]"\][\s\S]*end/u,
+    );
+    assert.match(firstCatalog, /SkillNode1 --> SkillNode0/u);
+    assert.match(firstCatalog, /SkillNode2 --> SkillNode1/u);
+    assert.match(firstCatalog, /SkillNode2 --> SkillNode0/u);
+    assert.match(firstCatalog, /SkillNode3 --> SkillNode0/u);
+    assert.match(
+      firstCatalog,
+      /SkillNode4\["isolated-skill \[public root\]"\]/u,
+    );
+    assert.match(firstCatalog, /class SkillNode3 publicRoot/u);
+    assert.match(firstCatalog, /class SkillNode3 deprecated/u);
     assert.doesNotMatch(
       firstCatalog,
       /draft-skill|unreachable-skill|archived-skill/u,

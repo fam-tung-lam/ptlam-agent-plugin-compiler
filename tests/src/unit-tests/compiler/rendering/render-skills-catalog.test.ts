@@ -33,7 +33,20 @@ function requirement(skillId: string) {
 }
 
 function makeGraphPlugin() {
-  const manifest = makeManifest();
+  const manifest = makeManifest({
+    categories: [
+      {
+        id: "engineering",
+        name: "Engineering",
+        description: "Engineering skills.",
+      },
+      {
+        id: "foundations",
+        name: "Foundations",
+        description: "Foundational skills.",
+      },
+    ],
+  });
   return createPlugin({
     ...manifest,
     categories: manifest.categories,
@@ -43,12 +56,14 @@ function makeGraphPlugin() {
       withSource(
         makeSkill({
           id: "shared-skill",
+          category_id: "foundations",
           visibility: SkillVisibility.Internal,
         }),
       ),
       withSource(
         makeSkill({
           id: "middle-skill",
+          category_id: "foundations",
           visibility: SkillVisibility.Internal,
           required_skills: [requirement("shared-skill")],
         }),
@@ -95,7 +110,7 @@ function makeGraphPlugin() {
 }
 
 describe("renderSkillsCatalog", () => {
-  it("renders the complete published dependency graph in manifest order", () => {
+  it("groups the complete published dependency graph by category", () => {
     // GIVEN: Published roots have direct, transitive, shared, isolated, and deprecated graph shapes.
     const plugin = makeGraphPlugin();
     const publishedSkills = selectPublishedSkills(plugin.skills);
@@ -104,7 +119,7 @@ describe("renderSkillsCatalog", () => {
     const catalog = renderSkillsCatalog(plugin, publishedSkills);
     const graph = catalog.slice(catalog.indexOf("## Skill dependency graph"));
 
-    // THEN: Every publishable reachable node and unique edge appears in deterministic order.
+    // THEN: Every publishable reachable node belongs to its category before the unique dependency edges.
     assert.equal(
       graph,
       `## Skill dependency graph
@@ -113,24 +128,28 @@ Arrows point from a dependent skill to the skill it requires.
 
 \`\`\`mermaid
 flowchart LR
-  skill_0["shared-skill [internal dependency]"]
-  skill_1["middle-skill [internal dependency]"]
-  skill_2["public-skill [public root]"]
-  skill_3["old-skill [public root, deprecated]"]
-  skill_4["isolated-skill [public root]"]
-  skill_1 --> skill_0
-  skill_2 --> skill_1
-  skill_2 --> skill_0
-  skill_3 --> skill_0
-  classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554
-  classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
-  classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f
-  class skill_0 internalDependency
-  class skill_1 internalDependency
-  class skill_2 publicRoot
-  class skill_3 publicRoot
-  class skill_3 deprecated
-  class skill_4 publicRoot
+    subgraph SkillCategory0["Engineering"]
+        SkillNode2["public-skill [public root]"]
+        SkillNode3["old-skill [public root, deprecated]"]
+        SkillNode4["isolated-skill [public root]"]
+    end
+    subgraph SkillCategory1["Foundations"]
+        SkillNode0["shared-skill [internal dependency]"]
+        SkillNode1["middle-skill [internal dependency]"]
+    end
+    SkillNode1 --> SkillNode0
+    SkillNode2 --> SkillNode1
+    SkillNode2 --> SkillNode0
+    SkillNode3 --> SkillNode0
+    classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554
+    classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
+    classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f
+    class SkillNode0 internalDependency
+    class SkillNode1 internalDependency
+    class SkillNode2 publicRoot
+    class SkillNode3 publicRoot
+    class SkillNode3 deprecated
+    class SkillNode4 publicRoot
 \`\`\`
 `,
     );
@@ -185,7 +204,7 @@ flowchart LR
     // THEN: A stable generated node ID carries an entity-escaped display label.
     assert.match(
       catalog,
-      /skill_0\["unsafe&quot;&amp;&lt;&gt; \[public root\]"\]/u,
+      /SkillNode0\["unsafe&quot;&amp;&lt;&gt; \[public root\]"\]/u,
     );
     assert.doesNotMatch(catalog, /unsafe"&<> \[public root\]/u);
   });
