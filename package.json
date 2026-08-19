@@ -81,5 +81,10 @@
     "vite": "6.4.3",
     "vitepress": "1.6.4",
     "vitest": "4.1.10"
+  },
+  "overrides": {
+    "vitepress": {
+      "vite": "$vite"
+    }
   }
 }
