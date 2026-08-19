@@ -5,9 +5,9 @@ title: Agent Plugin Compiler
 hero:
   text: Author the plugin once. Compile every agent host.
   tagline: >-
-    Ship reliable agent skills without hand-maintaining dependency instructions
-    or host manifests. Validate once, compile deterministic output, and publish
-    a complete plugin for every supported agent host.
+    Validate the skill graph once, then ship self-contained skills, a visual
+    catalog, portable hooks, and exact manifests for every supported agent host.
+    Deterministic output keeps local builds and CI aligned.
   actions:
     - theme: brand
       text: Get started

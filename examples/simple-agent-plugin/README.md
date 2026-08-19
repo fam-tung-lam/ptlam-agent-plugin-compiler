@@ -20,7 +20,8 @@ compiled copy of each handler under `hooks/handlers/`.
 
 The compiler publishes the two public skills at the root of `skills/`. It embeds
 `inspect-repository` under `prepare-change-plan/skills/`, so the dependent skill
-stays self-contained.
+stays self-contained. The generated `skills/README.md` pairs the installable
+skill table with a category-grouped Mermaid dependency graph.
 
 ## Run the example
 
@@ -28,7 +29,7 @@ The compiler dependency is declared as `file:../..`. This is npm's equivalent of
 a Flutter `path` dependency: the example uses the package from the current
 repository checkout instead of downloading it from the registry. A standalone
 consumer should replace it with an exact published version, as shown in the
-[root requirements](../../README.md#requirements).
+[root project dependency guide](../../README.md#project-dependency).
 
 Install and build the compiler from the repository root:
 
@@ -67,5 +68,6 @@ npm exec -- plugin-compiler compile --no-providers
 ```
 
 Edit only `plugin/plugin.yml`, `plugin/skills/`, and `plugin/hooks/`. The
-compiler owns `skills/`, generated hook files under `hooks/`, `.claude-plugin/`,
-and `.codex-plugin/` in this example.
+compiler owns `skills/`, `hooks/handlers/`, `hooks/claude-hooks.json`,
+`hooks/codex-hooks.json`, `.claude-plugin/`, and `.codex-plugin/` in this
+example.
