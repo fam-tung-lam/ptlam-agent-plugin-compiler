@@ -180,11 +180,19 @@ at least one of these guarantees:
 - a skill's dependencies are validated before publication, not after a bug
   report;
 - an installed skill contains every instruction it depends on;
+- a generated catalog should make the published dependency graph reviewable in
+  GitHub and pull requests;
+- visibility and lifecycle rules should control what users can install;
+- manual workflows should remain explicit-only on hosts that enforce that
+  metadata;
+- one portable handler tree should compile to equivalent lifecycle hooks across
+  several hosts;
 - several host manifests always describe the same plugin;
 - generated state is reproducible locally and verifiable in CI.
 
-A single skill with no dependencies and one target host does not need a build
-step. The cost of the compiler is a manifest; the return is everything above.
+If none of those guarantees apply, a single skill with no dependencies and one
+target host does not need a build step. The cost of the compiler is a manifest;
+the return is everything above.
 
 ## Next steps
 
