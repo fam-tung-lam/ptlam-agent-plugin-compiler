@@ -5,12 +5,20 @@ import {
   createProjectPath,
   OwnershipKind,
   type PlanFragment,
+  PluginSchemaVersion,
   type ProviderAdapter,
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
+import {
+  COPILOT_HOOK_EVENT_MAP,
+  hasMappedHookRegistrations,
+  renderCopilotHookConfiguration,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
+const hooksPath = createProjectPath("hooks/copilot-hooks.json");
 const pluginPath = createProjectPath("plugin.json");
 const portablePluginSchema =
   "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json";
@@ -35,6 +43,8 @@ const portablePluginSchema =
 export class CopilotProviderAdapter implements ProviderAdapter {
   /** Built-in GitHub Copilot CLI provider identifier. */
   readonly id: ProviderId = COPILOT;
+  /** Universal events with native Copilot CLI equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(COPILOT_HOOK_EVENT_MAP);
 
   /**
    * Render the portable Agent Plugins manifest from a validated plugin.
@@ -43,6 +53,8 @@ export class CopilotProviderAdapter implements ProviderAdapter {
    * @returns An exact-file fragment containing the root Copilot manifest.
    */
   compile({ plugin }: ProviderContext): PlanFragment {
+    const ownsHooks = plugin.schema_version === PluginSchemaVersion.V2;
+    const hasHooks = hasMappedHookRegistrations(plugin, COPILOT_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       $schema: portablePluginSchema,
       name: plugin.name,
@@ -53,13 +65,14 @@ export class CopilotProviderAdapter implements ProviderAdapter {
       repository: plugin.repository,
       license: plugin.license,
       keywords: plugin.keywords,
+      ...(!hasHooks ? {} : { hooks: "./hooks/copilot-hooks.json" }),
     });
 
     return createPlanFragment({
       ownerId: this.id,
       ownership: {
         kind: OwnershipKind.ExactFiles,
-        paths: [pluginPath],
+        paths: [...(ownsHooks ? [hooksPath] : []), pluginPath],
       },
       artifacts: [
         {
@@ -67,6 +80,15 @@ export class CopilotProviderAdapter implements ProviderAdapter {
           path: pluginPath,
           content: pluginJson,
         },
+        ...(!hasHooks
+          ? []
+          : [
+              {
+                kind: ArtifactKind.File as const,
+                path: hooksPath,
+                content: renderJson(renderCopilotHookConfiguration(plugin)),
+              },
+            ]),
       ],
     });
   }

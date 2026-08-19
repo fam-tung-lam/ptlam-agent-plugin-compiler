@@ -1,0 +1,132 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude sessionStart \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running sessionStart hook"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude userPromptSubmit \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running userPromptSubmit hook"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude userPromptSubmit \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/request.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running userPromptSubmit hook"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude preToolUse \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running preToolUse hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude postToolUse \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running postToolUse hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude postToolUseFailure \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running postToolUseFailure hook"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude permissionRequest \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running permissionRequest hook"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude notification \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running notification hook"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude stop \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/simple-logger/response.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running stop hook"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude stop \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running stop hook"
+          }
+        ]
+      }
+    ],
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/.runtime/portable-hook-dispatcher.mjs\" claude setup \"${CLAUDE_PLUGIN_ROOT}/hooks/handlers/observability/audit.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Running setup hook"
+          }
+        ]
+      }
+    ]
+  }
+}

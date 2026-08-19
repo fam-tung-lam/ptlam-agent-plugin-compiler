@@ -4,11 +4,38 @@ const productionUrl = "https://agent-plugin-compiler.phamtunglam.com";
 const repositoryUrl =
   "https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler";
 
+const docsSidebar = [
+  {
+    text: "Guide",
+    items: [
+      { text: "Introduction", link: "/guide/introduction" },
+      { text: "Installation", link: "/guide/installation" },
+      { text: "Quick Start", link: "/guide/quick-start" },
+      { text: "Skill Graph", link: "/guide/skill-graph" },
+      { text: "Generated Output", link: "/guide/generated-output" },
+      {
+        text: "Continuous Integration",
+        link: "/guide/continuous-integration",
+      },
+      { text: "Programmatic Usage", link: "/guide/programmatic-usage" },
+    ],
+  },
+  {
+    text: "Reference",
+    items: [
+      { text: "Overview", link: "/reference/" },
+      { text: "Manifest", link: "/reference/manifest" },
+      { text: "CLI", link: "/reference/cli" },
+      { text: "Providers", link: "/reference/providers" },
+    ],
+  },
+];
+
 export default defineConfig({
   lang: "en-US",
   title: "Agent Plugin Compiler",
   description:
-    "Compile one authored agent plugin into deterministic provider-specific output.",
+    "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
   base: "/",
   cleanUrls: true,
   sitemap: {
@@ -21,7 +48,8 @@ export default defineConfig({
       "meta",
       {
         name: "keywords",
-        content: "agent plugin compiler, Claude, Codex, Copilot, Gemini, Kimi",
+        content:
+          "agent plugin compiler, agent skills, skill dependency graph, portable hooks, Claude, Codex, Copilot, Gemini, Kimi",
       },
     ],
     ["meta", { property: "og:type", content: "website" }],
@@ -32,7 +60,7 @@ export default defineConfig({
       {
         property: "og:description",
         content:
-          "Compile one authored agent plugin into deterministic provider-specific output.",
+          "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
       },
     ],
     ["meta", { property: "og:image", content: `${productionUrl}/og.png` }],
@@ -43,7 +71,7 @@ export default defineConfig({
       {
         name: "twitter:description",
         content:
-          "Compile one authored agent plugin into deterministic provider-specific output.",
+          "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
       },
     ],
     ["meta", { name: "twitter:image", content: `${productionUrl}/og.png` }],
@@ -55,34 +83,16 @@ export default defineConfig({
       alt: "Agent Plugin Compiler",
     },
     nav: [
-      { text: "Guide", link: "/guide/introduction" },
-      { text: "Reference", link: "/reference/" },
+      {
+        text: "Guide",
+        link: "/guide/introduction",
+        activeMatch: "^/guide/",
+      },
+      { text: "Reference", link: "/reference/", activeMatch: "^/reference/" },
     ],
     sidebar: {
-      "/guide/": [
-        {
-          text: "Guide",
-          items: [
-            { text: "Introduction", link: "/guide/introduction" },
-            { text: "Installation", link: "/guide/installation" },
-            { text: "Quick Start", link: "/guide/quick-start" },
-            { text: "Authored Plugin Source", link: "/guide/authored-source" },
-            { text: "Generated Output", link: "/guide/generated-output" },
-          ],
-        },
-      ],
-      "/reference/": [
-        {
-          text: "Reference",
-          items: [
-            { text: "Overview", link: "/reference/" },
-            { text: "CLI", link: "/reference/cli" },
-            { text: "Manifest", link: "/reference/manifest" },
-            { text: "Providers", link: "/reference/providers" },
-            { text: "Node.js Interface", link: "/reference/node-interface" },
-          ],
-        },
-      ],
+      "/guide/": docsSidebar,
+      "/reference/": docsSidebar,
     },
     search: {
       provider: "local",

@@ -6,14 +6,20 @@ The package exposes one executable named `plugin-compiler`.
 Usage: plugin-compiler [OPTIONS] <COMMAND>
 ```
 
+Run it through npm in a repository that has the package installed:
+
+```bash
+npm exec -- plugin-compiler <command>
+```
+
 ## Commands
 
-| Command    | Reads authored source | Reads output | Writes output        | Purpose                              |
-| ---------- | --------------------- | ------------ | -------------------- | ------------------------------------ |
-| `init`     | Existing paths        | No           | Missing source paths | Create a safe starter                |
-| `validate` | Yes                   | No           | No                   | Validate manifest, skills, and graph |
-| `compile`  | Yes                   | Yes          | Yes                  | Compile and verify managed output    |
-| `check`    | Yes                   | Yes          | No                   | Report generated drift               |
+| Command    | Reads authored source | Reads output | Writes output        | Purpose                                     |
+| ---------- | --------------------- | ------------ | -------------------- | ------------------------------------------- |
+| `init`     | Existing paths        | No           | Missing source paths | Create a safe starter                       |
+| `validate` | Yes                   | No           | No                   | Validate manifest, skills, hooks, and graph |
+| `compile`  | Yes                   | Yes          | Yes                  | Compile and verify managed output           |
+| `check`    | Yes                   | Yes          | No                   | Report generated drift                      |
 
 Show root or focused help:
 
@@ -32,8 +38,9 @@ Every command accepts:
 --root <path>
 ```
 
-The default is the current working directory. The path is resolved before the
-compiler operation begins.
+The default is the current working directory. A relative path is resolved
+against it before the compiler operation begins. The option may be given only
+once.
 
 ## Provider options
 
@@ -55,6 +62,39 @@ whether the effective source was `manifest` or `override`.
 
 `init` accepts only `--root` and help because it does not select output.
 
+## Report format
+
+Every result begins with one scope line naming the repository root, the
+effective providers, and where that selection came from:
+
+```text
+Scope: /path/to/plugin; providers: claude, codex; provider source: manifest.
+```
+
+`compile` then lists each managed path as `changed` or `unchanged`. `check` and
+the verification step of `compile` list drift entries as `- <path>: <reason>`:
+
+| Reason            | Meaning                                             |
+| ----------------- | --------------------------------------------------- |
+| `content-differs` | The file exists with different bytes than planned   |
+| `kind-differs`    | The path is a different entry kind than planned     |
+| `missing`         | A planned path does not exist                       |
+| `unexpected`      | An owned path exists that the plan does not include |
+
+When hooks are declared, `validate`, `compile`, and `check` also print one
+provider-by-hook decision:
+
+```text
+Hooks:
+- claude/simple-logger: generated
+- external/simple-logger: skipped (provider-does-not-support-hooks)
+```
+
+Skipped hooks are non-fatal. Their provider's other output still participates in
+compilation and drift detection.
+
+Warnings are written to standard error and do not change the exit code.
+
 ## Exit codes
 
 | Code | Meaning                                                         |
@@ -66,5 +106,5 @@ whether the effective source was `manifest` or `override`.
 For `check`, detected drift is exit code `1`, making the command suitable for CI
 verification.
 
-Next: review the [manifest contract](/reference/manifest) or see the workflow in
-the [Quick Start](/guide/quick-start).
+Next: review the [manifest contract](/reference/manifest), or wire the commands
+into [continuous integration](/guide/continuous-integration).

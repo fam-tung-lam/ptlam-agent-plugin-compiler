@@ -45,6 +45,8 @@ export type SourceEntryInput = SourceDirectory | SourceFileInput;
 export interface PluginSourceInput {
   /** Canonical manifest file, or `null` when it could not be read. */
   readonly manifest: SourceFileInput | null;
+  /** Successfully inspected entries below optional `plugin/hooks/`. */
+  readonly hookEntries?: Iterable<SourceEntryInput>;
   /** Successfully inspected entries below `plugin/skills/`. */
   readonly skillEntries: Iterable<SourceEntryInput>;
 }
@@ -53,6 +55,8 @@ export interface PluginSourceInput {
 export interface PluginSource {
   /** Canonical manifest file, or `null` when unavailable. */
   readonly manifest: SourceFile | null;
+  /** Immutable successful hook entries in deterministic path order. */
+  readonly hookEntries: readonly SourceEntry[];
   /** Immutable successful skill entries in deterministic path order. */
   readonly skillEntries: readonly SourceEntry[];
 }
@@ -83,15 +87,19 @@ function createSourceEntry(input: SourceEntryInput): SourceEntry {
 /**
  * Snapshot successful source facts in deterministic path order.
  *
- * @param input - Manifest and successfully inspected skill entries.
+ * @param input - Manifest and successfully inspected skill and hook entries.
  * @returns Immutable authored source facts with copied file bytes.
  */
 export function createPluginSource(input: PluginSourceInput): PluginSource {
+  const hookEntries = [...(input.hookEntries ?? [])]
+    .sort((left, right) => compareProjectPaths(left.path, right.path))
+    .map(createSourceEntry);
   const skillEntries = [...input.skillEntries]
     .sort((left, right) => compareProjectPaths(left.path, right.path))
     .map(createSourceEntry);
   return Object.freeze({
     manifest: input.manifest === null ? null : createSourceFile(input.manifest),
+    hookEntries: Object.freeze(hookEntries),
     skillEntries: Object.freeze(skillEntries),
   });
 }

@@ -26,13 +26,12 @@ function client(
     async getTagReference() {
       return undefined;
     },
-    async verifyAsset() {},
     ...overrides,
   };
 }
 
 describe("create GitHub release", () => {
-  it("creates an annotated tag before creating the release", async () => {
+  it("creates an annotated tag before creating the release with its asset", async () => {
     // GIVEN: GitHub has neither release metadata nor a tag.
     const calls: string[] = [];
     const github = client({
@@ -40,14 +39,11 @@ describe("create GitHub release", () => {
         calls.push("tag-object");
         return { sha: "tag-object" };
       },
-      async createRelease() {
-        calls.push("release");
+      async createRelease(_tagName, _prerelease, _notesPath, assetPath) {
+        calls.push(`release:${assetPath}`);
       },
       async createTagReference() {
         calls.push("tag-reference");
-      },
-      async verifyAsset() {
-        calls.push("verify-asset");
       },
     });
 
@@ -68,8 +64,7 @@ describe("create GitHub release", () => {
     assert.deepEqual(calls, [
       "tag-object",
       "tag-reference",
-      "release",
-      "verify-asset",
+      "release:package.tgz",
     ]);
   });
 
@@ -126,9 +121,6 @@ describe("create GitHub release", () => {
       async getTagReference() {
         return { object: { sha: "tag-object", type: "tag" } };
       },
-      async verifyAsset() {
-        calls.push("verify-asset");
-      },
     });
 
     // WHEN: CD resumes metadata creation for the same release.
@@ -145,15 +137,15 @@ describe("create GitHub release", () => {
 
     // THEN: Existing metadata is accepted without creating or moving anything.
     assert.equal(tagName, "v1.0.0");
-    assert.deepEqual(calls, ["verify-asset"]);
+    assert.deepEqual(calls, []);
   });
 
-  it("completes a compatible draft before verifying its asset", async () => {
+  it("completes a compatible draft release", async () => {
     // GIVEN: A previous attempt left a compatible draft release.
     const calls: string[] = [];
     const github = client({
-      async completeDraftRelease() {
-        calls.push("complete-draft");
+      async completeDraftRelease(_tagName, _notesPath, assetPath) {
+        calls.push(`complete-draft:${assetPath}`);
       },
       async getAnnotatedTag() {
         return {
@@ -166,9 +158,6 @@ describe("create GitHub release", () => {
       },
       async getTagReference() {
         return { object: { sha: "tag-object", type: "tag" } };
-      },
-      async verifyAsset() {
-        calls.push("verify-asset");
       },
     });
 
@@ -184,7 +173,7 @@ describe("create GitHub release", () => {
       github,
     );
 
-    // THEN: The draft is published before its immutable asset is verified.
-    assert.deepEqual(calls, ["complete-draft", "verify-asset"]);
+    // THEN: The draft is published with its release asset.
+    assert.deepEqual(calls, ["complete-draft:package.tgz"]);
   });
 });

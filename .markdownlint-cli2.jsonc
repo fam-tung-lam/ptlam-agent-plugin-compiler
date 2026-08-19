@@ -1,24 +1,54 @@
 {
-  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/main/schema/markdownlint-cli2-config-schema.json",
-  "globs": ["**/*.{md,mdx}"],
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.23.2/schema/markdownlint-cli2-config-schema.json",
+
+  // Lint the repository's maintained public documentation and authored skills.
+  "globs": ["*.md", "docs/**/*.md", "plugin/skills/**/*.md"],
+
+  // Respect repository and nested-project generated or local exclusions.
+  "gitignore": true,
+
+  // Document every lint exception here instead of hiding it inside a document.
+  "noInlineConfig": true,
+
+  // Agent instructions, generated content, and dependencies are outside the
+  // maintained public documentation scope.
   "ignores": [
+    "AGENTS.md",
+    "AGENTS.override.md",
+    "CLAUDE.md",
     ".agents/**",
     ".codex/**",
-    "coverage/**",
-    "dist/**",
+    ".idea/**",
+    ".lavish/**",
+    ".ptlam/**",
+    ".ptlam-agent-plugin/**",
     "local/**",
-    "**/node_modules/**",
-    "examples/**/skills/**",
+    "node_modules/**",
+    "skills/**",
+    "tests/**/integration-tests/results/**"
   ],
+
   "config": {
+    // Enable newly added markdownlint rules unless this file opts out.
     "default": true,
-    "MD013": {
-      "line_length": 80,
-      "code_blocks": false,
-      "tables": false,
+
+    // Tables, links, and commands are clearer without a fixed source-line cap.
+    "line-length": false,
+
+    // Repeated subsection names are valid under different parent sections.
+    "no-duplicate-heading": {
+      "siblings_only": true
     },
-    "MD024": {
-      "siblings_only": true,
+
+    // Keep the README logo centered and explicitly sized without allowing
+    // unrelated inline HTML throughout maintained Markdown.
+    "no-inline-html": {
+      "allowed_elements": ["p", "img"]
     },
-  },
+
+    // Allow compact and aligned tables, but reject mixed column styles.
+    "table-column-style": {
+      "style": "any"
+    }
+  }
 }

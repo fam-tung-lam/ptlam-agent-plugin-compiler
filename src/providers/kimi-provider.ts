@@ -9,6 +9,12 @@ import {
   type ProviderContext,
   type ProviderId,
 } from "../core/index.js";
+import {
+  hasMappedHookRegistrations,
+  KIMI_HOOK_EVENT_MAP,
+  renderKimiHooks,
+  supportedHookEvents,
+} from "./render-hooks.js";
 import { renderJson } from "./render-json.js";
 
 const pluginPath = createProjectPath("kimi.plugin.json");
@@ -22,6 +28,8 @@ const pluginPath = createProjectPath("kimi.plugin.json");
 export class KimiProviderAdapter implements ProviderAdapter {
   /** Built-in Kimi provider identifier. */
   readonly id: ProviderId = KIMI;
+  /** Universal events with native Kimi Code equivalents. */
+  readonly supportedHookEvents = supportedHookEvents(KIMI_HOOK_EVENT_MAP);
 
   /**
    * Render the Kimi manifest from a validated plugin.
@@ -30,6 +38,7 @@ export class KimiProviderAdapter implements ProviderAdapter {
    * @returns An exact-file fragment containing the Kimi manifest.
    */
   compile({ plugin }: ProviderContext): PlanFragment {
+    const hasHooks = hasMappedHookRegistrations(plugin, KIMI_HOOK_EVENT_MAP);
     const pluginJson = renderJson({
       name: plugin.name,
       version: plugin.version,
@@ -44,6 +53,7 @@ export class KimiProviderAdapter implements ProviderAdapter {
       homepage: plugin.homepage,
       license: plugin.license,
       skills: "./skills/",
+      ...(!hasHooks ? {} : { hooks: renderKimiHooks(plugin) }),
     });
 
     return createPlanFragment({

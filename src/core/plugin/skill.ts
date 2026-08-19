@@ -58,6 +58,8 @@ export interface SkillManifest {
   readonly id: SkillId;
   /** Human-readable skill description. */
   readonly description: string;
+  /** Prevent supported hosts from selecting the skill without explicit user invocation. */
+  readonly disable_model_invocation: boolean;
   /** Category containing this skill. */
   readonly category_id: CategoryId;
   /** Publication visibility. */

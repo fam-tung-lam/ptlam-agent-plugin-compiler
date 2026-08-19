@@ -3,7 +3,10 @@ import {
   createProviderContext,
   OwnershipKind,
   type Plugin,
+  PluginSchemaVersion,
+  type ProviderAdapter,
   type ProviderId,
+  type UniversalHookEvent,
 } from "../core/index.js";
 import {
   initializePluginSource,
@@ -14,7 +17,7 @@ import {
 import { ProviderAdapterRegistry } from "../providers/index.js";
 import { CompilerOptions, type CompilerOptionsInput } from "./options.js";
 import { buildWritePlan, compareWritePlan } from "./planning/index.js";
-import { compileSharedSkills } from "./rendering/index.js";
+import { compileSharedHooks, compileSharedSkills } from "./rendering/index.js";
 import {
   type CheckResult,
   type CompileResult,
@@ -22,6 +25,9 @@ import {
   createCompileResult,
   createInitResult,
   createValidateResult,
+  type HookDiagnostic,
+  HookDiagnosticReason,
+  HookDiagnosticStatus,
   type InitResult,
   type ProviderSelectionSource,
   type ValidateResult,
@@ -72,11 +78,13 @@ async function buildPlan(
   registry: ProviderAdapterRegistry,
   selectedProviders: readonly ProviderId[],
 ) {
-  const context = createProviderContext(plugin);
   const sharedSkills = await compileSharedSkills(plugin);
   const selected = new Set<string>(selectedProviders);
   const providerFragments = registry.list().map((provider) => {
-    const fragment = provider.compile(context);
+    const providerContext = createProviderContext(
+      filterPluginHooks(plugin, provider.supportedHookEvents ?? []),
+    );
+    const fragment = provider.compile(providerContext);
     if (fragment.ownership.kind !== OwnershipKind.ExactFiles) {
       throw new TypeError(
         `Provider adapter ${JSON.stringify(provider.id)} must declare exact-file ownership`,
@@ -90,14 +98,49 @@ async function buildPlan(
           artifacts: [],
         });
   });
+  const selectedEvents = new Set(
+    registry
+      .resolve(selectedProviders)
+      .flatMap((provider) => provider.supportedHookEvents ?? []),
+  );
+  const sharedHooks =
+    plugin.schema_version === PluginSchemaVersion.V2
+      ? compileSharedHooks(filterPluginHooks(plugin, selectedEvents))
+      : null;
   return buildWritePlan({
-    fragments: [sharedSkills, ...providerFragments],
+    fragments: [
+      sharedSkills,
+      ...(sharedHooks === null ? [] : [sharedHooks]),
+      ...providerFragments,
+    ],
   });
+}
+
+function filterPluginHooks(
+  plugin: Plugin,
+  supportedEvents: Iterable<UniversalHookEvent>,
+): Plugin {
+  const supported = new Set(supportedEvents);
+  const hooks = plugin.hooks.filter((hook) => supported.has(hook.event));
+  return Object.freeze({
+    ...plugin,
+    hooks: Object.freeze(hooks),
+    hook_resources:
+      hooks.length === 0 ? Object.freeze([]) : plugin.hook_resources,
+  });
+}
+
+function providerSupportsEvent(
+  provider: ProviderAdapter,
+  event: UniversalHookEvent,
+): boolean {
+  return provider.supportedHookEvents?.includes(event) === true;
 }
 
 interface ProviderSelection {
   readonly providers: readonly ProviderId[];
   readonly providerSelectionSource: ProviderSelectionSource;
+  readonly hookDiagnostics: readonly HookDiagnostic[];
 }
 
 function resolveProviderSelection(
@@ -106,11 +149,34 @@ function resolveProviderSelection(
   registry: ProviderAdapterRegistry,
 ): ProviderSelection {
   const requested = override ?? plugin.providers;
+  const adapters = registry.resolve(requested);
+  const hookDiagnostics: HookDiagnostic[] = [];
+  for (const provider of adapters) {
+    for (const hook of plugin.hooks) {
+      hookDiagnostics.push(
+        providerSupportsEvent(provider, hook.event)
+          ? {
+              provider: provider.id,
+              event: hook.event,
+              handler: hook.handler,
+              status: HookDiagnosticStatus.Generated,
+            }
+          : {
+              provider: provider.id,
+              event: hook.event,
+              handler: hook.handler,
+              status: HookDiagnosticStatus.Skipped,
+              reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+            },
+      );
+    }
+  }
   return Object.freeze({
-    providers: Object.freeze(
-      registry.resolve(requested).map((provider) => provider.id),
-    ),
+    providers: Object.freeze(adapters.map((provider) => provider.id)),
     providerSelectionSource: override === undefined ? "manifest" : "override",
+    hookDiagnostics: Object.freeze(
+      hookDiagnostics.map((diagnostic) => Object.freeze(diagnostic)),
+    ),
   });
 }
 

@@ -1,5 +1,6 @@
 import type { PlanFragment } from "./generated/plan-fragment.js";
 import type { ProviderId } from "./identifiers.js";
+import type { UniversalHookEvent } from "./plugin/hook.js";
 import type { Plugin } from "./plugin/plugin.js";
 
 /**
@@ -47,6 +48,8 @@ export interface ProviderContext {
 export interface ProviderAdapter {
   /** Stable identifier selected through compiler options. */
   readonly id: ProviderId;
+  /** Universal hook events with semantically equivalent native provider events. */
+  readonly supportedHookEvents?: readonly UniversalHookEvent[];
   /**
    * Render this provider's generated contribution.
    *

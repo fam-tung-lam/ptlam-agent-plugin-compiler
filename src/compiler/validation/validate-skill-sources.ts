@@ -10,6 +10,7 @@ import {
 } from "../../core/index.js";
 import { SOURCE_MANIFEST_PATH } from "./parse-plugin-manifest.js";
 import { validateMarkdownLinks } from "./validate-markdown-links.js";
+import { validateRequiredSkillContractOwnership } from "./validate-required-skill-contract-ownership.js";
 
 const SOURCE_SKILLS_PATH = "plugin/skills";
 const RESERVED_NESTED_SKILLS_PATH = "skills";
@@ -170,11 +171,18 @@ function inspectSkillSource(
   const sourceFiles = new Set(files.keys());
   for (const [relativePath, content] of files) {
     if (relativePath.endsWith(".md")) {
+      const markdownSource = content.toString("utf8");
       errors.push(
         ...validateMarkdownLinks({
-          source: content.toString("utf8"),
+          source: markdownSource,
           markdownPath: relativePath,
           sourceFiles,
+          skillPath: sourcePath,
+        }),
+        ...validateRequiredSkillContractOwnership({
+          source: markdownSource,
+          markdownPath: relativePath,
+          skill: manifestSkill,
           skillPath: sourcePath,
         }),
       );

@@ -22,6 +22,7 @@ import {
 } from "../safety/assert-safe-path.js";
 
 const MANIFEST_PATH = createProjectPath("plugin/plugin.yml");
+const HOOKS_PATH = createProjectPath("plugin/hooks");
 const SKILLS_PATH = createProjectPath("plugin/skills");
 
 function compareDirents(left: Dirent, right: Dirent): number {
@@ -114,7 +115,7 @@ function childProjectPath(
   }
 }
 
-async function walkSkillsDirectory(
+async function walkSourceDirectory(
   absoluteDirectory: string,
   logicalDirectory: ProjectPath,
   entries: SourceEntryInput[],
@@ -154,7 +155,7 @@ async function walkSkillsDirectory(
       );
     } else if (child.isDirectory()) {
       entries.push({ kind: SourceEntryKind.Directory, path: logicalPath });
-      await walkSkillsDirectory(
+      await walkSourceDirectory(
         absolutePath,
         logicalPath,
         entries,
@@ -193,9 +194,9 @@ async function walkSkillsDirectory(
 /**
  * Read bounded authored source facts without parsing or business validation.
  *
- * Recoverable manifest and skill-tree failures are returned as diagnostics.
+ * Recoverable manifest, skill-tree, and hook-tree failures are returned as diagnostics.
  *
- * @param rootDir - Repository root containing `plugin/plugin.yml` and `plugin/skills`.
+ * @param rootDir - Repository root containing the manifest, skills, and optional hooks.
  * @returns An immutable source snapshot with ordered filesystem diagnostics.
  * @throws If the repository root is missing, linked, or not a directory.
  * @internal
@@ -206,7 +207,33 @@ export async function readPluginSource(
   const repositoryRoot = await assertRealRepository(rootDir);
   const diagnostics: FilesystemDiagnostic[] = [];
   const manifest = await readManifest(repositoryRoot, diagnostics);
+  const hookEntries: SourceEntryInput[] = [];
   const skillEntries: SourceEntryInput[] = [];
+
+  try {
+    const inspection = await assertSafePath(
+      repositoryRoot,
+      HOOKS_PATH,
+      "directory",
+    );
+    if (inspection.stats !== null) {
+      await walkSourceDirectory(
+        inspection.absolutePath,
+        HOOKS_PATH,
+        hookEntries,
+        diagnostics,
+      );
+    }
+  } catch (error) {
+    diagnostics.push(
+      diagnostic(
+        HOOKS_PATH,
+        FilesystemDiagnosticOperation.Inspect,
+        diagnosticReason(error),
+        `${HOOKS_PATH}: cannot inspect source (${errorMessage(error)})`,
+      ),
+    );
+  }
 
   try {
     const inspection = await assertSafePath(
@@ -224,7 +251,7 @@ export async function readPluginSource(
         ),
       );
     } else {
-      await walkSkillsDirectory(
+      await walkSourceDirectory(
         inspection.absolutePath,
         SKILLS_PATH,
         skillEntries,
@@ -253,7 +280,7 @@ export async function readPluginSource(
           : 0;
   });
   return createPluginSnapshot({
-    source: createPluginSource({ manifest, skillEntries }),
+    source: createPluginSource({ manifest, hookEntries, skillEntries }),
     diagnostics,
   });
 }

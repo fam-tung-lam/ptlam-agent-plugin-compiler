@@ -8,6 +8,7 @@ import {
   PluginSchemaVersion,
   SkillStatus,
   SkillVisibility,
+  UniversalHookEvent,
 } from "../../../../../src/core/index.ts";
 
 export function makePluginFixture(
@@ -45,6 +46,7 @@ export function makePluginFixture(
       {
         id: active,
         description: "An active public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Active,
@@ -56,6 +58,7 @@ export function makePluginFixture(
       {
         id: createSkillId("deprecated-skill"),
         description: "A deprecated public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Deprecated,
@@ -72,6 +75,7 @@ export function makePluginFixture(
       {
         id: createSkillId("internal-skill"),
         description: "An internal dependency.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Internal,
         status: SkillStatus.Active,
@@ -83,6 +87,7 @@ export function makePluginFixture(
       {
         id: createSkillId("draft-skill"),
         description: "A draft public skill.",
+        disable_model_invocation: false,
         category_id: engineering,
         visibility: SkillVisibility.Public,
         status: SkillStatus.Draft,
@@ -92,5 +97,40 @@ export function makePluginFixture(
         resources: [],
       },
     ],
+  });
+}
+
+/** Create one provider fixture containing the portable adaptive hook shape. */
+export function makeHookPluginFixture(): Plugin {
+  const plugin = makePluginFixture();
+  return createPlugin({
+    ...plugin,
+    schema_version: PluginSchemaVersion.V2,
+    categories: plugin.categories,
+    hooks: [
+      {
+        event: UniversalHookEvent.UserPromptSubmit,
+        handler: createProjectPath("adaptive-interaction/request.mjs"),
+      },
+      {
+        event: UniversalHookEvent.Stop,
+        handler: createProjectPath("adaptive-interaction/response.mjs"),
+      },
+    ],
+    hook_resources: [
+      {
+        path: createProjectPath("adaptive-interaction/request.mjs"),
+        content: Buffer.from("export async function handle() {}\n"),
+      },
+      {
+        path: createProjectPath("adaptive-interaction/response.mjs"),
+        content: Buffer.from("export async function handle() {}\n"),
+      },
+      {
+        path: createProjectPath("adaptive-interaction/policies/style.json"),
+        content: Buffer.from('{"concise":true}\n'),
+      },
+    ],
+    skills: plugin.skills,
   });
 }
