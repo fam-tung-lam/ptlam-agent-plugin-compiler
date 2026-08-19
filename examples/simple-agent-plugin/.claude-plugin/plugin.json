@@ -18,5 +18,6 @@
   "skills": [
     "./skills/prepare-change-plan",
     "./skills/write-commit-message"
-  ]
+  ],
+  "hooks": "./hooks/claude-hooks.json"
 }

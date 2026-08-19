@@ -4,18 +4,36 @@ import { createRequire } from "node:module";
 import { describe, it } from "vitest";
 
 import { parsePluginManifest } from "../../../../../src/compiler/validation/index.ts";
-import { CLAUDE, CODEX } from "../../../../../src/core/index.ts";
-import { makeManifest } from "../test-fixtures/plugin-fixture.ts";
+import {
+  CLAUDE,
+  CODEX,
+  PluginSchemaVersion,
+  UniversalHookEvent,
+} from "../../../../../src/core/index.ts";
+import { makeManifest, makeSkill } from "../test-fixtures/plugin-fixture.ts";
 
 const require = createRequire(import.meta.url);
-const pluginManifestSchema = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV1 = require("../../../../../src/schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV2 = require("../../../../../src/schemas/v2/plugin-manifest.schema.json");
+
+function removeV2SkillFields<
+  T extends { readonly skills: ReturnType<typeof makeManifest>["skills"] },
+>(manifest: T) {
+  return {
+    ...manifest,
+    skills: manifest.skills.map(
+      ({ disable_model_invocation: _disableModelInvocation, ...skill }) =>
+        skill,
+    ),
+  };
+}
 
 describe("parsePluginManifest", () => {
-  it("uses the versioned JSON schema as the manifest contract", () => {
-    // GIVEN: A schema-valid manifest declares non-empty provider defaults.
+  it("uses the v2 JSON schema as the current manifest contract", () => {
+    // GIVEN: The current schema has a stable versioned resource identifier.
     assert.equal(
-      pluginManifestSchema.$id,
-      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json",
+      pluginManifestSchemaV2.$id,
+      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v2/plugin-manifest.schema.json",
     );
     const manifest = makeManifest({ providers: [CLAUDE, CODEX] });
 
@@ -42,6 +60,91 @@ describe("parsePluginManifest", () => {
     );
   });
 
+  it("keeps v1 frozen and rejects lifecycle hooks", () => {
+    // GIVEN: The frozen v1 schema has no hook property.
+    assert.equal(
+      pluginManifestSchemaV1.$id,
+      "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json",
+    );
+    assert.equal(pluginManifestSchemaV1.properties.hooks, undefined);
+    const manifest = removeV2SkillFields(makeManifest());
+    const { hooks: _hooks, ...withoutHooks } = manifest;
+    const legacy = {
+      ...withoutHooks,
+      schema_version: PluginSchemaVersion.V1,
+    };
+
+    // WHEN: A v1 source adds the v2-only hook property.
+    const result = parsePluginManifest(
+      JSON.stringify({ ...legacy, hooks: manifest.hooks }),
+    );
+
+    // THEN: Version dispatch applies the closed v1 contract.
+    assert.deepEqual(result, {
+      errors: ["plugin/plugin.yml#/hooks: must NOT have additional properties"],
+    });
+  });
+
+  it("accepts manual-only skills in v2 and keeps the field out of v1", () => {
+    // GIVEN: One v2 skill disables model invocation while another omits the field.
+    const manualOnly = makeManifest({
+      skills: [
+        makeSkill({ id: "automatic-skill" }),
+        makeSkill({
+          id: "manual-skill",
+          disable_model_invocation: true,
+        }),
+      ],
+    });
+    const source = JSON.parse(JSON.stringify(manualOnly)) as Record<
+      string,
+      unknown
+    >;
+    const skills = source["skills"] as Record<string, unknown>[];
+    delete skills[0]?.["disable_model_invocation"];
+
+    // WHEN: V2, invalid-v2, and v1 variants cross the public schema boundary.
+    const current = parsePluginManifest(JSON.stringify(source));
+    const invalid = parsePluginManifest(
+      JSON.stringify({
+        ...source,
+        skills: [{ ...skills[0], disable_model_invocation: "true" }],
+      }),
+    );
+    const legacy = parsePluginManifest(
+      JSON.stringify({
+        ...source,
+        schema_version: PluginSchemaVersion.V1,
+        hooks: undefined,
+        skills: [{ ...skills[0], disable_model_invocation: true }],
+      }),
+    );
+
+    // THEN: Omission normalizes false, true remains true, and v1 rejects the field.
+    assert.equal(
+      "manifest" in current
+        ? current.manifest.skills[0]?.disable_model_invocation
+        : undefined,
+      false,
+    );
+    assert.equal(
+      "manifest" in current
+        ? current.manifest.skills[1]?.disable_model_invocation
+        : undefined,
+      true,
+    );
+    assert.deepEqual(invalid, {
+      errors: [
+        "plugin/plugin.yml/skills/0/disable_model_invocation: must be boolean",
+      ],
+    });
+    assert.deepEqual(legacy, {
+      errors: [
+        "plugin/plugin.yml/skills/0/disable_model_invocation: must NOT have additional properties",
+      ],
+    });
+  });
+
   it("accepts an empty provider default", () => {
     // GIVEN: A schema-valid manifest selects shared skills only.
     const manifest = makeManifest({ providers: [] });
@@ -54,6 +157,171 @@ describe("parsePluginManifest", () => {
     assert.equal(
       "manifest" in result && Object.isFrozen(result.manifest.providers),
       true,
+    );
+  });
+
+  it("normalizes omitted hooks and accepts every universal hook event", () => {
+    // GIVEN: Legacy source omits hooks while v2 keys handlers by every event.
+    const current = makeManifest();
+    const { hooks: _hooks, ...currentWithoutHooks } = current;
+    const legacyWithoutHooks = {
+      ...removeV2SkillFields(currentWithoutHooks),
+      schema_version: PluginSchemaVersion.V1,
+    };
+    const adaptive = {
+      ...current,
+      hooks: Object.fromEntries(
+        Object.values(UniversalHookEvent).map((event, index) => [
+          event,
+          [{ handler: `event-${index}.mjs` }],
+        ]),
+      ),
+    };
+
+    // WHEN: Both manifests cross the same public schema boundary.
+    const legacyResult = parsePluginManifest(
+      JSON.stringify(legacyWithoutHooks),
+    );
+    const adaptiveResult = parsePluginManifest(JSON.stringify(adaptive));
+
+    // THEN: Hook-free input stays valid and every standard event is preserved.
+    assert.equal("manifest" in legacyResult, true);
+    assert.deepEqual(
+      "manifest" in legacyResult ? legacyResult.manifest.hooks : undefined,
+      {},
+    );
+    assert.equal("manifest" in adaptiveResult, true);
+    assert.deepEqual(
+      "manifest" in adaptiveResult
+        ? Object.keys(adaptiveResult.manifest.hooks)
+        : undefined,
+      Object.values(UniversalHookEvent),
+    );
+    assert.equal(
+      "manifest" in adaptiveResult
+        ? adaptiveResult.manifest.hooks.preToolUse?.[0]?.handler
+        : undefined,
+      "event-4.mjs",
+    );
+    assert.equal(
+      "manifest" in adaptiveResult &&
+        Object.isFrozen(adaptiveResult.manifest.hooks),
+      true,
+    );
+  });
+
+  it.each(["before-request", "before-response"])(
+    "rejects the legacy custom hook event %s",
+    (legacyEvent) => {
+      // GIVEN: A schema-v2 map still uses one compiler-specific lifecycle key.
+      const source = JSON.stringify({
+        ...makeManifest(),
+        hooks: { [legacyEvent]: [{ handler: "request.mjs" }] },
+      });
+
+      // WHEN: The manifest crosses the public parsing boundary.
+      const result = parsePluginManifest(source);
+
+      // THEN: The closed event-keyed object rejects the legacy key.
+      assert.equal("manifest" in result, false);
+      assert.ok(
+        "errors" in result &&
+          result.errors.some(
+            (error) =>
+              error.includes("hooks") &&
+              error.includes("must NOT have additional properties"),
+          ),
+      );
+    },
+  );
+
+  it("rejects the previous logical-hook binding array", () => {
+    // GIVEN: A schema-v2 manifest still nests event bindings below a hook id.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      hooks: [
+        {
+          id: "adaptive-interaction",
+          bindings: [{ event: "userPromptSubmit", handler: "request.mjs" }],
+        },
+      ],
+    });
+
+    // WHEN: The manifest crosses the public schema boundary.
+    const result = parsePluginManifest(source);
+
+    // THEN: Version two accepts only the event-keyed hook object.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.some(
+          (error) =>
+            error.includes("hooks") && error.includes("must be object"),
+        ),
+    );
+  });
+
+  it("rejects unsupported schema versions before contract validation", () => {
+    // GIVEN: A structurally complete manifest selects a future schema version.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      schema_version: 3,
+    });
+
+    // WHEN: The manifest parser dispatches by schema version.
+    const result = parsePluginManifest(source);
+
+    // THEN: The version error names every contract this library supports.
+    assert.deepEqual(result, {
+      errors: [
+        "plugin/plugin.yml/schema_version: must be one of the supported versions: 1, 2",
+      ],
+    });
+  });
+
+  it("keeps matcher out of the refactored handler registration", () => {
+    // GIVEN: One handler attempts to add provider-specific matcher semantics.
+    const invalid = {
+      ...makeManifest(),
+      hooks: {
+        userPromptSubmit: [{ handler: "request.mjs", matcher: "Bash|Write" }],
+      },
+    };
+
+    // WHEN: The closed schema parses the provider-neutral declaration.
+    const result = parsePluginManifest(JSON.stringify(invalid));
+
+    // THEN: The handler shape accepts only its path.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.some((error) =>
+          error.includes("must NOT have additional properties"),
+        ),
+    );
+  });
+
+  it("rejects dot segments in hook handler paths with a schema diagnostic", () => {
+    // GIVEN: A v2 hook handler path contains a non-normalized dot segment.
+    const source = JSON.stringify({
+      ...makeManifest(),
+      hooks: {
+        userPromptSubmit: [{ handler: "lib/./request.mjs" }],
+      },
+    });
+
+    // WHEN: The manifest crosses the public parsing boundary.
+    const result = parsePluginManifest(source);
+
+    // THEN: Parsing returns a field-level diagnostic instead of throwing.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.some(
+          (error) =>
+            error.includes("hooks/userPromptSubmit/0/handler") &&
+            error.includes("must match pattern"),
+        ),
     );
   });
 

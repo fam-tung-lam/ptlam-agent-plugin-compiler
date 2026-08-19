@@ -179,6 +179,7 @@ export async function installStagedTree(
       await rename(target.absolutePath, backupPath);
       targetMoved = true;
     }
+    await mkdir(path.dirname(target.absolutePath), { recursive: true });
     await rename(stagedPath, target.absolutePath);
   } catch (installError) {
     const recoveryErrors: unknown[] = [];

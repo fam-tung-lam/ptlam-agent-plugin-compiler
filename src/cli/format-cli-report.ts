@@ -126,6 +126,26 @@ function warningLines(warnings: readonly string[]): string[] {
     : ["Warnings:", ...warnings.map((warning) => `- ${warning}`)];
 }
 
+function hookDiagnosticLines(
+  diagnostics: readonly {
+    readonly provider: string;
+    readonly event: string;
+    readonly handler: string;
+    readonly status: string;
+    readonly reason?: string;
+  }[],
+): string[] {
+  return diagnostics.length === 0
+    ? []
+    : [
+        "Hooks:",
+        ...diagnostics.map(
+          (diagnostic) =>
+            `- ${diagnostic.provider}/${diagnostic.event}/${diagnostic.handler}: ${diagnostic.status}${diagnostic.reason === undefined ? "" : ` (${diagnostic.reason})`}`,
+        ),
+      ];
+}
+
 interface FormattableDrift {
   /** Repository-relative drift path. */
   readonly path: string;
@@ -230,6 +250,7 @@ export function formatCliResult(
         stdout: [
           resultScopeLine(scope, executed.result),
           `Validated ${executed.result.plugin.name}@${executed.result.plugin.version}: ${countLabel(executed.result.plugin.skills.length, "skill")} in ${countLabel(executed.result.plugin.categories.length, "category", "categories")}.`,
+          ...hookDiagnosticLines(executed.result.hookDiagnostics),
         ],
         stderr: warnings,
       });
@@ -240,6 +261,7 @@ export function formatCliResult(
             stdout: [
               resultScopeLine(scope, executed.result),
               "Output check passed.",
+              ...hookDiagnosticLines(executed.result.hookDiagnostics),
             ],
             stderr: warnings,
           })
@@ -247,6 +269,7 @@ export function formatCliResult(
             exitCode: CliExitCode.Failure,
             stderr: [
               ...warnings,
+              ...hookDiagnosticLines(executed.result.hookDiagnostics),
               resultScopeLine(scope, executed.result),
               `Output check found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
               ...driftLines(executed.result.drift),
@@ -267,15 +290,17 @@ export function formatCliResult(
             stdout: [
               resultScopeLine(scope, executed.result),
               "Compilation completed and post-write verification passed.",
+              ...hookDiagnosticLines(executed.result.hookDiagnostics),
               ...writeLines,
             ],
             stderr: warnings,
           })
         : createReport({
             exitCode: CliExitCode.Failure,
-            stdout: writeLines,
+            stdout: [...writeLines],
             stderr: [
               ...warnings,
+              ...hookDiagnosticLines(executed.result.hookDiagnostics),
               resultScopeLine(scope, executed.result),
               `Compilation completed but verification found ${countLabel(executed.result.drift.length, "drift entry", "drift entries")}:`,
               ...driftLines(executed.result.drift),

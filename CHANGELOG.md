@@ -10,6 +10,115 @@ and this project adheres to
 
 ### Changed
 
+- Expanded the public feature overview around generated dependency graphs,
+  recursive packaging, portable hooks, lifecycle and invocation controls,
+  provider output, and deterministic CI verification.
+
+## [0.2.2] - 2026-08-18
+
+### Changed
+
+- Grouped generated skill dependency graphs by category, laid them out from top
+  to bottom, and showed each skill's lifecycle status and visibility in its
+  label.
+
+## [0.2.1] - 2026-08-17
+
+### Added
+
+- Added a deterministic Mermaid dependency graph to generated skill catalogs,
+  including published roots, reachable internal dependencies, isolated skills,
+  deprecated-state styling, and a readable empty state.
+
+## [0.2.0] - 2026-08-14
+
+### Changed
+
+- Promoted the schema-v2 hook and skill-metadata contracts from beta to stable
+  without changing their behavior.
+
+## [0.2.0-beta.2] - 2026-08-14
+
+### Fixed
+
+- Omitted shared hook output ownership when a schema-v2 plugin has no effective
+  hooks, so clean Git checkouts no longer report a missing empty
+  `hooks/handlers/` directory.
+
+## [0.2.0-beta.1] - 2026-08-14
+
+### Changed
+
+- Promoted the schema-v2 hook and skill-metadata contracts from alpha to beta
+  without changing their behavior.
+
+## [0.2.0-alpha.2] - 2026-08-13
+
+### Added
+
+- Added optional schema-v2 `disable_model_invocation` skill metadata, compiled
+  to `disable-model-invocation: true` in every generated root and embedded
+  `SKILL.md` copy.
+- Added all 19 universal hook events to the schema-v2 manifest contract.
+
+### Changed
+
+- **Breaking:** Replaced logical hook objects and nested event bindings with an
+  event-keyed `hooks` object containing ordered handler lists.
+- Replaced binary adapter `supportsHooks` capability reporting with
+  `supportedHookEvents`, provider-native event maps, and handler-level
+  generated/skipped diagnostics.
+
+## [0.2.0-alpha.1] - 2026-08-12
+
+### Added
+
+- Added provider-neutral logical hooks with separate `before-request` and
+  `before-response` handlers, binary adapter capability detection, shared
+  runtime resources, provider-native output for Claude, Codex, Copilot, Gemini,
+  and Kimi, and structured generated/skipped diagnostics.
+- Added the closed manifest schema v2 for portable hooks while retaining the
+  original v1 schema as an immutable packaged resource.
+- Added an adaptive interaction example that preserves simple requests, enriches
+  complex work without changing intent, and requests at most one
+  response-presentation revision.
+
+### Changed
+
+- New plugin templates use schema v2. Existing schema-v1 plugins keep their
+  hook-free validation and generated-file ownership unchanged; migrating a valid
+  manifest requires changing `schema_version` from `1` to `2`.
+- Validation, compilation, drift detection, the CLI, and the Node.js API now
+  include hooks, and removing v2 hooks reconciles stale handler and native
+  configuration output.
+
+## [0.1.1] - 2026-08-12
+
+### Added
+
+- Added Homebrew as a secondary stable installation channel through the shared
+  `fam-tung-lam/homebrew-tap` repository.
+- Added a dedicated Installation guide for choosing, verifying, upgrading, and
+  removing the npm or Homebrew installation.
+
+### Changed
+
+- Documented the post-release Homebrew Formula update boundary while keeping npm
+  authoritative for package versions and bytes.
+
+## [0.1.0] - 2026-08-11
+
+### Changed
+
+- Promoted the current CLI, Node.js API, and generated-output contracts from
+  beta to the first stable release without changing their behavior.
+- Stable installation guidance now resolves npm's `latest` version by default
+  while keeping project dependencies pinned exactly.
+
+## [0.1.0-beta.2] - 2026-08-10
+
+### Changed
+
 - Breaking: renamed the CLI command `plugin-compiler generate` to
   `plugin-compiler compile`. Replace `generate` with `compile` in scripts and
   direct CLI usage.
@@ -115,7 +224,27 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.1...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...HEAD
+[0.2.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...v0.2.2
+[0.2.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...v0.2.1
+[0.2.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.2...v0.2.0
+[0.2.0-beta.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-beta.1...v0.2.0-beta.2
+[0.2.0-beta.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.2...v0.2.0-beta.1
+[0.2.0-alpha.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0-alpha.1...v0.2.0-alpha.2
+[0.2.0-alpha.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.1...v0.2.0-alpha.1
+[0.1.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0...v0.1.1
+[0.1.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.2...v0.1.0
+[0.1.0-beta.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.1.0-alpha.4...v0.1.0-beta.1
 [0.1.0-alpha.4]:

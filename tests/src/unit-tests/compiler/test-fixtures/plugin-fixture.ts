@@ -40,6 +40,7 @@ type SkillArchiveFixture = Omit<SkillArchive, "replacement_skill_id"> & {
 interface SkillManifestFixture {
   readonly id: string;
   readonly description?: string;
+  readonly disable_model_invocation?: boolean;
   readonly category_id?: string;
   readonly visibility?: SkillVisibility;
   readonly status?: SkillStatus;
@@ -93,6 +94,7 @@ export function makeSkill(overrides: SkillManifestFixture): SkillManifest {
   return {
     id: createSkillId(overrides.id),
     description: overrides.description ?? `Description for ${overrides.id}.`,
+    disable_model_invocation: overrides.disable_model_invocation ?? false,
     category_id: createCategoryId(overrides.category_id ?? "engineering"),
     visibility: overrides.visibility ?? SkillVisibility.Public,
     status: overrides.status ?? SkillStatus.Active,
@@ -111,9 +113,9 @@ export function makeSkill(overrides: SkillManifestFixture): SkillManifest {
 export function makeManifest(
   overrides: PluginManifestFixture = {},
 ): PluginManifest {
-  const { categories, skills, ...values } = overrides;
+  const { categories, hooks, skills, ...values } = overrides;
   return {
-    schema_version: PluginSchemaVersion.V1,
+    schema_version: PluginSchemaVersion.V2,
     providers: [createProviderId("claude"), createProviderId("codex")],
     name: "fixture-skills",
     description: "Fixture plugin.",
@@ -128,6 +130,7 @@ export function makeManifest(
     license: "MIT",
     keywords: ["agent-skills"],
     ...values,
+    hooks: hooks ?? {},
     categories: (
       categories ?? [
         {
@@ -149,15 +152,39 @@ export function makePluginSource({
   manifestSource,
   skillSources = {},
   resources = {},
+  hookResources = {},
+  hookExtraEntries = [],
   extraEntries = [],
 }: {
   readonly manifest?: PluginManifest;
   readonly manifestSource?: string;
   readonly skillSources?: Readonly<Record<string, string>>;
   readonly resources?: Readonly<Record<string, string | Uint8Array>>;
+  readonly hookResources?: Readonly<Record<string, string | Uint8Array>>;
+  readonly hookExtraEntries?: readonly SourceEntryInput[];
   readonly extraEntries?: readonly SourceEntryInput[];
 } = {}): PluginSource {
+  const hookEntries: SourceEntryInput[] = [];
   const skillEntries: SourceEntryInput[] = [];
+  const hookDirectories = new Set<string>();
+  for (const [relativePath, content] of Object.entries(hookResources)) {
+    const segments = relativePath.split("/");
+    for (let index = 1; index < segments.length; index += 1) {
+      hookDirectories.add(segments.slice(0, index).join("/"));
+    }
+    hookEntries.push({
+      kind: SourceEntryKind.File,
+      path: createProjectPath(`plugin/hooks/${relativePath}`),
+      content: Buffer.from(content),
+    });
+  }
+  for (const directory of hookDirectories) {
+    hookEntries.push({
+      kind: SourceEntryKind.Directory,
+      path: createProjectPath(`plugin/hooks/${directory}`),
+    });
+  }
+  hookEntries.push(...hookExtraEntries);
   for (const skill of manifest.skills) {
     const skillRoot = `plugin/skills/${skill.id}`;
     skillEntries.push(
@@ -192,6 +219,7 @@ export function makePluginSource({
         manifestSource ?? `${JSON.stringify(manifest, null, 2)}\n`,
       ),
     },
+    hookEntries,
     skillEntries,
   });
 }
@@ -221,6 +249,8 @@ function makeSkillInput(overrides: SkillInputFixture): SkillInput {
 export function makePlugin(): Plugin {
   return createPlugin({
     ...makeManifest(),
+    hooks: [],
+    hook_resources: [],
     categories: [
       {
         id: createCategoryId("engineering"),

@@ -10,7 +10,11 @@ import {
 import path from "node:path";
 
 import { describe, it, vi } from "vitest";
-import { AgentPluginCompiler } from "../../../../src/compiler/index.ts";
+import {
+  AgentPluginCompiler,
+  HookDiagnosticReason,
+  HookDiagnosticStatus,
+} from "../../../../src/compiler/index.ts";
 import { PluginValidationError } from "../../../../src/compiler/validation/index.ts";
 import {
   ArtifactKind,
@@ -21,16 +25,22 @@ import {
   DriftReason,
   OwnershipKind,
   type ProviderAdapter,
+  UniversalHookEvent,
 } from "../../../../src/core/index.ts";
 import * as filesystem from "../../../../src/filesystem/index.ts";
 import {
   CODEX,
+  GEMINI,
   ProviderAdapterRegistry,
 } from "../../../../src/providers/index.ts";
 import {
+  addAdaptiveHook,
   createCompilerRepository,
   DISABLED_CLAUDE_BYTES,
   DISABLED_CLAUDE_MARKETPLACE_BYTES,
+  removeAdaptiveHook,
+  useSchemaVersion2,
+  useSkillDependencyGraph,
 } from "./test-fixtures/compiler-repository-fixture.ts";
 
 function codexCompiler(rootDir: string): AgentPluginCompiler {
@@ -38,6 +48,289 @@ function codexCompiler(rootDir: string): AgentPluginCompiler {
 }
 
 describe("AgentPluginCompiler", () => {
+  it("writes a deterministic published skill dependency graph", async () => {
+    // GIVEN: A valid repository contains direct, transitive, shared, isolated, deprecated, and excluded skills.
+    const rootDir = await createCompilerRepository();
+    await useSkillDependencyGraph(rootDir);
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: The public facade compiles the repository twice.
+    const firstResult = await compiler.compile();
+    const firstCatalog = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+    const secondResult = await compiler.compile();
+    const secondCatalog = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+
+    // THEN: The written graph is complete, excludes unpublished skills, and is byte-identical.
+    assert.equal(firstResult.verified, true);
+    assert.equal(secondResult.verified, true);
+    assert.equal(secondCatalog, firstCatalog);
+    assert.match(firstCatalog, /## Skill dependency graph/u);
+    assert.match(
+      firstCatalog,
+      /config:\n {2}htmlLabels: false\n---\nflowchart TB/u,
+    );
+    assert.match(
+      firstCatalog,
+      /subgraph SkillCategory0\["Engineering"\][\s\S]*SkillNode2\["`\s+alpha-skill\s+\(active\/public\)\s+`"\][\s\S]*end/u,
+    );
+    assert.match(
+      firstCatalog,
+      /subgraph SkillCategory1\["Foundations"\][\s\S]*SkillNode0\["`\s+shared-skill\s+\(active\/internal\)\s+`"\][\s\S]*end/u,
+    );
+    assert.match(firstCatalog, /SkillNode1 --> SkillNode0/u);
+    assert.match(firstCatalog, /SkillNode2 --> SkillNode1/u);
+    assert.match(firstCatalog, /SkillNode2 --> SkillNode0/u);
+    assert.match(firstCatalog, /SkillNode3 --> SkillNode0/u);
+    assert.match(
+      firstCatalog,
+      /SkillNode4\["`\s+isolated-skill\s+\(active\/public\)\s+`"\]/u,
+    );
+    assert.match(firstCatalog, /class SkillNode3 publicSkill/u);
+    assert.match(firstCatalog, /class SkillNode3 deprecatedSkill/u);
+    assert.doesNotMatch(
+      firstCatalog,
+      /draft-skill|unreachable-skill|archived-skill/u,
+    );
+  });
+
+  it("compiles shared hook resources and native configuration with drift detection", async () => {
+    // GIVEN: A valid plugin declares one two-stage adaptive hook for Codex.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: The public facade compiles and a generated handler is then changed.
+    const compiled = await compiler.compile();
+    const generatedRequest = path.join(
+      rootDir,
+      "hooks",
+      "handlers",
+      "adaptive-interaction",
+      "request.mjs",
+    );
+    await writeFile(generatedRequest, "externally changed\n");
+    const checked = await compiler.check();
+
+    // THEN: One shared handler tree, one native config, and structured status are observable.
+    assert.equal(compiled.verified, true);
+    assert.deepEqual(compiled.hookDiagnostics, [
+      {
+        provider: CODEX,
+        event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
+        status: HookDiagnosticStatus.Generated,
+      },
+      {
+        provider: CODEX,
+        event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
+        status: HookDiagnosticStatus.Generated,
+      },
+    ]);
+    assert.equal(
+      (await lstat(path.join(rootDir, "hooks", "codex-hooks.json"))).isFile(),
+      true,
+    );
+    assert.match(
+      await readFile(
+        path.join(rootDir, ".codex-plugin", "plugin.json"),
+        "utf8",
+      ),
+      /hooks\/codex-hooks\.json/u,
+    );
+    assert.deepEqual(checked.drift, [
+      {
+        path: "hooks/handlers/adaptive-interaction/request.mjs",
+        reason: DriftReason.ContentDiffers,
+      },
+    ]);
+  });
+
+  it("stops owning shared hook output after the declaration is removed", async () => {
+    // GIVEN: A v2 plugin has compiled one portable hook for Codex.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const compiler = codexCompiler(rootDir);
+    await compiler.compile();
+    await removeAdaptiveHook(rootDir);
+
+    // WHEN: The current desired state is checked and reconciled.
+    const checked = await compiler.check();
+    const compiled = await compiler.compile();
+
+    // THEN: Native config is removed while the unowned shared tree is ignored.
+    assert.equal(
+      checked.drift.some(
+        (entry) => String(entry.path) === "hooks/codex-hooks.json",
+      ),
+      true,
+    );
+    assert.equal(
+      checked.drift.some((entry) =>
+        String(entry.path).startsWith("hooks/handlers"),
+      ),
+      false,
+    );
+    assert.equal(compiled.verified, true);
+    await assert.rejects(
+      lstat(path.join(rootDir, "hooks", "codex-hooks.json")),
+      {
+        code: "ENOENT",
+      },
+    );
+    assert.equal(
+      (
+        await lstat(
+          path.join(
+            rootDir,
+            "hooks",
+            "handlers",
+            "adaptive-interaction",
+            "request.mjs",
+          ),
+        )
+      ).isFile(),
+      true,
+    );
+  });
+
+  it("checks a clean checkout of a hook-free v2 plugin without drift", async () => {
+    // GIVEN: A hook-free v2 plugin is compiled and empty directories are absent as in Git.
+    const rootDir = await createCompilerRepository();
+    await useSchemaVersion2(rootDir);
+    const compiler = codexCompiler(rootDir);
+    const compiled = await compiler.compile();
+    await rm(path.join(rootDir, "hooks"), { force: true, recursive: true });
+
+    // WHEN: The public facade checks the clean-checkout filesystem state.
+    const checked = await compiler.check();
+
+    // THEN: No hook tree is generated or required by the output plan.
+    assert.equal(compiled.verified, true);
+    assert.equal(checked.upToDate, true);
+    assert.deepEqual(checked.drift, []);
+    await assert.rejects(lstat(path.join(rootDir, "hooks")), {
+      code: "ENOENT",
+    });
+  });
+
+  it("skips hooks non-fatally for an incompatible provider without fallback output", async () => {
+    // GIVEN: A valid hooked plugin selects an external adapter with no hook capability.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir);
+    const providerId = createProviderId("external");
+    const outputPath = createProjectPath(".external-plugin/plugin.json");
+    const adapter = Object.freeze({
+      id: providerId,
+      compile: () =>
+        createPlanFragment({
+          ownerId: providerId,
+          ownership: {
+            kind: OwnershipKind.ExactFiles,
+            paths: [outputPath],
+          },
+          artifacts: [
+            {
+              kind: ArtifactKind.File,
+              path: outputPath,
+              content: Buffer.from("external\n"),
+            },
+          ],
+        }),
+    }) satisfies ProviderAdapter;
+    const compiler = new AgentPluginCompiler(
+      { rootDir, providers: [providerId] },
+      new ProviderAdapterRegistry([adapter]),
+    );
+
+    // WHEN: Compilation resolves compatibility and writes all other output.
+    const result = await compiler.compile();
+
+    // THEN: Provider output succeeds, the hook is skipped, and no emulation is installed.
+    assert.equal(result.verified, true);
+    assert.deepEqual(result.hookDiagnostics, [
+      {
+        provider: providerId,
+        event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+      },
+      {
+        provider: providerId,
+        event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+      },
+    ]);
+    assert.equal(
+      await readFile(path.join(rootDir, outputPath), "utf8"),
+      "external\n",
+    );
+    await assert.rejects(lstat(path.join(rootDir, "hooks", "handlers")), {
+      code: "ENOENT",
+    });
+    await assert.rejects(lstat(path.join(rootDir, "AGENTS.md")), {
+      code: "ENOENT",
+    });
+    const generatedSkills = await readFile(
+      path.join(rootDir, "skills", "README.md"),
+      "utf8",
+    );
+    assert.doesNotMatch(generatedSkills, /adaptive-interaction/u);
+  });
+
+  it("generates compatible handlers and skips unsupported events independently", async () => {
+    // GIVEN: Gemini supports two registered events but not permissionDenied.
+    const rootDir = await createCompilerRepository();
+    await addAdaptiveHook(rootDir, [
+      { event: "userPromptSubmit", handler: "request.mjs" },
+      { event: "permissionDenied", handler: "response.mjs" },
+      { event: "stop", handler: "response.mjs" },
+    ]);
+    const compiler = new AgentPluginCompiler({
+      rootDir,
+      providers: [GEMINI],
+    });
+
+    // WHEN: Compilation resolves compatibility per universal event.
+    const result = await compiler.compile();
+    const hooks = JSON.parse(
+      await readFile(path.join(rootDir, "hooks", "hooks.json"), "utf8"),
+    ) as { hooks: Record<string, unknown> };
+
+    // THEN: Supported output is generated and the unsupported handler is explicit.
+    assert.equal(result.verified, true);
+    assert.deepEqual(Object.keys(hooks.hooks), ["BeforeAgent", "AfterAgent"]);
+    assert.deepEqual(result.hookDiagnostics, [
+      {
+        provider: GEMINI,
+        event: UniversalHookEvent.UserPromptSubmit,
+        handler: "adaptive-interaction/request.mjs",
+        status: HookDiagnosticStatus.Generated,
+      },
+      {
+        provider: GEMINI,
+        event: UniversalHookEvent.PermissionDenied,
+        handler: "adaptive-interaction/response.mjs",
+        status: HookDiagnosticStatus.Skipped,
+        reason: HookDiagnosticReason.ProviderDoesNotSupportHookEvent,
+      },
+      {
+        provider: GEMINI,
+        event: UniversalHookEvent.Stop,
+        handler: "adaptive-interaction/response.mjs",
+        status: HookDiagnosticStatus.Generated,
+      },
+    ]);
+  });
   it("compiles only the shared skills tree for an empty provider selection", async () => {
     // GIVEN: A valid repository explicitly overrides its manifest with no providers.
     const rootDir = await createCompilerRepository();
@@ -422,6 +715,36 @@ describe("AgentPluginCompiler", () => {
     await assert.rejects(lstat(path.join(rootDir, ".codex-plugin")), {
       code: "ENOENT",
     });
+  });
+
+  it("rejects repeated dependency contracts from every compiler operation", async () => {
+    // GIVEN: A real authored skill repeats one of its manifest-owned dependencies.
+    const rootDir = await createCompilerRepository();
+    await useSkillDependencyGraph(rootDir);
+    await writeFile(
+      path.join(rootDir, "plugin", "skills", "alpha-skill", "SKILL.md"),
+      "# Alpha skill\n\nRead middle-skill before continuing.\n",
+    );
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: Each public operation loads the same invalid authored repository.
+    const operations = [
+      () => compiler.validate(),
+      () => compiler.check(),
+      () => compiler.compile(),
+    ];
+
+    // THEN: Validation stops validate, check, and compile at the shared boundary.
+    for (const operation of operations) {
+      await assert.rejects(operation(), (error: unknown) => {
+        assert.ok(error instanceof PluginValidationError);
+        assert.match(
+          error.message,
+          /plugin\/skills\/alpha-skill\/SKILL\.md:3:\d+: owning skill "alpha-skill" repeats required skill "middle-skill"/u,
+        );
+        return true;
+      });
+    }
   });
 
   it("reports one canonical error when the manifest is unavailable", async () => {

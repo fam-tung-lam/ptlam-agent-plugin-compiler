@@ -18,3 +18,5 @@ local/
 # Local dev setup
 .codex/
 .vercel/
+
+AGENTS.override.md

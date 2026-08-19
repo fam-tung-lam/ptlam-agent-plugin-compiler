@@ -26,6 +26,13 @@ const expectedDeclarationNames = [
   "CopilotProviderAdapter",
   "GEMINI",
   "GeminiProviderAdapter",
+  "Hook",
+  "HookDiagnostic",
+  "HookDiagnosticReason",
+  "HookDiagnosticStatus",
+  "HookHandler",
+  "HookManifest",
+  "HookRegistration",
   "InitResult",
   "KIMI",
   "KimiProviderAdapter",
@@ -35,12 +42,14 @@ const expectedDeclarationNames = [
   "PlanFragmentInput",
   "Plugin",
   "PluginManifest",
+  "PluginSchemaVersion",
   "ProjectPath",
   "ProviderAdapter",
   "ProviderAdapterRegistry",
   "ProviderContext",
   "ProviderId",
   "ProviderSelectionSource",
+  "UniversalHookEvent",
   "ValidateResult",
   "createPlanFragment",
   "createProjectPath",
@@ -57,10 +66,14 @@ const expectedRuntimeNames = [
   "CopilotProviderAdapter",
   "GEMINI",
   "GeminiProviderAdapter",
+  "HookDiagnosticReason",
+  "HookDiagnosticStatus",
   "KIMI",
   "KimiProviderAdapter",
   "OwnershipKind",
+  "PluginSchemaVersion",
   "ProviderAdapterRegistry",
+  "UniversalHookEvent",
   "createPlanFragment",
   "createProjectPath",
   "createProviderId",
@@ -170,6 +183,17 @@ export async function verifyBuild(): Promise<string> {
       `Build must emit matching JavaScript and declarations; received ${javascriptFiles.length} JavaScript and ${declarationFiles.length} declaration files`,
     );
   }
+  const expectedSchemaResources = [
+    path.join(distRoot, "schemas/v1/plugin-manifest.schema.json"),
+    path.join(distRoot, "schemas/v2/plugin-manifest.schema.json"),
+  ];
+  for (const schemaResource of expectedSchemaResources) {
+    if (!jsonFiles.includes(schemaResource)) {
+      throw new Error(
+        `Build is missing schema resource ${path.relative(projectRoot, schemaResource)}`,
+      );
+    }
+  }
 
   const runtimeFiles = new Set([...javascriptFiles, ...jsonFiles]);
   const bareRuntimePackages = new Set<string>();
@@ -256,7 +280,7 @@ export async function verifyBuild(): Promise<string> {
     );
   }
 
-  return `Verified ${javascriptFiles.length} JavaScript files, ${declarationFiles.length} declarations, ${jsonFiles.length} JSON resources, five direct runtime dependencies, and the explicit open provider interface.`;
+  return `Verified ${javascriptFiles.length} JavaScript files, ${declarationFiles.length} declarations, ${jsonFiles.length} JSON resources including manifest schemas v1 and v2, five direct runtime dependencies, and the explicit open provider interface.`;
 }
 
 if (

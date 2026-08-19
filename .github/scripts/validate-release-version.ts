@@ -1,6 +1,10 @@
 import { readFile } from "node:fs/promises";
 
-import { requireGreaterSemVer } from "./compare-semver.ts";
+import {
+  compareSemVer,
+  isPrereleaseOf,
+  requireGreaterSemVer,
+} from "./compare-semver.ts";
 import { validateReleaseChangelog } from "./release-notes.ts";
 import {
   type CommandRunner,
@@ -19,7 +23,16 @@ export interface ReleaseVersionRepository {
   fetch(commitSha: string): Promise<void>;
   readPackageJsonAt(commitSha: string): Promise<PackageManifest>;
   findTag(tagName: string): Promise<string | undefined>;
+  listVersionTags(): Promise<readonly string[]>;
   readPublishedVersion(packageSpec: string): Promise<"absent" | "present">;
+}
+
+function latestVersionTag(tags: readonly string[]): string | undefined {
+  return tags
+    .filter((tag) => /^v\d/u.test(tag))
+    .map((tag) => tag.slice(1))
+    .sort(compareSemVer)
+    .at(-1);
 }
 
 function packageIdentity(manifest: PackageManifest, label: string) {
@@ -46,7 +59,25 @@ export async function validateReleaseVersion(
   );
   if (current.version === previous.version) return false;
 
-  requireGreaterSemVer(current.version, previous.version);
+  let changelogBaseVersion = previous.version;
+  if (compareSemVer(current.version, previous.version) <= 0) {
+    if (!isPrereleaseOf(current.version, previous.version)) {
+      requireGreaterSemVer(current.version, previous.version);
+    }
+    const previousSpec = `${previous.name}@${previous.version}`;
+    if (
+      (await repository.readPublishedVersion(previousSpec)) === "present" ||
+      (await repository.findTag(`v${previous.version}`)) !== undefined
+    ) {
+      requireGreaterSemVer(current.version, previous.version);
+    }
+    const latestVersion = latestVersionTag(await repository.listVersionTags());
+    if (latestVersion === undefined) {
+      throw new Error("No prior release tag exists for prerelease recovery.");
+    }
+    requireGreaterSemVer(current.version, latestVersion);
+    changelogBaseVersion = latestVersion;
+  }
   const packageSpec = `${current.name}@${current.version}`;
   if ((await repository.readPublishedVersion(packageSpec)) === "present") {
     throw new Error(`${packageSpec} already exists on npm.`);
@@ -54,7 +85,11 @@ export async function validateReleaseVersion(
   if ((await repository.findTag(`v${current.version}`)) !== undefined) {
     throw new Error(`v${current.version} already exists in Git.`);
   }
-  validateReleaseChangelog(currentChangelog, previous.version, current.version);
+  validateReleaseChangelog(
+    currentChangelog,
+    changelogBaseVersion,
+    current.version,
+  );
   return true;
 }
 
@@ -90,6 +125,23 @@ function commandRepository(runner: CommandRunner): ReleaseVersionRepository {
         `Look up ${tagName}`,
       );
       return result.stdout.trim() || undefined;
+    },
+    async listVersionTags() {
+      const result = requireSuccess(
+        await runner.run("git", [
+          "ls-remote",
+          "--tags",
+          "--refs",
+          "origin",
+          "refs/tags/v*",
+        ]),
+        "List version tags",
+      );
+      return result.stdout
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => line.split("refs/tags/")[1] as string);
     },
     async readPublishedVersion(packageSpec) {
       const result = await runner.run("npm", ["view", packageSpec, "version"]);

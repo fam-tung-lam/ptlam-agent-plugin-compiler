@@ -160,30 +160,32 @@ async function main(): Promise<void> {
     }
     rejectInstallScripts(installedManifest);
 
-    const installedSchemaPath = path.join(
-      installedRoot,
-      "dist",
-      "schemas",
-      "v1",
-      "plugin-manifest.schema.json",
-    );
-    if (!(await stat(installedSchemaPath)).isFile()) {
-      fail(`Installed schema resource is not a file: ${installedSchemaPath}`);
-    }
-    const installedSchema: unknown = JSON.parse(
-      await readFile(installedSchemaPath, "utf8"),
-    );
-    if (
-      !isRecord(installedSchema) ||
-      installedSchema["$id"] !==
-        "https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/v1/plugin-manifest.schema.json"
-    ) {
-      fail("Installed manifest schema has an unexpected $id");
+    for (const version of ["v1", "v2"]) {
+      const installedSchemaPath = path.join(
+        installedRoot,
+        "dist",
+        "schemas",
+        version,
+        "plugin-manifest.schema.json",
+      );
+      if (!(await stat(installedSchemaPath)).isFile()) {
+        fail(`Installed schema resource is not a file: ${installedSchemaPath}`);
+      }
+      const installedSchema: unknown = JSON.parse(
+        await readFile(installedSchemaPath, "utf8"),
+      );
+      if (
+        !isRecord(installedSchema) ||
+        installedSchema["$id"] !==
+          `https://raw.githubusercontent.com/fam-tung-lam/ptlam-agent-plugin-compiler/main/src/schemas/${version}/plugin-manifest.schema.json`
+      ) {
+        fail(`Installed manifest schema ${version} has an unexpected $id`);
+      }
     }
 
     await writeFile(
       path.join(consumerRoot, "consumer.ts"),
-      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter, OwnershipKind, ProviderAdapterRegistry, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ProviderSelectionSource, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
+      `import { AgentPluginCompiler, ArtifactKind, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, HookDiagnosticReason, HookDiagnosticStatus, KimiProviderAdapter, OwnershipKind, PluginSchemaVersion, ProviderAdapterRegistry, UniversalHookEvent, createPlanFragment, createProjectPath, createProviderId, type Artifact, type CheckResult, type CompileResult, type CompilerOptionsInput, type Hook, type HookDiagnostic, type HookHandler, type HookManifest, type HookRegistration, type Ownership, type PlanFragment, type PlanFragmentInput, type Plugin, type PluginManifest, type ProjectPath, type ProviderAdapter, type ProviderContext, type ProviderId, type ProviderSelectionSource, type ValidateResult } from ${JSON.stringify(sourceIdentity.name)};\n\n` +
         `const externalId: ProviderId = createProviderId("external");\n` +
         `const externalPath: ProjectPath = createProjectPath(".external-plugin/plugin.json");\n` +
         `const externalAdapter: ProviderAdapter = Object.freeze({\n` +
@@ -205,7 +207,12 @@ async function main(): Promise<void> {
         `const ownership: Ownership = fragment.ownership;\n` +
         `const manifest = null as unknown as PluginManifest;\n` +
         `const providerSelectionSource: ProviderSelectionSource = "manifest";\n` +
-        `void [defaults, validation, check, compilation, artifact, ownership, manifest, providerSelectionSource, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter];\n`,
+        `const hookHandler: HookHandler = { handler: createProjectPath("adaptive-interaction/request.mjs") };\n` +
+        `const hookRegistration: HookRegistration = { event: UniversalHookEvent.UserPromptSubmit, ...hookHandler };\n` +
+        `const hookManifest: HookManifest = { [UniversalHookEvent.UserPromptSubmit]: [hookHandler] };\n` +
+        `const hook = null as unknown as Hook;\n` +
+        `const hookDiagnostic = null as unknown as HookDiagnostic;\n` +
+        `void [defaults, validation, check, compilation, artifact, ownership, manifest, providerSelectionSource, hookManifest, hookRegistration, hook, hookDiagnostic, HookDiagnosticReason, HookDiagnosticStatus, PluginSchemaVersion.V2, CLAUDE, CODEX, COPILOT, GEMINI, KIMI, ClaudeProviderAdapter, CodexProviderAdapter, CopilotProviderAdapter, GeminiProviderAdapter, KimiProviderAdapter];\n`,
       "utf8",
     );
     await writeFile(
@@ -244,7 +251,7 @@ async function main(): Promise<void> {
         "--eval",
         `const namespace = await import(${JSON.stringify(sourceIdentity.name)});\n` +
           `const names = Object.keys(namespace).sort();\n` +
-          `if (JSON.stringify(names) !== '["AgentPluginCompiler","ArtifactKind","CLAUDE","CODEX","COPILOT","ClaudeProviderAdapter","CodexProviderAdapter","CopilotProviderAdapter","GEMINI","GeminiProviderAdapter","KIMI","KimiProviderAdapter","OwnershipKind","ProviderAdapterRegistry","createPlanFragment","createProjectPath","createProviderId"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
+          `if (JSON.stringify(names) !== '["AgentPluginCompiler","ArtifactKind","CLAUDE","CODEX","COPILOT","ClaudeProviderAdapter","CodexProviderAdapter","CopilotProviderAdapter","GEMINI","GeminiProviderAdapter","HookDiagnosticReason","HookDiagnosticStatus","KIMI","KimiProviderAdapter","OwnershipKind","PluginSchemaVersion","ProviderAdapterRegistry","UniversalHookEvent","createPlanFragment","createProjectPath","createProviderId"]') throw new Error(\`Unexpected exports: \${names.join(", ")}\`);\n` +
           `if (namespace.CLAUDE !== "claude" || namespace.CODEX !== "codex" || namespace.COPILOT !== "copilot" || namespace.GEMINI !== "gemini" || namespace.KIMI !== "kimi") throw new Error("Unexpected built-in provider IDs");\n` +
           `const externalId = namespace.createProviderId("external");\n` +
           `const externalPath = namespace.createProjectPath(".external-plugin/plugin.json");\n` +

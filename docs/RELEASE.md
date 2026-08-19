@@ -267,6 +267,22 @@ required checks pass.
 
 Do not depend on the floating `next` tag in a maintained consumer.
 
+## Optional: update Homebrew
+
+Homebrew is a secondary stable installation channel. Update it only after the
+npm package has been published, verified, tagged, and released successfully.
+
+In `fam-tung-lam/homebrew-tap`:
+
+1. read the exact npm tarball URL for the stable version;
+2. independently calculate its SHA-256;
+3. update only the Formula URL and checksum in a pull request; and
+4. merge after the tap's Homebrew install and functional tests pass.
+
+Do not update the Formula for a prerelease or the floating npm `next` tag. A tap
+failure does not roll back, repeat, or alter the completed npm/GitHub release.
+Fix the Formula through its own pull request.
+
 ## Rules
 
 - Never publish the package locally.

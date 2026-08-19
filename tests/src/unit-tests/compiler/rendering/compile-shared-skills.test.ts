@@ -46,10 +46,58 @@ describe("compileSharedSkills", () => {
     );
     assert.match(catalog ?? "", /`public-skill`/u);
     assert.match(catalog ?? "", /`old-skill`/u);
-    assert.doesNotMatch(catalog ?? "", /draft-skill|base-skill/u);
+    assert.match(
+      catalog ?? "",
+      /\| Skill\s+\| Category\s+\| Description\s+\| Visibility\s+\|/u,
+    );
+    assert.match(
+      catalog ?? "",
+      /\| `public-skill`\s+\| Engineering\s+\| Description for public-skill\.\s+\| public\s+\|/u,
+    );
+    assert.match(
+      catalog ?? "",
+      /SkillNode0\["`\s+base-skill\s+\(active\/internal\)\s+`"\]/u,
+    );
+    assert.doesNotMatch(catalog ?? "", /draft-skill/u);
     assert.equal(catalog?.endsWith("\n"), true);
     assert.equal(Object.isFrozen(fragment), true);
     assert.equal(Object.isFrozen(fragment.artifacts), true);
+  });
+
+  it("emits manual-only frontmatter for root and embedded skill copies", async () => {
+    // GIVEN: A public skill and its internal dependency both disable model invocation.
+    const plugin = makePlugin();
+    const manualOnlyPlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) => ({
+        ...skill,
+        disable_model_invocation:
+          skill.id === "public-skill" || skill.id === "base-skill",
+      })),
+    });
+
+    // WHEN: Rendering compiles root skills and recursively embedded dependencies.
+    const fragment = await compileSharedSkills(manualOnlyPlugin);
+    const files = new Map(
+      fragment.artifacts
+        .filter((artifact) => artifact.kind === ArtifactKind.File)
+        .map((artifact) => [String(artifact.path), artifact.content]),
+    );
+    const publicSkill = files
+      .get("skills/public-skill/SKILL.md")
+      ?.toString("utf8");
+    const embeddedSkill = files
+      .get("skills/public-skill/skills/base-skill/SKILL.md")
+      ?.toString("utf8");
+    const ordinarySkill = files
+      .get("skills/old-skill/SKILL.md")
+      ?.toString("utf8");
+
+    // THEN: Every enabled copy carries the host field while ordinary bytes omit it.
+    assert.match(publicSkill ?? "", /disable-model-invocation: true\n---/u);
+    assert.match(embeddedSkill ?? "", /disable-model-invocation: true\n---/u);
+    assert.doesNotMatch(ordinarySkill ?? "", /disable-model-invocation/u);
   });
 
   it("selects public active and deprecated roots in manifest order", () => {
@@ -86,6 +134,14 @@ describe("compileSharedSkills", () => {
     assert.deepEqual(
       fragment.artifacts.map((artifact) => String(artifact.path)),
       ["skills", "skills/README.md"],
+    );
+    const catalog = fragment.artifacts.find(
+      (artifact) => String(artifact.path) === "skills/README.md",
+    );
+    assert.ok(catalog?.kind === ArtifactKind.File);
+    assert.match(
+      catalog.content.toString("utf8"),
+      /## Skill dependency graph\n\nNo skills are currently published\./u,
     );
   });
 

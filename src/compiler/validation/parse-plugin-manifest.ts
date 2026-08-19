@@ -14,30 +14,48 @@ import {
 } from "yaml";
 import {
   createCategoryId,
+  createProjectPath,
   createProviderId,
   createSkillId,
+  type HookHandler,
+  type HookManifest,
   type PluginCategory,
   type PluginManifest,
+  PluginSchemaVersion,
   type SkillArchive,
   type SkillDeprecation,
   type SkillManifest,
   type SkillRequirement,
+  type UniversalHookEvent,
 } from "../../core/index.js";
 
 const require = createRequire(import.meta.url);
-const pluginManifestSchema = require("../../schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV1 = require("../../schemas/v1/plugin-manifest.schema.json");
+const pluginManifestSchemaV2 = require("../../schemas/v2/plugin-manifest.schema.json");
 
 /** Canonical project-relative location used in manifest diagnostics. */
 export const SOURCE_MANIFEST_PATH = "plugin/plugin.yml";
 
-const validateManifestSchema = new Ajv2020({
+const ajv = new Ajv2020({
   allErrors: true,
   strict: true,
-}).compile(pluginManifestSchema);
+});
+const validateManifestSchemas = new Map([
+  [PluginSchemaVersion.V1, ajv.compile(pluginManifestSchemaV1)],
+  [PluginSchemaVersion.V2, ajv.compile(pluginManifestSchemaV2)],
+]);
 
 type JsonPluginCategory = Omit<PluginCategory, "id"> & {
   readonly id: string;
 };
+
+type JsonHookHandler = Omit<HookHandler, "handler"> & {
+  readonly handler: string;
+};
+
+type JsonHookManifest = Readonly<
+  Partial<Record<UniversalHookEvent, readonly JsonHookHandler[]>>
+>;
 
 type JsonSkillRequirement = Omit<SkillRequirement, "skill_id"> & {
   readonly skill_id: string;
@@ -53,23 +71,57 @@ type JsonSkillArchive = Omit<SkillArchive, "replacement_skill_id"> & {
 
 type JsonSkillManifest = Omit<
   SkillManifest,
-  "archive" | "category_id" | "deprecation" | "id" | "required_skills"
+  | "archive"
+  | "category_id"
+  | "deprecation"
+  | "disable_model_invocation"
+  | "id"
+  | "required_skills"
 > & {
   readonly archive?: JsonSkillArchive;
   readonly category_id: string;
   readonly deprecation?: JsonSkillDeprecation;
+  readonly disable_model_invocation?: boolean;
   readonly id: string;
   readonly required_skills: readonly JsonSkillRequirement[];
 };
 
-type JsonPluginManifest = Omit<
+type JsonPluginManifestBase = Omit<
   PluginManifest,
-  "categories" | "providers" | "skills"
+  "categories" | "hooks" | "providers" | "schema_version" | "skills"
 > & {
   readonly categories: readonly JsonPluginCategory[];
   readonly providers: readonly string[];
   readonly skills: readonly JsonSkillManifest[];
 };
+
+type JsonPluginManifestV1 = JsonPluginManifestBase & {
+  readonly schema_version: PluginSchemaVersion.V1;
+};
+
+type JsonPluginManifestV2 = JsonPluginManifestBase & {
+  readonly schema_version: PluginSchemaVersion.V2;
+  readonly hooks?: JsonHookManifest;
+};
+
+type JsonPluginManifest = JsonPluginManifestV1 | JsonPluginManifestV2;
+
+function createHookManifest(value: JsonHookManifest): HookManifest {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(value).map(([event, handlers]) => [
+        event,
+        Object.freeze(
+          handlers.map((handler) =>
+            Object.freeze({
+              handler: createProjectPath(handler.handler),
+            }),
+          ),
+        ),
+      ]),
+    ),
+  ) as HookManifest;
+}
 
 /** Result of strict YAML, JSON-schema, identifier, and public-metadata parsing. */
 export type ManifestParsingResult =
@@ -93,6 +145,22 @@ export type ManifestParsingResult =
 export function parsePluginManifest(source: string): ManifestParsingResult {
   const parsed = parseStrictYaml(source, SOURCE_MANIFEST_PATH);
   if (!("value" in parsed)) return parsed;
+  const schemaVersion = readSchemaVersion(parsed.value);
+  if (schemaVersion === null) {
+    return {
+      errors: Object.freeze([
+        `${SOURCE_MANIFEST_PATH}#/schema_version: must have required property 'schema_version'`,
+      ]),
+    };
+  }
+  const validateManifestSchema = validateManifestSchemas.get(schemaVersion);
+  if (validateManifestSchema === undefined) {
+    return {
+      errors: Object.freeze([
+        `${SOURCE_MANIFEST_PATH}/schema_version: must be one of the supported versions: 1, 2`,
+      ]),
+    };
+  }
   if (!validateManifestSchema(parsed.value)) {
     return {
       errors: Object.freeze(
@@ -106,6 +174,14 @@ export function parsePluginManifest(source: string): ManifestParsingResult {
   return metadataErrors.length === 0
     ? { manifest, errors: [] }
     : { errors: Object.freeze(metadataErrors) };
+}
+
+function readSchemaVersion(value: unknown): number | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const version = (value as Record<string, unknown>)["schema_version"];
+  return typeof version === "number" ? version : null;
 }
 
 function createDeprecation(value: JsonSkillDeprecation): SkillDeprecation {
@@ -133,6 +209,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
     archive,
     category_id,
     deprecation,
+    disable_model_invocation = false,
     id,
     required_skills,
     ...metadata
@@ -140,6 +217,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
   return Object.freeze({
     ...metadata,
     id: createSkillId(id),
+    disable_model_invocation,
     category_id: createCategoryId(category_id),
     required_skills: Object.freeze(
       required_skills.map((requirement) =>
@@ -158,6 +236,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
 
 /** Snapshot schema-validated JSON through the only branded-ID constructors. */
 function createPluginManifest(value: JsonPluginManifest): PluginManifest {
+  const hooks = "hooks" in value ? (value.hooks ?? {}) : {};
   return Object.freeze({
     ...value,
     author: Object.freeze({ ...value.author }),
@@ -171,6 +250,7 @@ function createPluginManifest(value: JsonPluginManifest): PluginManifest {
         }),
       ),
     ),
+    hooks: createHookManifest(hooks),
     skills: Object.freeze(value.skills.map(createSkillManifest)),
   });
 }
