@@ -81,8 +81,8 @@ Category subgraphs organize the nodes. Arrows point from each dependent skill to
 what it requires, node labels show lifecycle status and visibility, and styles
 distinguish public, internal, and deprecated skills. Draft, archived, and
 unreachable internal skills stay out because they are not part of the published
-package. The graph appears directly after the generated catalog table, keeping
-the installable list and its dependency structure together.
+package. The catalog table appears directly after the graph, keeping the skill
+architecture visible before its installable-skill details.
 
 ## Visibility
 

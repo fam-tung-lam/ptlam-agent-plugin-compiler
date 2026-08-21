@@ -141,7 +141,7 @@ describe("compileSharedSkills", () => {
     assert.ok(catalog?.kind === ArtifactKind.File);
     assert.match(
       catalog.content.toString("utf8"),
-      /## Skill dependency graph\n\nNo skills are currently published\./u,
+      /## Available Skills\n\nNo skills are currently published\.\n\n\| Skill/u,
     );
   });
 

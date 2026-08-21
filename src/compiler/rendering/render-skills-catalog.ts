@@ -126,11 +126,7 @@ function renderSkillDependencyGraph(
   publishedSkills: readonly Skill[],
 ): string {
   if (publishedSkills.length === 0) {
-    return [
-      "## Skill dependency graph",
-      "",
-      "No skills are currently published.",
-    ].join("\n");
+    return "No skills are currently published.";
   }
 
   const graphSkills = collectCatalogSkills(plugin, publishedSkills);
@@ -139,8 +135,6 @@ function renderSkillDependencyGraph(
   );
   const graphSkillIds = new Set(graphSkills.map((skill) => skill.id));
   const lines = [
-    "## Skill dependency graph",
-    "",
     "Arrows point from a dependent skill to the skill it requires.",
     "",
     "```mermaid",
@@ -223,7 +217,9 @@ export function renderSkillsCatalog(
   });
 
   return `${[
-    "## Available skills",
+    "## Available Skills",
+    "",
+    renderSkillDependencyGraph(plugin, publishedSkills),
     "",
     renderMarkdownTable(
       [
@@ -236,7 +232,5 @@ export function renderSkillsCatalog(
       ],
       rows,
     ),
-    "",
-    renderSkillDependencyGraph(plugin, publishedSkills),
   ].join("\n")}\n`;
 }
