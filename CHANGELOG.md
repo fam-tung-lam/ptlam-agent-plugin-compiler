@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-08-21
+
 ### Changed
 
 - Expanded the public feature overview around generated dependency graphs,
@@ -224,7 +226,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...HEAD
+[0.2.3]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...v0.2.3
 [0.2.2]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...v0.2.2
 [0.2.1]:
