@@ -78,29 +78,41 @@ covers the rules that decide which skills become roots and what gets nested.
 
 ## The generated catalog
 
-`skills/README.md` lists every published skill with its category, description,
-visibility, lifecycle status, and replacement:
+`skills/README.md` shows the dependency graph before listing every published
+skill with its category, description, visibility, lifecycle status, and
+replacement:
 
 <!-- prettier-ignore -->
-```markdown
-## Available skills
+````markdown
+## Available Skills
+
+Arrows point from a dependent skill to the skill it requires.
+
+```mermaid
+flowchart TB
+    subgraph SkillCategory0["Engineering"]
+        SkillNode0["`inspect-repository (active/internal)`"]
+        SkillNode1["`prepare-change-plan (active/public)`"]
+    end
+    SkillNode1 --> SkillNode0
+```
 
 | Skill                 | Category    | Description                                                    | Visibility | Status | Replacement |
 | --------------------- | ----------- | -------------------------------------------------------------- | ---------- | ------ | ----------- |
 | `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | public     | Active | —           |
-```
+````
 
 A deprecated skill appears with its migration guidance in the status column, so
 the catalog is a truthful index of what the plugin currently offers.
 
-The catalog follows the table with a GitHub-renderable Mermaid dependency graph.
-It includes every published root, every transitive required skill that can be
-reached from those roots, and isolated roots that have no dependencies. Each
-arrow points from a dependent skill to the skill it requires. Each multiline
-node label shows the skill's lifecycle status and visibility. Styles distinguish
-public, internal, and deprecated skills, while category subgraphs show where
-each skill belongs. Draft, archived, and unreachable internal skills stay out of
-the graph because they are not part of the published package.
+The GitHub-renderable Mermaid graph includes every published root, every
+transitive required skill that can be reached from those roots, and isolated
+roots that have no dependencies. Each arrow points from a dependent skill to the
+skill it requires. Each multiline node label shows the skill's lifecycle status
+and visibility. Styles distinguish public, internal, and deprecated skills,
+while category subgraphs show where each skill belongs. Draft, archived, and
+unreachable internal skills stay out of the graph because they are not part of
+the published package.
 
 ## Host manifests
 

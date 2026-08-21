@@ -110,21 +110,25 @@ function makeGraphPlugin() {
 }
 
 describe("renderSkillsCatalog", () => {
-  it("groups the complete published dependency graph by category", () => {
+  it("renders the categorized dependency graph before the skills table", () => {
     // GIVEN: Published roots have direct, transitive, shared, isolated, and deprecated graph shapes.
     const plugin = makeGraphPlugin();
     const publishedSkills = selectPublishedSkills(plugin.skills);
 
     // WHEN: The validated model is rendered as a skills catalog.
     const catalog = renderSkillsCatalog(plugin, publishedSkills);
-    const graph = catalog.slice(catalog.indexOf("## Skill dependency graph"));
+    const graphStart = catalog.indexOf(
+      "Arrows point from a dependent skill to the skill it requires.",
+    );
+    const tableStart = catalog.indexOf("| Skill");
+    const graph = catalog.slice(graphStart, tableStart);
 
-    // THEN: Every publishable reachable node belongs to its category before the unique dependency edges.
+    // THEN: One heading introduces the graph, followed directly by the table.
+    assert.equal(catalog.startsWith("## Available Skills\n\n"), true);
+    assert.doesNotMatch(catalog, /## Skill dependency graph/u);
     assert.equal(
       graph,
-      `## Skill dependency graph
-
-Arrows point from a dependent skill to the skill it requires.
+      `Arrows point from a dependent skill to the skill it requires.
 
 \`\`\`mermaid
 ---
@@ -170,8 +174,10 @@ flowchart TB
     class SkillNode3 deprecatedSkill
     class SkillNode4 publicSkill
 \`\`\`
+
 `,
     );
+    assert.ok(graphStart < tableStart);
     assert.doesNotMatch(
       catalog,
       /draft-skill|archived-skill|unreachable-skill/u,
@@ -186,12 +192,13 @@ flowchart TB
     const catalog = renderSkillsCatalog(plugin, []);
 
     // THEN: The existing table remains and the graph does not emit an empty Mermaid block.
-    assert.match(catalog, /## Available skills/u);
+    assert.match(catalog, /^## Available Skills/u);
     assert.match(catalog, /\| Skill\s+\| Category\s+\| Description/u);
     assert.match(
       catalog,
-      /## Skill dependency graph\n\nNo skills are currently published\.\n$/u,
+      /^## Available Skills\n\nNo skills are currently published\.\n\n\| Skill/u,
     );
+    assert.doesNotMatch(catalog, /## Skill dependency graph/u);
     assert.doesNotMatch(catalog, /```mermaid/u);
   });
 

@@ -70,7 +70,7 @@ describe("AgentPluginCompiler", () => {
     assert.equal(firstResult.verified, true);
     assert.equal(secondResult.verified, true);
     assert.equal(secondCatalog, firstCatalog);
-    assert.match(firstCatalog, /## Skill dependency graph/u);
+    assert.match(firstCatalog, /## Available Skills/u);
     assert.match(
       firstCatalog,
       /config:\n {2}htmlLabels: false\n---\nflowchart TB/u,
