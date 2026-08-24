@@ -9,16 +9,19 @@ import {
   ArtifactKind,
   createPlanFragment,
   createProjectPath,
+  MARKDOWN_REFERENCES_MARKER,
   OwnershipKind,
   type PlanFragment,
   type Plugin,
   REQUIRED_SKILLS_MARKER,
   type Skill,
   type SkillId,
+  type SkillResource,
   selectPublishedSkills,
 } from "../../core/index.js";
 import { validateMarkdownLinks } from "../validation/index.js";
 import { renderSkillsCatalog } from "./render-skills-catalog.js";
+import { rewriteMarkdownDestinations } from "./rewrite-markdown-destinations.js";
 
 const SKILLS_ROOT = createProjectPath("skills");
 
@@ -114,30 +117,84 @@ function insertMarkdownSection(
   return `${before}${beforeSeparator}${section}${afterSeparator}${after}`;
 }
 
-function renderSkillDocument(skill: Skill): string {
-  const sourceBody = normalizeNewlines(skill.source_body);
+function composeRequiredSkills(skill: Skill, sourceBody: string): string {
   const requiredSkills = renderRequiredSkills(skill);
   if (requiredSkills) {
-    const composedBody = sourceBody.includes(REQUIRED_SKILLS_MARKER)
+    return sourceBody.includes(REQUIRED_SKILLS_MARKER)
       ? sourceBody.replace(REQUIRED_SKILLS_MARKER, requiredSkills)
       : insertMarkdownSection(
           sourceBody,
           defaultRequiredSkillsOffset(sourceBody),
           requiredSkills,
         );
-    return `${renderFrontmatter(skill)}\n\n${composedBody}`;
   }
 
-  const markerIndex = sourceBody.indexOf(REQUIRED_SKILLS_MARKER);
+  return removeMarker(sourceBody, REQUIRED_SKILLS_MARKER);
+}
+
+function removeMarker(sourceBody: string, marker: string): string {
+  const markerIndex = sourceBody.indexOf(marker);
   if (markerIndex === -1) {
-    return `${renderFrontmatter(skill)}\n\n${sourceBody}`;
+    return sourceBody;
   }
   const before = sourceBody.slice(0, markerIndex);
-  let after = sourceBody.slice(markerIndex + REQUIRED_SKILLS_MARKER.length);
+  let after = sourceBody.slice(markerIndex + marker.length);
   if (before.endsWith("\n\n") && after.startsWith("\n\n")) {
     after = after.slice(2);
   }
-  return `${renderFrontmatter(skill)}\n\n${before}${after}`;
+  return `${before}${after}`;
+}
+
+function isInlineMarkdownReference(resource: SkillResource): boolean {
+  const resourcePath = String(resource.path);
+  return resourcePath.startsWith("references/") && resourcePath.endsWith(".md");
+}
+
+function inlineMarkdownReferences(skill: Skill, sourceBody: string): string {
+  if (skill.compilation.markdown_references !== "inline") {
+    return sourceBody;
+  }
+
+  const references = skill.resources
+    .filter(isInlineMarkdownReference)
+    .sort((left, right) =>
+      compareCodePoints(String(left.path), String(right.path)),
+    );
+  const inlinedMarkdownPaths = new Set(
+    references.map((resource) => String(resource.path)),
+  );
+  const rewrittenSource = rewriteMarkdownDestinations({
+    source: sourceBody,
+    markdownPath: "SKILL.md",
+    inlinedMarkdownPaths,
+  });
+  const inlinedContent = references
+    .map((resource) =>
+      rewriteMarkdownDestinations({
+        source: normalizeNewlines(resource.content.toString("utf8")),
+        markdownPath: String(resource.path),
+        inlinedMarkdownPaths,
+      }),
+    )
+    .join("\n\n");
+  if (inlinedContent === "") {
+    return removeMarker(rewrittenSource, MARKDOWN_REFERENCES_MARKER);
+  }
+  if (rewrittenSource.includes(MARKDOWN_REFERENCES_MARKER)) {
+    return rewrittenSource.replace(MARKDOWN_REFERENCES_MARKER, inlinedContent);
+  }
+  return insertMarkdownSection(
+    rewrittenSource,
+    rewrittenSource.length,
+    inlinedContent,
+  );
+}
+
+function renderSkillDocument(skill: Skill): string {
+  const sourceBody = normalizeNewlines(skill.source_body);
+  const requiredSkillsComposed = composeRequiredSkills(skill, sourceBody);
+  const fullyComposed = inlineMarkdownReferences(skill, requiredSkillsComposed);
+  return `${renderFrontmatter(skill)}\n\n${fullyComposed}`;
 }
 
 async function formatComposedSkill(content: string): Promise<string> {
@@ -185,6 +242,12 @@ function composeSkillTree({
   for (const resource of [...skill.resources].sort((left, right) =>
     compareCodePoints(String(left.path), String(right.path)),
   )) {
+    if (
+      skill.compilation.markdown_references === "inline" &&
+      isInlineMarkdownReference(resource)
+    ) {
+      continue;
+    }
     addFile(files, `${outputRoot}/${String(resource.path)}`, resource.content);
   }
   for (const requirement of skill.required_skills) {

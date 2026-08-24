@@ -5,6 +5,7 @@ import {
   createProjectPath,
   createProviderId,
   createSkillId,
+  type MarkdownReferencesPolicy,
   type Plugin,
   type PluginCategory,
   type PluginManifest,
@@ -42,6 +43,9 @@ interface SkillManifestFixture {
   readonly description?: string;
   readonly disable_model_invocation?: boolean;
   readonly category_id?: string;
+  readonly compilation?: {
+    readonly markdown_references: MarkdownReferencesPolicy;
+  };
   readonly visibility?: SkillVisibility;
   readonly status?: SkillStatus;
   readonly required_skills?: readonly SkillRequirementFixture[];
@@ -96,6 +100,9 @@ export function makeSkill(overrides: SkillManifestFixture): SkillManifest {
     description: overrides.description ?? `Description for ${overrides.id}.`,
     disable_model_invocation: overrides.disable_model_invocation ?? false,
     category_id: createCategoryId(overrides.category_id ?? "engineering"),
+    compilation: overrides.compilation ?? {
+      markdown_references: "preserve",
+    },
     visibility: overrides.visibility ?? SkillVisibility.Public,
     status: overrides.status ?? SkillStatus.Active,
     required_skills: (overrides.required_skills ?? []).map(

@@ -8,6 +8,8 @@ import {
 import {
   ArtifactKind,
   createPlugin,
+  createProjectPath,
+  MARKDOWN_REFERENCES_MARKER,
   OwnershipKind,
   SkillStatus,
   SkillVisibility,
@@ -251,6 +253,186 @@ describe("compileSharedSkills", () => {
       assert.match(error.message, /local link target does not exist/u);
       return true;
     });
+  });
+
+  it("inlines nested Markdown references and preserves every other resource", async () => {
+    // GIVEN: One public skill opts in with nested references and mixed resources.
+    const plugin = makePlugin();
+    const inlinePlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "public-skill"
+          ? {
+              ...skill,
+              compilation: {
+                markdown_references: "inline",
+              },
+              source_body: `# Public
+
+Root [architecture](references/architecture.md#overview).
+
+${MARKDOWN_REFERENCES_MARKER}
+
+## Workflow
+`,
+              resources: [
+                {
+                  path: createProjectPath("references/architecture.md"),
+                  content: Buffer.from(`# Architecture
+
+[nested](nested/details.md?raw=1#part)
+![diagram](../assets/diagram.png)
+[data][data]
+
+[data]: data.json?raw=1#record
+`),
+                },
+                {
+                  path: createProjectPath("references/nested/details.md"),
+                  content: Buffer.from(`# Details
+
+[architecture](../architecture.md#overview)
+[root](../../SKILL.md#public)
+[script](../../scripts/check.mjs)
+`),
+                },
+                {
+                  path: createProjectPath("references/data.json"),
+                  content: Buffer.from('{"valid":true}\n'),
+                },
+                {
+                  path: createProjectPath("assets/diagram.png"),
+                  content: Buffer.from([137, 80, 78, 71]),
+                },
+                {
+                  path: createProjectPath("scripts/check.mjs"),
+                  content: Buffer.from("export default true;\n"),
+                },
+                {
+                  path: createProjectPath("notes/outside.md"),
+                  content: Buffer.from("# Separate Markdown\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: Shared rendering composes the skill tree.
+    const fragment = await compileSharedSkills(inlinePlugin);
+    const files = new Map(
+      fragment.artifacts
+        .filter((artifact) => artifact.kind === ArtifactKind.File)
+        .map((artifact) => [String(artifact.path), artifact.content]),
+    );
+    const content = files.get("skills/public-skill/SKILL.md")?.toString("utf8");
+
+    // THEN: References merge in path order with root-valid links and no dependency inlining.
+    assert.ok(content);
+    assert.ok(content.indexOf("# Architecture") < content.indexOf("# Details"));
+    assert.ok(content.indexOf("# Details") < content.indexOf("## Workflow"));
+    assert.match(content, /\[architecture\]\(SKILL\.md#overview\)/u);
+    assert.match(content, /\[nested\]\(SKILL\.md\?raw=1#part\)/u);
+    assert.match(content, /!\[diagram\]\(assets\/diagram\.png\)/u);
+    assert.match(content, /\[data\]: references\/data\.json\?raw=1#record/u);
+    assert.match(content, /\[root\]\(SKILL\.md#public\)/u);
+    assert.match(content, /\[script\]\(scripts\/check\.mjs\)/u);
+    assert.doesNotMatch(content, /# Rules/u);
+    assert.equal(
+      files.has("skills/public-skill/references/architecture.md"),
+      false,
+    );
+    assert.equal(
+      files.has("skills/public-skill/references/nested/details.md"),
+      false,
+    );
+    assert.deepEqual(
+      files.get("skills/public-skill/references/data.json"),
+      Buffer.from('{"valid":true}\n'),
+    );
+    assert.deepEqual(
+      files.get("skills/public-skill/assets/diagram.png"),
+      Buffer.from([137, 80, 78, 71]),
+    );
+    assert.deepEqual(
+      files.get("skills/public-skill/scripts/check.mjs"),
+      Buffer.from("export default true;\n"),
+    );
+    assert.deepEqual(
+      files.get("skills/public-skill/notes/outside.md"),
+      Buffer.from("# Separate Markdown\n"),
+    );
+    assert.deepEqual(
+      files.get("skills/public-skill/skills/base-skill/references/rules.md"),
+      Buffer.from("# Rules\n"),
+    );
+  });
+
+  it("appends inlined references when the placement marker is absent", async () => {
+    // GIVEN: One markerless public skill opts into a single reference.
+    const plugin = makePlugin();
+    const inlinePlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "old-skill"
+          ? {
+              ...skill,
+              compilation: {
+                markdown_references: "inline",
+              },
+              source_body: "# Old\n\nBody.\n",
+              resources: [
+                {
+                  path: createProjectPath("references/appended.md"),
+                  content: Buffer.from("# Appended\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: The markerless skill is compiled.
+    const fragment = await compileSharedSkills(inlinePlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/old-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === ArtifactKind.File);
+    const content = artifact.content.toString("utf8");
+
+    // THEN: Reference content follows the complete authored body.
+    assert.ok(content.indexOf("Body.") < content.indexOf("# Appended"));
+    assert.equal(
+      fragment.artifacts.some(
+        (candidate) =>
+          String(candidate.path) === "skills/old-skill/references/appended.md",
+      ),
+      false,
+    );
+  });
+
+  it("keeps omitted and explicit preserve policies byte-identical", async () => {
+    // GIVEN: The current fixture and an explicit-preserve copy describe the same plugin.
+    const plugin = makePlugin();
+    const explicitPreserve = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) => ({
+        ...skill,
+        compilation: {
+          markdown_references: "preserve",
+        },
+      })),
+    });
+
+    // WHEN: Both policies compile.
+    const omitted = await compileSharedSkills(plugin);
+    const preserved = await compileSharedSkills(explicitPreserve);
+
+    // THEN: The complete desired trees have identical paths, kinds, and bytes.
+    assert.deepEqual(preserved, omitted);
   });
 
   it("catalogs deprecated status and replacement guidance", async () => {

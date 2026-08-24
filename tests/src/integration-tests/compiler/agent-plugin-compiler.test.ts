@@ -39,6 +39,7 @@ import {
   DISABLED_CLAUDE_BYTES,
   DISABLED_CLAUDE_MARKETPLACE_BYTES,
   removeAdaptiveHook,
+  useInlineMarkdownReferences,
   useSchemaVersion2,
   useSkillDependencyGraph,
 } from "./test-fixtures/compiler-repository-fixture.ts";
@@ -96,6 +97,77 @@ describe("AgentPluginCompiler", () => {
     assert.doesNotMatch(
       firstCatalog,
       /draft-skill|unreachable-skill|archived-skill/u,
+    );
+  });
+
+  it("writes deterministic inline Markdown references and retained resources", async () => {
+    // GIVEN: A schema-v2 repository opts one skill into nested reference inlining.
+    const rootDir = await createCompilerRepository();
+    await useInlineMarkdownReferences(rootDir);
+    const compiler = codexCompiler(rootDir);
+
+    // WHEN: Compilation runs twice over the same authored repository.
+    const first = await compiler.compile();
+    const firstDocument = await readFile(
+      path.join(rootDir, "skills", "alpha-skill", "SKILL.md"),
+      "utf8",
+    );
+    const second = await compiler.compile();
+    const secondDocument = await readFile(
+      path.join(rootDir, "skills", "alpha-skill", "SKILL.md"),
+      "utf8",
+    );
+
+    // THEN: Inlined output is stable while mixed retained resources stay exact.
+    assert.equal(first.verified, true);
+    assert.equal(second.verified, true);
+    assert.equal(secondDocument, firstDocument);
+    assert.ok(
+      firstDocument.indexOf("# Architecture") <
+        firstDocument.indexOf("# Details"),
+    );
+    assert.match(firstDocument, /\[details\]\(SKILL\.md#part\)/u);
+    assert.match(
+      firstDocument,
+      /\[asset\]\(assets\/data\.bin\?raw=1#record\)/u,
+    );
+    assert.match(firstDocument, /\[root\]\(SKILL\.md#alpha-skill\)/u);
+    assert.deepEqual(
+      await readFile(
+        path.join(
+          rootDir,
+          "skills",
+          "alpha-skill",
+          "references",
+          "metadata.json",
+        ),
+      ),
+      Buffer.from('{"kind":"metadata"}\n'),
+    );
+    assert.deepEqual(
+      await readFile(
+        path.join(rootDir, "skills", "alpha-skill", "assets", "data.bin"),
+      ),
+      Buffer.from([0, 1, 255]),
+    );
+    assert.equal(
+      await readFile(
+        path.join(rootDir, "skills", "alpha-skill", "notes", "outside.md"),
+        "utf8",
+      ),
+      "# Separate Markdown\n",
+    );
+    await assert.rejects(
+      lstat(
+        path.join(
+          rootDir,
+          "skills",
+          "alpha-skill",
+          "references",
+          "architecture.md",
+        ),
+      ),
+      { code: "ENOENT" },
     );
   });
 

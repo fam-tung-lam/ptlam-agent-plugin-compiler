@@ -22,8 +22,11 @@ function removeV2SkillFields<
   return {
     ...manifest,
     skills: manifest.skills.map(
-      ({ disable_model_invocation: _disableModelInvocation, ...skill }) =>
-        skill,
+      ({
+        compilation: _compilation,
+        disable_model_invocation: _disableModelInvocation,
+        ...skill
+      }) => skill,
     ),
   };
 }
@@ -102,6 +105,8 @@ describe("parsePluginManifest", () => {
     >;
     const skills = source["skills"] as Record<string, unknown>[];
     delete skills[0]?.["disable_model_invocation"];
+    const legacySkill = { ...skills[0] };
+    delete legacySkill["compilation"];
 
     // WHEN: V2, invalid-v2, and v1 variants cross the public schema boundary.
     const current = parsePluginManifest(JSON.stringify(source));
@@ -116,7 +121,7 @@ describe("parsePluginManifest", () => {
         ...source,
         schema_version: PluginSchemaVersion.V1,
         hooks: undefined,
-        skills: [{ ...skills[0], disable_model_invocation: true }],
+        skills: [{ ...legacySkill, disable_model_invocation: true }],
       }),
     );
 
@@ -141,6 +146,84 @@ describe("parsePluginManifest", () => {
     assert.deepEqual(legacy, {
       errors: [
         "plugin/plugin.yml/skills/0/disable_model_invocation: must NOT have additional properties",
+      ],
+    });
+  });
+
+  it("normalizes the v2 Markdown-reference policy and keeps it out of v1", () => {
+    // GIVEN: Current skills omit, explicitly preserve, or inline Markdown references.
+    const current = makeManifest({
+      skills: [
+        makeSkill({ id: "default-skill" }),
+        makeSkill({
+          id: "preserved-skill",
+          compilation: {
+            markdown_references: "preserve",
+          },
+        }),
+        makeSkill({
+          id: "inlined-skill",
+          compilation: { markdown_references: "inline" },
+        }),
+      ],
+    });
+    const source = JSON.parse(JSON.stringify(current)) as Record<
+      string,
+      unknown
+    >;
+    const skills = source["skills"] as Record<string, unknown>[];
+    delete skills[0]?.["compilation"];
+
+    // WHEN: Valid, unsupported, and frozen-v1 declarations are parsed.
+    const parsed = parsePluginManifest(JSON.stringify(source));
+    const unsupported = parsePluginManifest(
+      JSON.stringify({
+        ...source,
+        skills: [
+          {
+            ...skills[0],
+            compilation: { markdown_references: "bundle" },
+          },
+        ],
+      }),
+    );
+    const v1 = removeV2SkillFields(current);
+    const legacy = parsePluginManifest(
+      JSON.stringify({
+        ...v1,
+        schema_version: PluginSchemaVersion.V1,
+        hooks: undefined,
+        skills: [
+          {
+            ...v1.skills[0],
+            compilation: { markdown_references: "inline" },
+          },
+        ],
+      }),
+    );
+
+    // THEN: Omission is safe, explicit values survive, and v1 remains closed.
+    assert.deepEqual(
+      "manifest" in parsed
+        ? parsed.manifest.skills.map(
+            (skill) => skill.compilation.markdown_references,
+          )
+        : undefined,
+      ["preserve", "preserve", "inline"],
+    );
+    assert.equal(
+      "manifest" in parsed &&
+        Object.isFrozen(parsed.manifest.skills[0]?.compilation),
+      true,
+    );
+    assert.deepEqual(unsupported, {
+      errors: [
+        "plugin/plugin.yml/skills/0/compilation/markdown_references: must be equal to one of the allowed values",
+      ],
+    });
+    assert.deepEqual(legacy, {
+      errors: [
+        "plugin/plugin.yml/skills/0/compilation: must NOT have additional properties",
       ],
     });
   });

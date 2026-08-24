@@ -139,17 +139,25 @@ cannot contain authored resources.
 | `category_id`              | ID of a declared category                      |
 | `visibility`               | `internal` or `public`                         |
 | `status`                   | `draft`, `active`, `deprecated`, or `archived` |
+| `compilation`              | Optional v2 skill compilation policy           |
 | `required_skills`          | Dependency list; may be empty                  |
 
 The original six fields remain required. Schema v2 additionally accepts
-`disable_model_invocation`; schema v1 rejects it. `deprecation` and `archive`
-remain lifecycle-specific optional properties.
+`disable_model_invocation` and `compilation`; schema v1 rejects them.
+`deprecation` and `archive` remain lifecycle-specific optional properties.
 
 Set `disable_model_invocation: true` when a supported host should expose the
 skill for explicit user invocation without letting its model select the skill
 automatically. The compiler maps it to `disable-model-invocation: true` in every
 generated copy of that skill. See [Providers](/reference/providers) for current
 host behavior.
+
+Set `compilation.markdown_references` to `inline` to merge Markdown files below
+the skill's `references/` directory into generated `SKILL.md`. The default
+`preserve` policy copies them as separate files. The optional
+`<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->` marker selects the merge point;
+without it, reference content is appended in deterministic relative-path order.
+All non-Markdown references and resources outside `references/` remain separate.
 
 ### Required skill
 

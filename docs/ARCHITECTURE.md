@@ -156,9 +156,9 @@ sequenceDiagram
   `plugin.json`, `gemini-extension.json`, `kimi.plugin.json`, and their native
   hook configurations.
 - `src/schemas/v1/plugin-manifest.schema.json` is the frozen skill-only
-  contract; `src/schemas/v2/plugin-manifest.schema.json` adds portable hooks.
-  Both are versioned data resources, not code modules, and the build copies them
-  to matching paths under `dist/`.
+  contract; `src/schemas/v2/plugin-manifest.schema.json` adds portable hooks and
+  skill compilation policies. Both are versioned data resources, not code
+  modules, and the build copies them to matching paths under `dist/`.
 - Root `README.md`, `LICENSE`, and every unowned path remain human-owned.
 - Cross-module TypeScript imports target the module's `index.js`.
 - Code outside `compiler/` imports only `compiler/index.js`, never a private

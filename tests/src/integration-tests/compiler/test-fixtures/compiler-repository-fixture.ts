@@ -11,7 +11,10 @@ import path from "node:path";
 
 import { onTestFinished } from "vitest";
 
-import { REQUIRED_SKILLS_MARKER } from "../../../../../src/core/index.ts";
+import {
+  MARKDOWN_REFERENCES_MARKER,
+  REQUIRED_SKILLS_MARKER,
+} from "../../../../../src/core/index.ts";
 
 export const DISABLED_CLAUDE_BYTES = "disabled-claude-provider\n";
 export const DISABLED_CLAUDE_MARKETPLACE_BYTES =
@@ -94,6 +97,58 @@ export async function useSchemaVersion2(rootDir: string): Promise<void> {
   };
   manifest.schema_version = 2;
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+/** Add nested mixed resources to one skill that inlines Markdown references. */
+export async function useInlineMarkdownReferences(
+  rootDir: string,
+): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    schema_version: number;
+    skills: Record<string, unknown>[];
+  };
+  manifest.schema_version = 2;
+  const skill = manifest.skills[0];
+  if (skill === undefined) throw new Error("Fixture skill is missing");
+  skill["compilation"] = { markdown_references: "inline" };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const skillRoot = path.join(rootDir, "plugin", "skills", "alpha-skill");
+  await mkdir(path.join(skillRoot, "references", "nested"), {
+    recursive: true,
+  });
+  await mkdir(path.join(skillRoot, "assets"), { recursive: true });
+  await mkdir(path.join(skillRoot, "notes"), { recursive: true });
+  await writeFile(
+    path.join(skillRoot, "SKILL.md"),
+    `# Alpha skill
+
+[details](references/nested/details.md#part)
+
+${MARKDOWN_REFERENCES_MARKER}
+`,
+  );
+  await writeFile(
+    path.join(skillRoot, "references", "architecture.md"),
+    "# Architecture\n\n[details](nested/details.md#part)\n[asset](../assets/data.bin?raw=1#record)\n",
+  );
+  await writeFile(
+    path.join(skillRoot, "references", "nested", "details.md"),
+    "# Details\n\n[root](../../SKILL.md#alpha-skill)\n[architecture](../architecture.md#architecture)\n",
+  );
+  await writeFile(
+    path.join(skillRoot, "references", "metadata.json"),
+    '{"kind":"metadata"}\n',
+  );
+  await writeFile(
+    path.join(skillRoot, "assets", "data.bin"),
+    Buffer.from([0, 1, 255]),
+  );
+  await writeFile(
+    path.join(skillRoot, "notes", "outside.md"),
+    "# Separate Markdown\n",
+  );
 }
 
 /** Replace the fixture catalog with every supported dependency-graph shape. */
