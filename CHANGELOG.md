@@ -234,7 +234,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.3.0...HEAD
+[0.3.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...v0.3.0
 [0.2.3]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...v0.2.3
 [0.2.2]:
