@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-24
+
+### Added
+
+- Added the schema-v2 per-skill `compilation.markdown_references` policy to
+  inline Markdown reference resources into generated `SKILL.md` files while
+  preserving non-Markdown resources and existing output by default.
+
 ## [0.2.3] - 2026-08-21
 
 ### Changed
@@ -226,7 +234,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.3.0...HEAD
+[0.3.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...v0.3.0
 [0.2.3]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...v0.2.3
 [0.2.2]:
