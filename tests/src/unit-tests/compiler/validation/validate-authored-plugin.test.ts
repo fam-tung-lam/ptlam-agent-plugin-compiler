@@ -7,6 +7,7 @@ import {
 } from "../../../../../src/compiler/validation/index.ts";
 import {
   createProjectPath,
+  MARKDOWN_REFERENCES_MARKER,
   PluginSchemaVersion,
   REQUIRED_SKILLS_MARKER,
   SkillStatus,
@@ -26,8 +27,11 @@ describe("validateAuthoredPlugin", () => {
     const manifest = makeManifest();
     const { hooks: _hooks, ...withoutHooks } = manifest;
     const legacySkills = manifest.skills.map(
-      ({ disable_model_invocation: _disableModelInvocation, ...skill }) =>
-        skill,
+      ({
+        compilation: _compilation,
+        disable_model_invocation: _disableModelInvocation,
+        ...skill
+      }) => skill,
     );
     const source = makePluginSource({
       manifest,
@@ -752,6 +756,42 @@ ${REQUIRED_SKILLS_MARKER}
       ]) {
         assert.ok(error.message.includes(expected), expected);
       }
+      return true;
+    });
+  });
+
+  it("rejects duplicate inline placement markers at the authored skill path", () => {
+    // GIVEN: An inline skill declares two exact Markdown-reference markers.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "alpha-skill",
+          compilation: { markdown_references: "inline" },
+        }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSources: {
+        "alpha-skill": `# Alpha
+
+${MARKDOWN_REFERENCES_MARKER}
+
+${MARKDOWN_REFERENCES_MARKER}
+`,
+      },
+    });
+
+    // WHEN: Authored sources cross the shared validation boundary.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: The diagnostic identifies the repairable source and exact marker.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.match(
+        error.message,
+        /plugin\/skills\/alpha-skill\/SKILL\.md: expected at most one <!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES --> marker, found 2/u,
+      );
       return true;
     });
   });

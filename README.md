@@ -231,6 +231,24 @@ frontmatter. Claude Code, GitHub Copilot CLI, and Kimi Code CLI currently honor
 the restriction. Codex and Gemini CLI accept the skill but ignore this field, so
 they may still select it automatically.
 
+Schema v2 also lets a skill merge its authored Markdown references into the
+generated `SKILL.md`:
+
+```yaml
+skills:
+  - id: deploy
+    compilation:
+      markdown_references: inline
+```
+
+Only Markdown files below `plugin/skills/deploy/references/` are merged, in
+relative-path order. Put `<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->` in the
+authored `SKILL.md` to choose their position; without it, the compiler appends
+them. Local links are rebased to the generated root. Other resources, including
+non-Markdown files below `references/`, keep their relative paths and bytes.
+Omitting `compilation` or selecting `preserve` retains the existing generated
+bytes and tree.
+
 ## Dependency instructions are generated
 
 You write `plugin/skills/skill-a/SKILL.md` without mentioning `skill-b` at all:

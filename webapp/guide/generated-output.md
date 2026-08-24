@@ -60,7 +60,8 @@ containing, in order:
    `description` is the manifest description, and an enabled schema-v2
    `disable_model_invocation` becomes `disable-model-invocation: true`. Authored
    sources must not contain frontmatter, so this metadata has exactly one owner.
-2. **Your Markdown**, unchanged.
+2. **Your Markdown**, unchanged unless its schema-v2 compilation policy inlines
+   Markdown references.
 3. **A `## Required skills` section**, one subsection per requirement, with the
    reason, the instructions, and a relative link to the nested copy. Its
    position is the marker, when the source has one, and otherwise directly after
@@ -70,6 +71,14 @@ Supporting files that sit next to an authored `SKILL.md` are copied into the
 generated skill at the same relative path, so a skill can ship templates,
 schemas, or reference documents. `plugin/skills/<skill-id>/skills/` is reserved:
 the compiler builds that directory, and an authored one is rejected.
+
+With `compilation.markdown_references: inline`, only `references/**/*.md` files
+are merged into `SKILL.md`, in relative-path order, and are not emitted
+separately. The exact `<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->` marker
+chooses their position; otherwise they are appended. Local destinations are
+rebased from each reference document to the generated skill root. Every
+non-Markdown reference and all resources outside `references/` retain their
+paths and bytes.
 
 Each required skill is copied into `skills/<skill-id>/skills/`, recursively, so
 the dependency exists once in the source and as many times in the output as

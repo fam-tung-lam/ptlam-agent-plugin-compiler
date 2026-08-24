@@ -19,6 +19,7 @@ import {
   createSkillId,
   type HookHandler,
   type HookManifest,
+  type MarkdownReferencesPolicy,
   type PluginCategory,
   type PluginManifest,
   PluginSchemaVersion,
@@ -73,6 +74,7 @@ type JsonSkillManifest = Omit<
   SkillManifest,
   | "archive"
   | "category_id"
+  | "compilation"
   | "deprecation"
   | "disable_model_invocation"
   | "id"
@@ -80,6 +82,9 @@ type JsonSkillManifest = Omit<
 > & {
   readonly archive?: JsonSkillArchive;
   readonly category_id: string;
+  readonly compilation?: {
+    readonly markdown_references: MarkdownReferencesPolicy;
+  };
   readonly deprecation?: JsonSkillDeprecation;
   readonly disable_model_invocation?: boolean;
   readonly id: string;
@@ -208,6 +213,9 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
   const {
     archive,
     category_id,
+    compilation = {
+      markdown_references: "preserve",
+    },
     deprecation,
     disable_model_invocation = false,
     id,
@@ -219,6 +227,7 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
     id: createSkillId(id),
     disable_model_invocation,
     category_id: createCategoryId(category_id),
+    compilation: Object.freeze({ ...compilation }),
     required_skills: Object.freeze(
       required_skills.map((requirement) =>
         Object.freeze({
