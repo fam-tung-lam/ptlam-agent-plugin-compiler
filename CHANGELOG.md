@@ -8,6 +8,14 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-24
+
+### Added
+
+- Added the schema-v2 per-skill `compilation.markdown_references` policy to
+  inline Markdown reference resources into generated `SKILL.md` files while
+  preserving non-Markdown resources and existing output by default.
+
 ## [0.2.3] - 2026-08-21
 
 ### Changed
