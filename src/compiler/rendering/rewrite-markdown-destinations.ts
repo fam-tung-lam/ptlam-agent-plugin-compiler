@@ -1,14 +1,28 @@
+import { createHash } from "node:crypto";
 import path from "node:path";
 
-import type { Definition, Image, Link, RootContent } from "mdast";
+import type {
+  Definition,
+  Image,
+  ImageReference,
+  Link,
+  LinkReference,
+  RootContent,
+} from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 
 type DestinationNode = Definition | Image | Link;
+type ReferenceNode = ImageReference | LinkReference;
 
 interface DestinationEdit {
   readonly start: number;
   readonly end: number;
   readonly value: string;
+}
+
+interface RewrittenDestination {
+  readonly authoredPath: string;
+  readonly generatedPath: string;
 }
 
 interface RewriteMarkdownDestinationsRequest {
@@ -18,29 +32,51 @@ interface RewriteMarkdownDestinationsRequest {
   readonly markdownPath: string;
   /** Markdown resources replaced by the composed root document. */
   readonly inlinedMarkdownPaths: ReadonlySet<string>;
+  /** Original document identity used to isolate reference definitions after merging. */
+  readonly referenceNamespace?: string;
 }
 
 /**
  * Rebase local destinations from one authored document to generated `SKILL.md`.
  *
  * Root-document links are changed only when their target is itself inlined.
- * Query strings and fragments are copied after the rebased path.
+ * Authored query strings and fragments are copied byte-for-byte after the path.
  */
 export function rewriteMarkdownDestinations({
   source,
   markdownPath,
   inlinedMarkdownPaths,
+  referenceNamespace,
 }: RewriteMarkdownDestinationsRequest): string {
+  const nodes = markdownNodes(source);
   const edits: DestinationEdit[] = [];
-  for (const node of destinationNodes(source)) {
-    const value = rewrittenDestination(
+  for (const node of nodes) {
+    if (!hasDestination(node)) continue;
+    const rewritten = rewrittenDestination(
       node.url,
       markdownPath,
       inlinedMarkdownPaths,
     );
-    if (value === null || value === node.url) continue;
+    if (rewritten === null) continue;
     const span = destinationSpan(source, node);
-    if (span !== null) edits.push({ ...span, value });
+    if (span === null) {
+      throw new Error(
+        `${markdownPath}: could not locate parsed Markdown destination "${node.url}"`,
+      );
+    }
+    const rawDestination = source.slice(span.start, span.end);
+    const suffixStart = rawDestinationSuffixStart(
+      rawDestination,
+      rewritten.authoredPath,
+      source[span.start - 1] === "<",
+    );
+    edits.push({
+      ...span,
+      value: `${rewritten.generatedPath}${rawDestination.slice(suffixStart)}`,
+    });
+  }
+  if (referenceNamespace !== undefined) {
+    edits.push(...referenceNamespaceEdits(source, nodes, referenceNamespace));
   }
 
   return edits
@@ -56,7 +92,7 @@ function rewrittenDestination(
   destination: string,
   markdownPath: string,
   inlinedMarkdownPaths: ReadonlySet<string>,
-): string | null {
+): RewrittenDestination | null {
   if (destination.startsWith("#")) return null;
   if (/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(destination)) return null;
 
@@ -84,27 +120,26 @@ function rewrittenDestination(
   const rebasedPath = inlinedMarkdownPaths.has(resolvedPath)
     ? "SKILL.md"
     : resolvedPath;
-  const suffix = suffixIndex === -1 ? "" : destination.slice(suffixIndex);
-  return `${encodePath(rebasedPath)}${suffix}`;
+  return {
+    authoredPath: encodedPath,
+    generatedPath: encodePath(rebasedPath),
+  };
 }
 
 function encodePath(value: string): string {
   return value.split("/").map(encodeURIComponent).join("/");
 }
 
-function destinationNodes(source: string): DestinationNode[] {
-  const nodes: DestinationNode[] = [];
+function markdownNodes(source: string): RootContent[] {
+  const nodes: RootContent[] = [];
   walk(fromMarkdown(source).children, nodes);
   return nodes;
 }
 
-function walk(
-  nodes: readonly RootContent[],
-  destinations: DestinationNode[],
-): void {
+function walk(nodes: readonly RootContent[], result: RootContent[]): void {
   for (const node of nodes) {
-    if (hasDestination(node)) destinations.push(node);
-    if ("children" in node) walk(node.children, destinations);
+    result.push(node);
+    if ("children" in node) walk(node.children, result);
   }
 }
 
@@ -125,7 +160,7 @@ function destinationSpan(
   const destinationStart =
     node.type === "definition"
       ? definitionDestinationStart(source, nodeStart, nodeEnd)
-      : inlineDestinationStart(source, nodeStart, nodeEnd);
+      : inlineDestinationStart(source, nodeStart, nodeEnd, node.url);
   if (destinationStart === null) return null;
   return destinationEnd(source, destinationStart, nodeEnd);
 }
@@ -135,32 +170,56 @@ function definitionDestinationStart(
   nodeStart: number,
   nodeEnd: number,
 ): number | null {
-  const delimiter = source.indexOf("]:", nodeStart);
-  if (delimiter === -1 || delimiter >= nodeEnd) return null;
-  return skipWhitespace(source, delimiter + 2, nodeEnd);
+  const label = definitionLabelSpan(source, nodeStart, nodeEnd);
+  return label === null ? null : skipWhitespace(source, label.end + 2, nodeEnd);
 }
 
 function inlineDestinationStart(
   source: string,
   nodeStart: number,
   nodeEnd: number,
+  expectedDestination: string,
 ): number | null {
-  const labelStart = source.indexOf("[", nodeStart);
-  if (labelStart === -1 || labelStart >= nodeEnd) return null;
-  let depth = 1;
-  for (let index = labelStart + 1; index < nodeEnd; index += 1) {
-    if (source[index] === "\\") {
-      index += 1;
-      continue;
+  const candidates = inlineDestinationCandidates(source, nodeStart, nodeEnd);
+  for (const candidate of candidates) {
+    const start = skipWhitespace(source, candidate + 2, nodeEnd);
+    const span = destinationEnd(source, start, nodeEnd);
+    if (span === null) continue;
+    const rawDestination = source.slice(span.start, span.end);
+    if (
+      parsedDestination(rawDestination, source[start] === "<") ===
+      expectedDestination
+    ) {
+      return start;
     }
-    if (source[index] === "[") depth += 1;
-    if (source[index] !== "]") continue;
-    depth -= 1;
-    if (depth !== 0) continue;
-    if (source[index + 1] !== "(") return null;
-    return skipWhitespace(source, index + 2, nodeEnd);
   }
   return null;
+}
+
+function inlineDestinationCandidates(
+  source: string,
+  nodeStart: number,
+  nodeEnd: number,
+): number[] {
+  const candidates: number[] = [];
+  for (let index = nodeStart; index + 1 < nodeEnd; index += 1) {
+    if (
+      source[index] === "]" &&
+      source[index + 1] === "(" &&
+      !isEscaped(source, index)
+    ) {
+      candidates.push(index);
+    }
+  }
+  return candidates.reverse();
+}
+
+function parsedDestination(rawDestination: string, enclosed: boolean): string {
+  const destination = enclosed ? `<${rawDestination}>` : rawDestination;
+  const document = fromMarkdown(`[label](${destination})`);
+  const paragraph = document.children[0];
+  const node = paragraph?.type === "paragraph" ? paragraph.children[0] : null;
+  return node?.type === "link" ? node.url : "";
 }
 
 function skipWhitespace(source: string, start: number, end: number): number {
@@ -199,4 +258,145 @@ function destinationEnd(
     parentheses -= 1;
   }
   return start < nodeEnd ? { start, end: nodeEnd } : null;
+}
+
+function rawDestinationSuffixStart(
+  rawDestination: string,
+  authoredPath: string,
+  enclosed: boolean,
+): number {
+  const candidates: number[] = [];
+  for (let index = 0; index < rawDestination.length; index += 1) {
+    if (/[?#\\&]/u.test(rawDestination[index] ?? "")) candidates.push(index);
+  }
+  candidates.push(rawDestination.length);
+  for (const index of candidates) {
+    if (
+      parsedDestination(rawDestination.slice(0, index), enclosed) ===
+      authoredPath
+    ) {
+      return index;
+    }
+  }
+  throw new Error(
+    `could not map authored Markdown destination path "${authoredPath}" to its raw spelling`,
+  );
+}
+
+function referenceNamespaceEdits(
+  source: string,
+  nodes: readonly RootContent[],
+  namespace: string,
+): DestinationEdit[] {
+  const qualifiedLabels = new Map<string, string>();
+  const edits: DestinationEdit[] = [];
+  for (const node of nodes) {
+    if (node.type !== "definition") continue;
+    const span = positionedDefinitionLabelSpan(source, node);
+    if (span === null) {
+      throw new Error(
+        `${namespace}: could not locate parsed Markdown definition "${node.identifier}"`,
+      );
+    }
+    const qualifiedLabel =
+      qualifiedLabels.get(node.identifier) ??
+      qualifiedReferenceLabel(namespace, node.identifier);
+    qualifiedLabels.set(node.identifier, qualifiedLabel);
+    edits.push({ ...span, value: qualifiedLabel });
+  }
+  for (const node of nodes) {
+    if (!isReference(node)) continue;
+    const qualifiedLabel = qualifiedLabels.get(node.identifier);
+    if (qualifiedLabel === undefined) {
+      throw new Error(
+        `${namespace}: could not match parsed Markdown reference "${node.identifier}" to a definition`,
+      );
+    }
+    const edit = referenceLabelEdit(source, node, qualifiedLabel);
+    if (edit === null) {
+      throw new Error(
+        `${namespace}: could not locate parsed Markdown reference "${node.identifier}"`,
+      );
+    }
+    edits.push(edit);
+  }
+  return edits;
+}
+
+function qualifiedReferenceLabel(
+  namespace: string,
+  identifier: string,
+): string {
+  const digest = createHash("sha256")
+    .update(namespace)
+    .update("\0")
+    .update(identifier)
+    .digest("hex");
+  return `plugin-compiler-${digest}`;
+}
+
+function positionedDefinitionLabelSpan(
+  source: string,
+  node: Definition,
+): Pick<DestinationEdit, "start" | "end"> | null {
+  const nodeStart = node.position?.start.offset;
+  const nodeEnd = node.position?.end.offset;
+  if (nodeStart === undefined || nodeEnd === undefined) return null;
+  return definitionLabelSpan(source, nodeStart, nodeEnd);
+}
+
+function definitionLabelSpan(
+  source: string,
+  nodeStart: number,
+  nodeEnd: number,
+): Pick<DestinationEdit, "start" | "end"> | null {
+  if (source[nodeStart] !== "[") return null;
+  for (let index = nodeStart + 1; index + 1 < nodeEnd; index += 1) {
+    if (
+      source[index] === "]" &&
+      source[index + 1] === ":" &&
+      !isEscaped(source, index)
+    ) {
+      return { start: nodeStart + 1, end: index };
+    }
+  }
+  return null;
+}
+
+function isReference(node: RootContent): node is ReferenceNode {
+  return node.type === "imageReference" || node.type === "linkReference";
+}
+
+function referenceLabelEdit(
+  source: string,
+  node: ReferenceNode,
+  qualifiedLabel: string,
+): DestinationEdit | null {
+  const nodeStart = node.position?.start.offset;
+  const nodeEnd = node.position?.end.offset;
+  if (nodeStart === undefined || nodeEnd === undefined) return null;
+  if (node.referenceType === "shortcut") {
+    return { start: nodeEnd, end: nodeEnd, value: `[${qualifiedLabel}]` };
+  }
+  if (node.referenceType === "collapsed") {
+    return { start: nodeEnd - 1, end: nodeEnd - 1, value: qualifiedLabel };
+  }
+  for (let index = nodeEnd - 2; index >= nodeStart; index -= 1) {
+    if (source[index] === "[" && !isEscaped(source, index)) {
+      return { start: index + 1, end: nodeEnd - 1, value: qualifiedLabel };
+    }
+  }
+  return null;
+}
+
+function isEscaped(source: string, offset: number): boolean {
+  let backslashes = 0;
+  for (
+    let index = offset - 1;
+    index >= 0 && source[index] === "\\";
+    index -= 1
+  ) {
+    backslashes += 1;
+  }
+  return backslashes % 2 === 1;
 }

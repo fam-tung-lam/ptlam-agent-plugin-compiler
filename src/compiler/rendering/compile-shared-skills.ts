@@ -150,9 +150,16 @@ function isInlineMarkdownReference(resource: SkillResource): boolean {
   return resourcePath.startsWith("references/") && resourcePath.endsWith(".md");
 }
 
+function createInternalReferencesMarker(contents: readonly string[]): string {
+  for (let index = 0; ; index += 1) {
+    const marker = `<!-- PLUGIN-COMPILER:INTERNAL-MARKDOWN-REFERENCES:${index} -->`;
+    if (contents.every((content) => !content.includes(marker))) return marker;
+  }
+}
+
 function inlineMarkdownReferences(skill: Skill, sourceBody: string): string {
   if (skill.compilation.markdown_references !== "inline") {
-    return sourceBody;
+    return composeRequiredSkills(skill, sourceBody);
   }
 
   const references = skill.resources
@@ -174,27 +181,43 @@ function inlineMarkdownReferences(skill: Skill, sourceBody: string): string {
         source: normalizeNewlines(resource.content.toString("utf8")),
         markdownPath: String(resource.path),
         inlinedMarkdownPaths,
+        referenceNamespace: String(resource.path),
       }),
     )
     .join("\n\n");
   if (inlinedContent === "") {
-    return removeMarker(rewrittenSource, MARKDOWN_REFERENCES_MARKER);
+    return composeRequiredSkills(
+      skill,
+      removeMarker(rewrittenSource, MARKDOWN_REFERENCES_MARKER),
+    );
   }
   if (rewrittenSource.includes(MARKDOWN_REFERENCES_MARKER)) {
-    return rewrittenSource.replace(MARKDOWN_REFERENCES_MARKER, inlinedContent);
+    const internalMarker = createInternalReferencesMarker([
+      rewrittenSource,
+      renderRequiredSkills(skill),
+      inlinedContent,
+    ]);
+    const markedSource = rewrittenSource.replace(
+      MARKDOWN_REFERENCES_MARKER,
+      internalMarker,
+    );
+    return composeRequiredSkills(skill, markedSource).replace(
+      internalMarker,
+      inlinedContent,
+    );
   }
+  const requiredSkillsComposed = composeRequiredSkills(skill, rewrittenSource);
   return insertMarkdownSection(
-    rewrittenSource,
-    rewrittenSource.length,
+    requiredSkillsComposed,
+    requiredSkillsComposed.length,
     inlinedContent,
   );
 }
 
 function renderSkillDocument(skill: Skill): string {
   const sourceBody = normalizeNewlines(skill.source_body);
-  const requiredSkillsComposed = composeRequiredSkills(skill, sourceBody);
-  const fullyComposed = inlineMarkdownReferences(skill, requiredSkillsComposed);
-  return `${renderFrontmatter(skill)}\n\n${fullyComposed}`;
+  const composedBody = inlineMarkdownReferences(skill, sourceBody);
+  return `${renderFrontmatter(skill)}\n\n${composedBody}`;
 }
 
 async function formatComposedSkill(content: string): Promise<string> {

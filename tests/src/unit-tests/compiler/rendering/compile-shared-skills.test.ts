@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import type { RootContent } from "mdast";
+import { fromMarkdown } from "mdast-util-from-markdown";
 import { describe, it } from "vitest";
 import {
   compileSharedSkills,
@@ -11,11 +13,24 @@ import {
   createProjectPath,
   MARKDOWN_REFERENCES_MARKER,
   OwnershipKind,
+  REQUIRED_SKILLS_MARKER,
   SkillStatus,
   SkillVisibility,
   selectPublishedSkills,
 } from "../../../../../src/core/index.ts";
 import { makePlugin } from "../test-fixtures/plugin-fixture.ts";
+
+function markdownNodes(source: string): RootContent[] {
+  const result: RootContent[] = [];
+  const visit = (nodes: readonly RootContent[]): void => {
+    for (const node of nodes) {
+      result.push(node);
+      if ("children" in node) visit(node.children);
+    }
+  };
+  visit(fromMarkdown(source).children);
+  return result;
+}
 
 describe("compileSharedSkills", () => {
   it("builds a complete cataloged tree with recursive required-skill context", async () => {
@@ -335,7 +350,10 @@ ${MARKDOWN_REFERENCES_MARKER}
     assert.match(content, /\[architecture\]\(SKILL\.md#overview\)/u);
     assert.match(content, /\[nested\]\(SKILL\.md\?raw=1#part\)/u);
     assert.match(content, /!\[diagram\]\(assets\/diagram\.png\)/u);
-    assert.match(content, /\[data\]: references\/data\.json\?raw=1#record/u);
+    assert.match(
+      content,
+      /\[plugin-compiler-[a-f0-9]{64}\]: references\/data\.json\?raw=1#record/u,
+    );
     assert.match(content, /\[root\]\(SKILL\.md#public\)/u);
     assert.match(content, /\[script\]\(scripts\/check\.mjs\)/u);
     assert.doesNotMatch(content, /# Rules/u);
@@ -411,6 +429,310 @@ ${MARKDOWN_REFERENCES_MARKER}
       ),
       false,
     );
+  });
+
+  it("rebases parsed edge-case destinations without changing their authored spelling", async () => {
+    // GIVEN: One reference uses escaped labels, structured labels, and raw URL suffix syntax.
+    const plugin = makePlugin();
+    const edgeCasePlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "old-skill"
+          ? {
+              ...skill,
+              compilation: { markdown_references: "inline" },
+              source_body: `# Old
+
+${MARKDOWN_REFERENCES_MARKER}
+`,
+              resources: [
+                {
+                  path: createProjectPath("references/edge.md"),
+                  content: Buffer.from(`# Edge
+
+[code \`[\`](nested.md?close=\\)#raw&amp;)
+[html <span title="[">label</span>](<nested.md?space=&#32;q>)
+[entity query](<nested.md&#63;x=1>)
+[entity fragment](nested.md&#35;part)
+[escaped query](nested.md\\?x=1)
+[escaped fragment](nested.md\\#part)
+[escaped][a\\]:b]
+
+[a\\]:b]: ../assets/data.json?raw=1
+`),
+                },
+                {
+                  path: createProjectPath("references/nested.md"),
+                  content: Buffer.from("# Nested\n"),
+                },
+                {
+                  path: createProjectPath("assets/data.json"),
+                  content: Buffer.from("{}\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: The shared document is compiled and reparsed during generated validation.
+    const fragment = await compileSharedSkills(edgeCasePlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/old-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === ArtifactKind.File);
+    const content = artifact.content.toString("utf8");
+
+    // THEN: Only destination paths and isolated reference identifiers change.
+    assert.match(content, /\[code `\[`\]\(SKILL\.md\?close=\\\)#raw&amp;\)/u);
+    assert.match(
+      content,
+      /\[html <span title="\[">label<\/span>\]\(<SKILL\.md\?space=&#32;q>\)/u,
+    );
+    assert.match(content, /\[entity query\]\(<SKILL\.md&#63;x=1>\)/u);
+    assert.match(content, /\[entity fragment\]\(SKILL\.md&#35;part\)/u);
+    assert.match(content, /\[escaped query\]\(SKILL\.md\\\?x=1\)/u);
+    assert.match(content, /\[escaped fragment\]\(SKILL\.md\\#part\)/u);
+    const escapedReference =
+      /\[escaped\]\[(plugin-compiler-[a-f0-9]{64})\]/u.exec(content);
+    assert.ok(escapedReference?.[1]);
+    assert.match(
+      content,
+      new RegExp(
+        `\\[${escapedReference[1]}\\]: assets/data\\.json\\?raw=1`,
+        "u",
+      ),
+    );
+    const reparsedDestinations = markdownNodes(content)
+      .filter((node) => node.type === "link")
+      .map((node) => node.url);
+    assert.equal(
+      reparsedDestinations.filter((url) => url === "SKILL.md?x=1").length,
+      2,
+    );
+    assert.equal(
+      reparsedDestinations.filter((url) => url === "SKILL.md#part").length,
+      2,
+    );
+  });
+
+  it("isolates duplicate reference-definition namespaces across inlined documents", async () => {
+    // GIVEN: Two independent reference documents use the same definition identifier.
+    const plugin = makePlugin();
+    const duplicateDefinitionsPlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "old-skill"
+          ? {
+              ...skill,
+              compilation: { markdown_references: "inline" },
+              source_body: `# Old
+
+${MARKDOWN_REFERENCES_MARKER}
+`,
+              resources: [
+                {
+                  path: createProjectPath("references/A.md"),
+                  content: Buffer.from(
+                    "[first][asset] ![first image][asset] [asset][] ![asset]\n\n[asset]: ../assets/A.json\n",
+                  ),
+                },
+                {
+                  path: createProjectPath("references/a.md"),
+                  content: Buffer.from(
+                    "[second][asset]\n\n[asset]: ../assets/a.json\n",
+                  ),
+                },
+                {
+                  path: createProjectPath("assets/A.json"),
+                  content: Buffer.from("{}\n"),
+                },
+                {
+                  path: createProjectPath("assets/a.json"),
+                  content: Buffer.from("{}\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: Both documents merge into one generated SKILL.md.
+    const fragment = await compileSharedSkills(duplicateDefinitionsPlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/old-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === ArtifactKind.File);
+    const content = artifact.content.toString("utf8");
+
+    // THEN: Each visible reference points at its own qualified definition and target.
+    const firstReference = /\[first\]\[(plugin-compiler-[a-f0-9]{64})\]/u.exec(
+      content,
+    );
+    const secondReference =
+      /\[second\]\[(plugin-compiler-[a-f0-9]{64})\]/u.exec(content);
+    assert.ok(firstReference?.[1]);
+    assert.ok(secondReference?.[1]);
+    assert.notEqual(firstReference[1], secondReference[1]);
+    assert.match(
+      content,
+      new RegExp(
+        `!\\[first image\\]\\[${firstReference[1]}\\] \\[asset\\]\\[${firstReference[1]}\\] !\\[asset\\]\\[${firstReference[1]}\\]`,
+        "u",
+      ),
+    );
+    assert.match(
+      content,
+      new RegExp(`\\[${firstReference[1]}\\]: assets/A\\.json`, "u"),
+    );
+    assert.match(
+      content,
+      new RegExp(`\\[${secondReference[1]}\\]: assets/a\\.json`, "u"),
+    );
+  });
+
+  it("keeps near-limit reference labels valid after namespace isolation", async () => {
+    // GIVEN: An inlined document has a valid reference label close to CommonMark's limit.
+    const plugin = makePlugin();
+    const nearLimitLabel = "x".repeat(980);
+    const nearLimitPlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "old-skill"
+          ? {
+              ...skill,
+              compilation: { markdown_references: "inline" },
+              source_body: `# Old\n\n${MARKDOWN_REFERENCES_MARKER}\n`,
+              resources: [
+                {
+                  path: createProjectPath("references/long.md"),
+                  content: Buffer.from(
+                    `[near][${nearLimitLabel}]\n\n[${nearLimitLabel}]: ../assets/near.json\n`,
+                  ),
+                },
+                {
+                  path: createProjectPath("assets/near.json"),
+                  content: Buffer.from("{}\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: Reference identifiers are isolated and the generated document reparses.
+    const fragment = await compileSharedSkills(nearLimitPlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/old-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === ArtifactKind.File);
+    const nodes = markdownNodes(artifact.content.toString("utf8"));
+    const reference = nodes.find(
+      (node) =>
+        node.type === "linkReference" &&
+        node.children[0]?.type === "text" &&
+        node.children[0].value === "near",
+    );
+    const definition = nodes.find(
+      (node) => node.type === "definition" && node.url === "assets/near.json",
+    );
+
+    // THEN: A fixed-length identifier preserves the link-to-definition relationship.
+    assert.ok(reference?.type === "linkReference");
+    assert.ok(definition?.type === "definition");
+    assert.match(reference.identifier, /^plugin-compiler-[a-f0-9]{64}$/u);
+    assert.equal(reference.identifier, definition.identifier);
+  });
+
+  it("scopes reference placement to the authored body before required guidance", async () => {
+    // GIVEN: Generated required-skill fields contain the exact reference marker text.
+    const plugin = makePlugin();
+    const makeMarkerPlugin = (sourceBody: string) =>
+      createPlugin({
+        ...plugin,
+        categories: plugin.categories,
+        skills: plugin.skills.map((skill) =>
+          skill.id === "public-skill"
+            ? {
+                ...skill,
+                compilation: { markdown_references: "inline" },
+                source_body: sourceBody,
+                required_skills: skill.required_skills.map((requirement) => ({
+                  ...requirement,
+                  reason: `Reason ${MARKDOWN_REFERENCES_MARKER}`,
+                  instructions: `Instructions ${MARKDOWN_REFERENCES_MARKER}`,
+                })),
+                resources: [
+                  {
+                    path: createProjectPath("references/placed.md"),
+                    content: Buffer.from(
+                      `# Inlined reference\n\n${REQUIRED_SKILLS_MARKER}\n`,
+                    ),
+                  },
+                ],
+              }
+            : skill,
+        ),
+      });
+
+    // WHEN: Compilation uses an authored marker and the markerless append policy.
+    const placed = await compileSharedSkills(
+      makeMarkerPlugin(`# Public
+
+Before.
+
+${MARKDOWN_REFERENCES_MARKER}
+
+After.
+
+${REQUIRED_SKILLS_MARKER}
+`),
+    );
+    const appended = await compileSharedSkills(
+      makeMarkerPlugin("# Public\n\nBefore.\n\nAfter.\n"),
+    );
+    const placedArtifact = placed.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/public-skill/SKILL.md",
+    );
+    const appendedArtifact = appended.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/public-skill/SKILL.md",
+    );
+    assert.ok(placedArtifact?.kind === ArtifactKind.File);
+    assert.ok(appendedArtifact?.kind === ArtifactKind.File);
+    const placedContent = placedArtifact.content.toString("utf8");
+    const appendedContent = appendedArtifact.content.toString("utf8");
+
+    // THEN: Authored placement wins, markerless content appends, and generated markers remain inert.
+    assert.ok(
+      placedContent.indexOf("Before.") <
+        placedContent.indexOf("# Inlined reference"),
+    );
+    assert.ok(
+      placedContent.indexOf("# Inlined reference") <
+        placedContent.indexOf("After."),
+    );
+    assert.ok(
+      appendedContent.indexOf("After.") <
+        appendedContent.indexOf("# Inlined reference"),
+    );
+    assert.ok(
+      placedContent.indexOf("After.") <
+        placedContent.indexOf("## Required skills"),
+    );
+    assert.ok(
+      appendedContent.indexOf("## Required skills") <
+        appendedContent.indexOf("# Inlined reference"),
+    );
+    assert.equal(placedContent.split(MARKDOWN_REFERENCES_MARKER).length - 1, 2);
+    assert.equal(
+      appendedContent.split(MARKDOWN_REFERENCES_MARKER).length - 1,
+      2,
+    );
+    assert.equal(placedContent.split(REQUIRED_SKILLS_MARKER).length - 1, 1);
+    assert.equal(appendedContent.split(REQUIRED_SKILLS_MARKER).length - 1, 1);
   });
 
   it("keeps omitted and explicit preserve policies byte-identical", async () => {
