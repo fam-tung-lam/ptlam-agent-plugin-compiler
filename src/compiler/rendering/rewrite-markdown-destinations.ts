@@ -160,7 +160,7 @@ function destinationSpan(
   const destinationStart =
     node.type === "definition"
       ? definitionDestinationStart(source, nodeStart, nodeEnd)
-      : inlineDestinationStart(source, nodeStart, nodeEnd, node.url);
+      : inlineDestinationStart(source, nodeStart, nodeEnd, node.type);
   if (destinationStart === null) return null;
   return destinationEnd(source, destinationStart, nodeEnd);
 }
@@ -178,22 +178,47 @@ function inlineDestinationStart(
   source: string,
   nodeStart: number,
   nodeEnd: number,
-  expectedDestination: string,
+  nodeType: Link["type"] | Image["type"],
 ): number | null {
   const candidates = inlineDestinationCandidates(source, nodeStart, nodeEnd);
   for (const candidate of candidates) {
     const start = skipWhitespace(source, candidate + 2, nodeEnd);
     const span = destinationEnd(source, start, nodeEnd);
     if (span === null) continue;
-    const rawDestination = source.slice(span.start, span.end);
-    if (
-      parsedDestination(rawDestination, source[start] === "<") ===
-      expectedDestination
-    ) {
+    if (isStructuralDestination(source, nodeStart, nodeEnd, span, nodeType)) {
       return start;
     }
   }
   return null;
+}
+
+function isStructuralDestination(
+  source: string,
+  nodeStart: number,
+  nodeEnd: number,
+  span: Pick<DestinationEdit, "start" | "end">,
+  nodeType: Link["type"] | Image["type"],
+): boolean {
+  const nodeSource = source.slice(nodeStart, nodeEnd);
+  const probe = destinationProbe(nodeSource);
+  const relativeStart = span.start - nodeStart;
+  const relativeEnd = span.end - nodeStart;
+  const probedSource = `${nodeSource.slice(0, relativeStart)}${probe}${nodeSource.slice(relativeEnd)}`;
+  return markdownNodes(probedSource).some(
+    (node) => node.type === nodeType && node.url === probe,
+  );
+}
+
+function destinationProbe(source: string): string {
+  const destinations = new Set(
+    markdownNodes(source)
+      .filter(hasDestination)
+      .map((node) => node.url),
+  );
+  for (let index = 0; ; index += 1) {
+    const probe = `plugin-compiler-destination-probe-${index}`;
+    if (!destinations.has(probe)) return probe;
+  }
 }
 
 function inlineDestinationCandidates(
@@ -211,7 +236,7 @@ function inlineDestinationCandidates(
       candidates.push(index);
     }
   }
-  return candidates.reverse();
+  return candidates;
 }
 
 function parsedDestination(rawDestination: string, enclosed: boolean): string {

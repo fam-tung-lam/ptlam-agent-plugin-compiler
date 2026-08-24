@@ -174,6 +174,7 @@ function inlineMarkdownReferences(skill: Skill, sourceBody: string): string {
     source: sourceBody,
     markdownPath: "SKILL.md",
     inlinedMarkdownPaths,
+    referenceNamespace: "SKILL.md",
   });
   const inlinedContent = references
     .map((resource) =>

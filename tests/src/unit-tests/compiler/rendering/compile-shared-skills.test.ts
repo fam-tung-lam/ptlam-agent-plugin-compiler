@@ -457,6 +457,8 @@ ${MARKDOWN_REFERENCES_MARKER}
 [entity fragment](nested.md&#35;part)
 [escaped query](nested.md\\?x=1)
 [escaped fragment](nested.md\\#part)
+[title](nested.md "see ](nested.md)")
+![image title](../assets/data.json "see ](../assets/data.json)")
 [escaped][a\\]:b]
 
 [a\\]:b]: ../assets/data.json?raw=1
@@ -494,6 +496,11 @@ ${MARKDOWN_REFERENCES_MARKER}
     assert.match(content, /\[entity fragment\]\(SKILL\.md&#35;part\)/u);
     assert.match(content, /\[escaped query\]\(SKILL\.md\\\?x=1\)/u);
     assert.match(content, /\[escaped fragment\]\(SKILL\.md\\#part\)/u);
+    assert.match(content, /\[title\]\(SKILL\.md "see \]\(nested\.md\)"\)/u);
+    assert.match(
+      content,
+      /!\[image title\]\(assets\/data\.json "see \]\(\.\.\/assets\/data\.json\)"\)/u,
+    );
     const escapedReference =
       /\[escaped\]\[(plugin-compiler-[a-f0-9]{64})\]/u.exec(content);
     assert.ok(escapedReference?.[1]);
@@ -645,6 +652,75 @@ ${MARKDOWN_REFERENCES_MARKER}
     assert.ok(definition?.type === "definition");
     assert.match(reference.identifier, /^plugin-compiler-[a-f0-9]{64}$/u);
     assert.equal(reference.identifier, definition.identifier);
+  });
+
+  it("keeps unresolved child references isolated from root definitions", async () => {
+    // GIVEN: The root defines a label also used as unresolved prose in one reference.
+    const plugin = makePlugin();
+    const isolatedRootPlugin = createPlugin({
+      ...plugin,
+      categories: plugin.categories,
+      skills: plugin.skills.map((skill) =>
+        skill.id === "old-skill"
+          ? {
+              ...skill,
+              compilation: { markdown_references: "inline" },
+              source_body: `# Old
+
+[root][shared]
+
+[shared]: assets/root.json
+
+${MARKDOWN_REFERENCES_MARKER}
+`,
+              resources: [
+                {
+                  path: createProjectPath("references/child.md"),
+                  content: Buffer.from("# Child\n\n[was literal][shared]\n"),
+                },
+                {
+                  path: createProjectPath("assets/root.json"),
+                  content: Buffer.from("{}\n"),
+                },
+              ],
+            }
+          : skill,
+      ),
+    });
+
+    // WHEN: The root and child documents merge into one generated document.
+    const fragment = await compileSharedSkills(isolatedRootPlugin);
+    const artifact = fragment.artifacts.find(
+      (candidate) => String(candidate.path) === "skills/old-skill/SKILL.md",
+    );
+    assert.ok(artifact?.kind === ArtifactKind.File);
+    const content = artifact.content.toString("utf8");
+    const nodes = markdownNodes(content);
+    const rootReference = nodes.find(
+      (node) =>
+        node.type === "linkReference" &&
+        node.children[0]?.type === "text" &&
+        node.children[0].value === "root",
+    );
+    const rootDefinition = nodes.find(
+      (node) => node.type === "definition" && node.url === "assets/root.json",
+    );
+
+    // THEN: The root reference is qualified while the child text stays unresolved.
+    assert.ok(rootReference?.type === "linkReference");
+    assert.ok(rootDefinition?.type === "definition");
+    assert.equal(rootReference.identifier, rootDefinition.identifier);
+    assert.match(rootReference.identifier, /^plugin-compiler-[a-f0-9]{64}$/u);
+    assert.match(content, /\[was literal\]\[shared\]/u);
+    assert.equal(
+      nodes.some(
+        (node) =>
+          node.type === "linkReference" &&
+          node.children[0]?.type === "text" &&
+          node.children[0].value === "was literal",
+      ),
+      false,
+    );
   });
 
   it("scopes reference placement to the authored body before required guidance", async () => {
