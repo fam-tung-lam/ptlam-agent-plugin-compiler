@@ -5,7 +5,6 @@ import CapabilityGrid from "./components/CapabilityGrid.vue";
 import CompilerFlow from "./components/CompilerFlow.vue";
 import DocContext from "./components/DocContext.vue";
 import HomeCommands from "./components/HomeCommands.vue";
-import HomeContrast from "./components/HomeContrast.vue";
 import HomeHosts from "./components/HomeHosts.vue";
 import HomeInstall from "./components/HomeInstall.vue";
 import HomeNext from "./components/HomeNext.vue";
@@ -25,7 +24,6 @@ const { Layout } = DefaultTheme;
     </template>
 
     <template #home-features-after>
-      <HomeContrast />
       <CapabilityGrid />
       <HomeHosts />
       <HomeCommands />

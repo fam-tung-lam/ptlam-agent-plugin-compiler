@@ -1,75 +1,76 @@
-<script setup lang="ts">
-/**
- * Hero visual: what the compiler reads and what it writes.
- *
- * Deliberately narrower than a full pipeline diagram. The hero column is about
- * 480px wide at its widest, and the four-stage pipeline could only fit there by
- * shrinking labels below the 11px floor. This shows the two ends — authored
- * input, generated output — at readable size, and the pipeline itself is shown
- * at full width further down the page.
- */
-</script>
-
 <template>
   <figure
-    class="apc-hero-flow"
+    class="apc-compiler-flow"
     role="img"
-    aria-labelledby="apc-hero-flow-title"
-    aria-describedby="apc-hero-flow-description"
+    aria-labelledby="compiler-flow-title compiler-flow-description"
   >
-    <figcaption id="apc-hero-flow-title" class="apc-sr-only">
-      What one compile reads and what it writes
+    <figcaption id="compiler-flow-title" class="apc-sr-only">
+      Agent Plugin Compiler build pipeline
     </figcaption>
-    <p id="apc-hero-flow-description" class="apc-sr-only">
-      The compiler reads two authored paths: plugin/plugin.yml, holding
-      metadata, provider selection, and the skill graph, and plugin/skills, one
-      Markdown file per skill. Running plugin-compiler compile validates that
-      source and writes two generated paths: a skills tree of self-contained
-      public skills, and one exact manifest file for each selected host.
+    <p id="compiler-flow-description" class="apc-sr-only">
+      The authored plugin manifest and skill sources are validated and compiled
+      through one deterministic write plan into self-contained skills and exact
+      provider manifest files.
     </p>
 
-    <div class="apc-hero-flow__card" aria-hidden="true">
-      <div class="apc-hero-flow__bar">
-        <code class="apc-hero-flow__command">plugin-compiler compile</code>
-        <span class="apc-chip apc-chip--ok">
-          <i class="apc-chip__dot"></i>deterministic
-        </span>
+    <div class="apc-compiler-flow__bar" aria-hidden="true">
+      <span>COMPILATION PIPELINE</span>
+      <span class="apc-compiler-flow__status"><i></i>DETERMINISTIC</span>
+    </div>
+
+    <div class="apc-compiler-flow__diagram" aria-hidden="true">
+      <div class="apc-flow-node apc-flow-source">
+        <span class="apc-flow-node__eyebrow">AUTHORED PLUGIN</span>
+        <strong>plugin/</strong>
+        <div class="apc-flow-tree__entry">
+          <code>plugin.yml</code>
+          <span>metadata, providers, and skill graph</span>
+        </div>
+        <div class="apc-flow-tree__entry">
+          <code>skills/**</code>
+          <span>authored instructions and supporting files</span>
+        </div>
       </div>
 
-      <div class="apc-hero-flow__stage">
-        <span class="apc-eyebrow">You author</span>
-        <ul class="apc-hero-flow__files">
-          <li>
-            <code>plugin/plugin.yml</code>
-            <span>metadata, providers, skill graph</span>
-          </li>
-          <li>
-            <code>plugin/skills/**</code>
-            <span>one Markdown file per skill</span>
-          </li>
-        </ul>
+      <svg class="apc-flow-arrow apc-flow-arrow--input" viewBox="0 0 320 54">
+        <defs>
+          <marker id="apc-input-tip" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0 0 8 4 0 8Z" />
+          </marker>
+        </defs>
+        <path d="M160 0v49" marker-end="url(#apc-input-tip)" />
+        <text x="172" y="29">validate source</text>
+      </svg>
+
+      <div class="apc-flow-node apc-flow-compiler">
+        <img src="/logo.svg" alt="" />
+        <div>
+          <strong>Compiler</strong>
+          <span>validate graph · build write plan</span>
+        </div>
       </div>
 
-      <div class="apc-hero-flow__link">
-        <svg class="apc-hero-flow__arrow" viewBox="0 0 12 32" focusable="false">
-          <path d="M6 1v29" />
-          <path d="m1.5 24.5 4.5 5.5 4.5-5.5" />
-        </svg>
-        <span>validate, then write</span>
-      </div>
+      <svg class="apc-flow-arrow apc-flow-arrow--outputs" viewBox="0 0 360 82">
+        <defs>
+          <marker id="apc-output-tip" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0 0 8 4 0 8Z" />
+          </marker>
+        </defs>
+        <path d="M180 0v77" marker-end="url(#apc-output-tip)" />
+        <text x="192" y="43">compile output</text>
+      </svg>
 
-      <div class="apc-hero-flow__stage apc-hero-flow__stage--generated">
-        <span class="apc-eyebrow">The compiler owns</span>
-        <ul class="apc-hero-flow__files">
-          <li>
-            <code>skills/**</code>
-            <span>self-contained public skills</span>
-          </li>
-          <li>
-            <code>host manifests</code>
-            <span>one exact file per selected host</span>
-          </li>
-        </ul>
+      <div class="apc-flow-node apc-flow-output">
+        <span class="apc-flow-node__eyebrow">GENERATED PLUGIN</span>
+        <strong>compiler-owned output</strong>
+        <div class="apc-flow-tree__entry">
+          <code>skills/**</code>
+          <span>self-contained public skills</span>
+        </div>
+        <div class="apc-flow-tree__entry">
+          <code>host files</code>
+          <span>exact manifests for selected providers</span>
+        </div>
       </div>
     </div>
   </figure>
