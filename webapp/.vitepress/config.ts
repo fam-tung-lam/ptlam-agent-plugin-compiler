@@ -1,8 +1,27 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitepress";
 
 const productionUrl = "https://agent-plugin-compiler.phamtunglam.com";
 const repositoryUrl =
   "https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler";
+
+/*
+ * The docs root inside the repository. The edit link and the not-found
+ * override below both hang off it, so it is named once.
+ */
+const docsDirectory = "webapp";
+
+/*
+ * The default theme's VPContent renders its own NotFound component whenever a
+ * route fails to resolve, and reaches it by a direct import rather than
+ * through the theme object. `themeConfig.notFound` only retitles that
+ * component, and `Theme.NotFound` is the router's fallback, which VPContent
+ * never renders. Aliasing the module is VitePress's documented way to replace
+ * an internal component, and it is the only one that leaves Layout.vue alone.
+ */
+const notFoundComponent = fileURLToPath(
+  new URL("./theme/components/NotFound.vue", import.meta.url),
+);
 
 const docsSidebar = [
   {
@@ -42,7 +61,10 @@ export default defineConfig({
     hostname: productionUrl,
   },
   head: [
-    ["meta", { name: "theme-color", content: "#6750a4" }],
+    /*
+     * Matches --apc-accent in tokens.css. The retired violet lived here.
+     */
+    ["meta", { name: "theme-color", content: "#1f5fe0" }],
     ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
     [
       "meta",
@@ -75,6 +97,17 @@ export default defineConfig({
     ],
     ["meta", { name: "twitter:image", content: `${productionUrl}/og.png` }],
   ],
+  lastUpdated: true,
+  vite: {
+    resolve: {
+      alias: [
+        {
+          find: /^.*\/NotFound\.vue$/,
+          replacement: notFoundComponent,
+        },
+      ],
+    },
+  },
   themeConfig: {
     logo: {
       light: "/logo.svg",
@@ -93,8 +126,17 @@ export default defineConfig({
       "/guide/": docsSidebar,
       "/reference/": docsSidebar,
     },
+    /*
+     * detailedView shows the matching excerpt under each hit. Headings repeat
+     * across these pages — "Providers" is a page, a manifest field, and a CLI
+     * option — so a list of bare heading titles cannot tell the reader which
+     * hit is the one they want.
+     */
     search: {
       provider: "local",
+      options: {
+        detailedView: true,
+      },
     },
     socialLinks: [
       {
@@ -114,6 +156,22 @@ export default defineConfig({
     docFooter: {
       prev: "Previous",
       next: "Next",
+    },
+    editLink: {
+      pattern: `${repositoryUrl}/edit/main/${docsDirectory}/:path`,
+      text: "Edit this page on GitHub",
+    },
+    /*
+     * Rendered from the last commit that touched the page's own Markdown file.
+     * forceLocale pins the format to the site language so every reader is
+     * shown the same string, rather than one that shifts with their locale.
+     */
+    lastUpdated: {
+      text: "Last updated",
+      formatOptions: {
+        dateStyle: "medium",
+        forceLocale: true,
+      },
     },
   },
 });
