@@ -64,13 +64,39 @@ body {
 }
 
 /*
- * The ring sits outside the element so it stays visible on accent-filled
- * controls, where an inset ring would disappear into the fill.
+ * The focus ring. It sits outside the element so it stays visible on
+ * accent-filled controls, where an inset ring would disappear into the fill.
+ *
+ * The first selector carries zero specificity so any component can restyle its
+ * own focus without an !important. Nothing in the default theme sets an
+ * outline on links, summaries, or [tabindex] elements, so those are served by
+ * that selector alone.
+ *
+ * The second selector exists because the default theme strips the outline from
+ * four element types with rules that outrank zero specificity:
+ *
+ *   button:focus, button:focus-visible          (0,1,1)  the browser's own ring
+ *   input:focus, textarea:focus, select:focus   (0,1,1)  outline: none
+ *   .DocSearch-Button:focus                     (0,2,0)  the browser's own ring
+ *
+ * The third is live here because VitePress's local search reuses the DocSearch
+ * button markup. Repeating :focus-visible lifts that selector to (0,2,1), the
+ * least that clears all three, and the bump is confined to those four types so
+ * everything else stays cheap to override. A selector list is weighed per
+ * matching selector, which is why both can share one declaration block.
+ *
+ * Mouse focus stays ring-free without help: the default theme's
+ * `button:focus:not(:focus-visible) { outline: none !important }` still wins in
+ * that state, which is why nothing here needs !important of its own.
+ *
+ * Outline only, deliberately. The outline already follows each control's own
+ * border-radius, so setting a radius here would buy nothing and would reshape
+ * pill controls such as the appearance switch for as long as they held focus.
  */
-:where(a, area, button, input, label[for], select, summary, textarea, [tabindex]):focus-visible {
+:where(a, area, button, input, label[for], select, summary, textarea, [tabindex]):focus-visible,
+:is(button, input, select, textarea):focus-visible:focus-visible {
   outline: 2px solid var(--apc-accent);
   outline-offset: 3px;
-  border-radius: var(--apc-radius-sm);
 }
 
 .apc-sr-only {
