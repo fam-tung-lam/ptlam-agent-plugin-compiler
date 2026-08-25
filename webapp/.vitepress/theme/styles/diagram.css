@@ -1,0 +1,477 @@
+/*
+ * Concept diagram components: compiler flow, ownership map, publication
+ * matrix, skill graph.
+ *
+ * Owner: docs-surface worker. Consumes the tokens in tokens.css and declares
+ * none of its own.
+ *
+ * Lengths below 4px — hairline borders, the 2px focus ring and active bar,
+ * the padding inside an inline chip — sit under the 4px spacing scale and
+ * have no token by design; everything at or above 4px uses one.
+ *
+ * Two things to know before editing.
+ *
+ * The visual layer of each figure is aria-hidden and the meaning lives in an
+ * .apc-sr-only figcaption and description. Nothing here may become the only
+ * carrier of a fact.
+ *
+ * Green and amber are absent on purpose. The spec reserves --apc-ok for
+ * "verified / matches source" and --apc-warn for "drift". Nothing these four
+ * figures show means either — "public", "generated", "installable" and
+ * "nested" are all statements about where output lands, not about whether it
+ * matches. Using those hues here would spend a semantic signal on decoration,
+ * so the figures run on the neutral ramp plus the one accent.
+ */
+
+/* ------------------------------------------------------------- Containers */
+
+/*
+ * The outgoing figures sat on a 20px blueprint grid. It is gone: the direction
+ * asks for structure from hairlines and spacing, and a repeating grid under
+ * dense monospace made the labels harder to read, not easier.
+ */
+.apc-graph,
+.apc-matrix {
+  display: grid;
+  gap: var(--apc-space-1);
+  margin: var(--apc-space-8) 0;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-lg);
+  padding: var(--apc-space-5);
+  min-width: 0;
+  background: var(--apc-bg-soft);
+}
+
+/* Code inside a figure is the figure's own type, not .vp-doc inline code. */
+.apc-graph code,
+.apc-matrix code,
+.vp-doc .apc-graph code,
+.vp-doc .apc-matrix code {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  font-family: var(--apc-font-mono);
+  font-size: inherit;
+  color: inherit;
+  background: none;
+}
+
+.apc-graph__panel {
+  display: grid;
+  gap: var(--apc-space-2);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-4);
+  min-width: 0;
+  background: var(--apc-bg-raised);
+}
+
+.apc-graph__eyebrow {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+/* ------------------------------------------------------------------ Nodes */
+
+.apc-graph__group {
+  display: grid;
+  gap: var(--apc-space-2);
+  border: 1px dashed var(--apc-border-heavy);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-3);
+  min-width: 0;
+}
+
+.apc-graph__node {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apc-space-2) var(--apc-space-3);
+  border: 1px solid var(--apc-border-heavy);
+  border-radius: var(--apc-radius-sm);
+  padding: var(--apc-space-2) var(--apc-space-3);
+  min-width: 0;
+  background: var(--apc-bg);
+}
+
+.apc-graph__node--required {
+  border-style: dashed;
+}
+
+.apc-graph__group > .apc-graph__edge,
+.apc-graph__group > .apc-graph__node--required {
+  margin-left: var(--apc-space-5);
+}
+
+.apc-graph .apc-graph__node > code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-semibold);
+  color: var(--apc-text-1);
+}
+
+.apc-graph__note {
+  margin: 0;
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+/* ------------------------------------------------------------------- Tags */
+
+/*
+ * Three states, one hue. Filled accent means the compiler publishes it,
+ * outlined means you author it and it is never published on its own, and plain
+ * means neither — a lifecycle word like "active". Fill, outline and flat keep
+ * the three apart for a reader who cannot see the tint.
+ */
+.apc-graph__tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--apc-space-1);
+}
+
+.apc-tag {
+  border: 1px solid transparent;
+  border-radius: var(--apc-radius-full);
+  padding: 1px var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-style: normal;
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  /*
+   * --apc-text-3 measures 4.33:1 once --apc-overlay-subtle darkens the ground
+   * under it, below the 4.5:1 floor. --apc-text-2 clears it at 7.5:1.
+   */
+  color: var(--apc-text-2);
+  background: var(--apc-overlay-subtle);
+}
+
+.apc-tag--public,
+.apc-tag--generated {
+  border-color: var(--apc-accent-line);
+  color: var(--apc-accent);
+  background: var(--apc-accent-soft);
+}
+
+.apc-tag--internal,
+.apc-tag--authored {
+  border-color: var(--apc-border-heavy);
+  color: var(--apc-text-2);
+  background: none;
+}
+
+/* ------------------------------------------------------------------ Edges */
+
+.apc-graph__edge,
+.apc-graph__step {
+  display: flex;
+  align-items: center;
+  gap: var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+.apc-graph__edge {
+  padding-left: var(--apc-space-4);
+}
+
+.apc-graph__step {
+  justify-content: center;
+  padding: var(--apc-space-1) 0;
+}
+
+.apc-graph__connector {
+  flex: 0 0 auto;
+  overflow: visible;
+  width: 20px;
+  fill: none;
+  stroke: var(--apc-border-heavy);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.apc-graph__connector > path {
+  stroke-dasharray: 5 5;
+  animation: apc-connector-dash 1.1s linear infinite;
+}
+
+/*
+ * Marker contents do not inherit the fill of the element that references the
+ * marker, and the connector sets fill: none, so an arrowhead without this rule
+ * paints nothing at all.
+ */
+.apc-graph__connector marker path {
+  fill: var(--apc-border-heavy);
+  stroke: none;
+}
+
+@keyframes apc-connector-dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+/* --------------------------------------------------------------- Compiler */
+
+.apc-graph__compiler {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--apc-space-2) var(--apc-space-3);
+  border: 1px solid var(--apc-accent-line);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-3) var(--apc-space-4);
+  min-width: 0;
+  background: var(--apc-accent-soft);
+}
+
+.apc-graph__compiler img {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--apc-radius-sm);
+}
+
+.apc-graph__compiler div {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.apc-graph__compiler strong {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-1);
+}
+
+.apc-graph__compiler span {
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+/* --------------------------------------------------------------- File tree */
+
+.apc-graph__tree {
+  display: grid;
+  gap: var(--apc-space-1);
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  list-style: none;
+}
+
+.apc-graph__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--apc-space-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.apc-graph .apc-graph__row > code {
+  overflow-wrap: anywhere;
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-semibold);
+  color: var(--apc-text-1);
+}
+
+.apc-graph__row > span {
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+.apc-graph__row--lead {
+  margin-top: var(--apc-space-3);
+}
+
+.apc-graph__tree > .apc-graph__row:first-child {
+  margin-top: 0;
+}
+
+.apc-graph__row--d1 {
+  padding-left: var(--apc-space-2);
+}
+
+.apc-graph__row--d2 {
+  padding-left: var(--apc-space-6);
+}
+
+.apc-graph .apc-graph__row--d1 > code::before,
+.apc-graph .apc-graph__row--d2 > code::before {
+  color: var(--apc-text-3);
+  content: "└─ ";
+}
+
+.apc-graph__badge {
+  border: 1px solid var(--apc-accent-line);
+  border-radius: var(--apc-radius-full);
+  padding: 1px var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  background: var(--apc-accent-soft);
+}
+
+.apc-graph__row > .apc-graph__badge {
+  color: var(--apc-accent);
+}
+
+/* ------------------------------------------------------- Publication matrix */
+
+.apc-matrix__grid {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--apc-space-2);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.apc-matrix__corner,
+.apc-matrix__column,
+.apc-matrix__row {
+  display: flex;
+  align-items: center;
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-2);
+}
+
+.apc-matrix__corner {
+  color: var(--apc-text-3);
+  text-transform: none;
+}
+
+.apc-matrix__column {
+  justify-content: center;
+}
+
+.apc-matrix__cell {
+  display: grid;
+  align-content: start;
+  gap: var(--apc-space-1);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-sm);
+  padding: var(--apc-space-3);
+  min-width: 0;
+  background: var(--apc-bg-raised);
+}
+
+.apc-matrix__cell strong {
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-semibold);
+  color: var(--apc-text-1);
+}
+
+.apc-matrix__cell span {
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+/* The published outcome is the one the accent belongs to. */
+.apc-matrix__cell--root {
+  border-color: var(--apc-accent-line);
+  background: var(--apc-accent-soft);
+}
+
+/* Nothing is written, so the cell is drawn as an empty slot rather than a box. */
+.apc-matrix__cell--absent {
+  border-style: dashed;
+  background: none;
+}
+
+.apc-matrix__cell--absent strong {
+  color: var(--apc-text-2);
+}
+
+/* ------------------------------------------------------------ Small print */
+
+@media (max-width: 639px) {
+  .apc-graph,
+  .apc-matrix {
+    border-radius: var(--apc-radius-md);
+    padding: var(--apc-space-4);
+  }
+
+  .apc-graph__panel {
+    padding: var(--apc-space-3);
+  }
+
+  .apc-graph__group {
+    padding: var(--apc-space-2);
+  }
+
+  .apc-graph__group > .apc-graph__edge,
+  .apc-graph__group > .apc-graph__node--required {
+    margin-left: var(--apc-space-3);
+  }
+
+  .apc-graph__row--d2 {
+    padding-left: var(--apc-space-5);
+  }
+
+  /*
+   * One column below 639px. The header cells are dropped and each cell states
+   * its own visibility instead, because a three-column grid at this width
+   * would either wrap the labels to three lines or push the figure wider than
+   * the viewport.
+   */
+  .apc-matrix__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--apc-space-2);
+  }
+
+  .apc-matrix__corner,
+  .apc-matrix__column {
+    display: none;
+  }
+
+  /*
+   * Keyed on position, not element type. `:first-of-type` was scoped to the
+   * span type and never matched, because the first span child of the grid is
+   * the corner cell, not a row.
+   */
+  .apc-matrix__cell + .apc-matrix__row {
+    margin-top: var(--apc-space-3);
+  }
+
+  .apc-matrix__cell::before {
+    font-family: var(--apc-font-mono);
+    font-size: var(--apc-text-2xs);
+    font-weight: var(--apc-weight-semibold);
+    line-height: var(--apc-leading-snug);
+    letter-spacing: var(--apc-tracking-wide);
+    text-transform: uppercase;
+    color: var(--apc-text-2);
+    content: attr(data-visibility);
+  }
+}

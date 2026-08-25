@@ -1,0 +1,439 @@
+/*
+ * Design tokens and the VitePress variable bridge.
+ *
+ * Owner: foundation. Every other stylesheet in this directory consumes these
+ * and declares none of its own. A raw hex or a raw pixel font-size in a surface
+ * stylesheet is a defect; add or extend a token here instead.
+ *
+ * Two layers live in this file:
+ *   1. `--apc-*` tokens, the design system's own vocabulary.
+ *   2. `--vp-*` overrides, which point the VitePress default theme at those
+ *      tokens so navbar, sidebar, outline, buttons, custom blocks, and code
+ *      blocks inherit the palette instead of being overridden per component.
+ */
+
+:root {
+  color-scheme: light;
+
+  /*
+   * Neutral ramp, tinted toward the mark's violet rather than a pure grey, so
+   * the surfaces sit under the logo instead of beside it.
+   */
+  --apc-bg: #ffffff;
+  --apc-bg-alt: #f7f6fb;
+  --apc-bg-soft: #f3f1f9;
+  --apc-bg-raised: #ffffff;
+  --apc-border: #e2dff0;
+  --apc-border-heavy: #c9c4de;
+  --apc-text-1: #17142a;
+  --apc-text-2: #4a4661;
+  /*
+   * The lightest text permitted. Verified against every light ground including
+   * the tinted fills, which is where earlier values failed: worst case is
+   * 5.49:1. Do not lighten without re-checking --apc-ok-soft.
+   */
+  --apc-text-3: #5f5b76;
+
+  /* Ground for code. See the note beside --vp-code-block-bg below. */
+  --apc-code-bg: #f7f6fb;
+
+  /*
+   * Accent, taken from the violet in the logo. The mark's own violets are
+   * #b8abff through #755dcf; those read at full strength on the dark badge but
+   * not on a white page, so the light ramp is the same hue carried darker
+   * until it clears 4.5:1 as link text (5.95:1 at its worst ground).
+   */
+  --apc-accent: #5b46c8;
+  --apc-accent-hi: #6d57de;
+  --apc-accent-deep: #4735a4;
+  --apc-accent-soft: #eeeafd;
+  --apc-accent-line: #d9d2f7;
+
+  /*
+   * The mark's teal carries "verified / deterministic / matches source". It is
+   * the logo's second hue and the product's own claim, so the two coincide;
+   * there is no separate green. Amber stays "drift".
+   */
+  --apc-ok: #0b7a73;
+  --apc-ok-soft: #e2f4f1;
+  --apc-warn: #a35c00;
+  --apc-warn-soft: #fdf3e3;
+
+  /*
+   * Derived: VitePress renders danger and caution blocks and the mark has no
+   * red. Chosen at the same tonal weight as --apc-accent so the signal colors
+   * read as one family.
+   */
+  --apc-danger: #c2312b;
+  --apc-danger-soft: #fdecea;
+
+  /* Derived hairlines for the tinted semantic fills above. */
+  --apc-ok-line: #bce3de;
+  --apc-warn-line: #f0dcb8;
+  --apc-danger-line: #f5c9c5;
+
+  /*
+   * Overlay fills. Surface stylesheets use these instead of writing their own
+   * color-mix() so that base.css can supply one set of fallbacks for browsers
+   * without color-mix support.
+   */
+  --apc-overlay-subtle: color-mix(in srgb, var(--apc-text-3) 7%, transparent);
+  --apc-overlay-hover: color-mix(in srgb, var(--apc-text-3) 12%, transparent);
+  --apc-overlay-accent: color-mix(in srgb, var(--apc-accent) 12%, transparent);
+
+  /* Type */
+  --apc-font-sans: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --apc-font-mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Code",
+    "Roboto Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Type scale. --apc-text-2xs is the absolute floor; nothing renders smaller. */
+  --apc-text-2xs: 0.6875rem;
+  --apc-text-xs: 0.75rem;
+  --apc-text-sm: 0.8125rem;
+  --apc-text-base: 0.9375rem;
+  --apc-text-md: 1rem;
+  --apc-text-lg: 1.125rem;
+  --apc-text-xl: 1.375rem;
+  --apc-text-2xl: 1.75rem;
+  --apc-text-3xl: clamp(2rem, 1.4rem + 2.4vw, 2.75rem);
+  --apc-text-4xl: clamp(2.5rem, 1.35rem + 4.6vw, 4rem);
+
+  --apc-weight-normal: 400;
+  --apc-weight-medium: 500;
+  --apc-weight-semibold: 600;
+  --apc-weight-bold: 700;
+
+  --apc-leading-tight: 1.15;
+  --apc-leading-snug: 1.35;
+  --apc-leading-normal: 1.6;
+  --apc-leading-relaxed: 1.75;
+
+  --apc-tracking-tight: -0.02em;
+  --apc-tracking-normal: 0;
+  --apc-tracking-wide: 0.06em;
+
+  /* Spacing, 4px base */
+  --apc-space-1: 0.25rem;
+  --apc-space-2: 0.5rem;
+  --apc-space-3: 0.75rem;
+  --apc-space-4: 1rem;
+  --apc-space-5: 1.25rem;
+  --apc-space-6: 1.5rem;
+  --apc-space-8: 2rem;
+  --apc-space-10: 2.5rem;
+  --apc-space-12: 3rem;
+  --apc-space-16: 4rem;
+  --apc-space-20: 5rem;
+
+  /* Radius */
+  --apc-radius-sm: 6px;
+  --apc-radius-md: 10px;
+  --apc-radius-lg: 14px;
+  --apc-radius-xl: 20px;
+  --apc-radius-full: 999px;
+
+  /* Elevation */
+  --apc-shadow-sm: 0 1px 2px rgb(13 17 23 / 6%);
+  --apc-shadow-md: 0 4px 12px rgb(13 17 23 / 8%);
+  --apc-shadow-lg: 0 12px 32px rgb(13 17 23 / 10%);
+
+  /* Motion */
+  --apc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --apc-duration-fast: 120ms;
+  --apc-duration-base: 200ms;
+  --apc-duration-slow: 320ms;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /*
+   * The dark ground is the mark's own badge colour family (#21173f violet-ink
+   * and #102b36 teal-ink), carried darker so it works as a full page rather
+   * than a 96px tile.
+   */
+  --apc-bg: #100e18;
+  --apc-bg-alt: #14111f;
+  --apc-bg-soft: #191627;
+  --apc-bg-raised: #1e1a2e;
+  --apc-border: #2c2740;
+  --apc-border-heavy: #3b3557;
+  --apc-text-1: #f2effa;
+  --apc-text-2: #a9a3c2;
+  /*
+   * Verified against every dark ground including the tinted fills; --apc-ok-soft
+   * is the binding one at 4.80:1. Earlier values failed there at 3.81:1.
+   */
+  --apc-text-3: #9d97b7;
+
+  /* Ground for code; darker than the page so the well reads as recessed. */
+  --apc-code-bg: #14111f;
+
+  /* The mark's violet, used at full strength: this is the ground it was drawn for. */
+  --apc-accent: #b9adff;
+  --apc-accent-hi: #cec6ff;
+  --apc-accent-deep: #9c8df1;
+  --apc-accent-soft: #29233f;
+  --apc-accent-line: #3c3363;
+
+  /* The mark's teal, likewise. */
+  --apc-ok: #70ded4;
+  --apc-ok-soft: #153433;
+  --apc-warn: #f0b45e;
+  --apc-warn-soft: #2c2113;
+
+  --apc-danger: #ff8b8b;
+  --apc-danger-soft: #33191a;
+
+  --apc-ok-line: #1f4a47;
+  --apc-warn-line: #4a3a1e;
+  --apc-danger-line: #54262a;
+
+  /*
+   * Alphas roughly quintupled: the light shadows are invisible against
+   * --apc-bg, so depth on dark ground comes from opacity, not spread.
+   */
+  --apc-shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --apc-shadow-md: 0 4px 12px rgb(0 0 0 / 48%);
+  --apc-shadow-lg: 0 12px 32px rgb(0 0 0 / 58%);
+}
+
+/*
+ * VitePress bridge.
+ *
+ * The default theme derives most of its surface from a primitive palette
+ * (--vp-c-gray-*, --vp-c-indigo-*, and friends). Remapping those primitives
+ * carries the rebrand into every derived variable — badges, custom blocks,
+ * diff highlights — without listing each one. Variables set explicitly below
+ * are the ones whose default derivation lands on the wrong token or fails
+ * contrast.
+ */
+
+:root {
+  --vp-c-white: #ffffff;
+  --vp-c-black: #000000;
+  --vp-c-neutral: var(--apc-text-1);
+  --vp-c-neutral-inverse: var(--apc-bg);
+
+  /* Primitive palette. --vp-c-*-soft must stay translucent so nested soft
+     surfaces (inline code inside a custom block) still separate. */
+  --vp-c-gray-1: var(--apc-border-heavy);
+  --vp-c-gray-2: var(--apc-border);
+  --vp-c-gray-3: var(--apc-bg-soft);
+  --vp-c-gray-soft: rgb(103 111 125 / 10%);
+
+  --vp-c-indigo-1: var(--apc-accent);
+  --vp-c-indigo-2: var(--apc-accent-hi);
+  --vp-c-indigo-3: var(--apc-accent-deep);
+  --vp-c-indigo-soft: rgb(31 95 224 / 10%);
+
+  /* Purple drives the "important" block. Pointed at the accent so the retired
+     violet cannot reappear through a derived variable. */
+  --vp-c-purple-1: var(--apc-accent);
+  --vp-c-purple-2: var(--apc-accent-hi);
+  --vp-c-purple-3: var(--apc-accent-deep);
+  --vp-c-purple-soft: rgb(31 95 224 / 10%);
+
+  --vp-c-green-1: var(--apc-ok);
+  --vp-c-green-2: var(--apc-ok);
+  --vp-c-green-3: var(--apc-ok);
+  --vp-c-green-soft: rgb(14 122 85 / 10%);
+
+  --vp-c-yellow-1: var(--apc-warn);
+  --vp-c-yellow-2: var(--apc-warn);
+  --vp-c-yellow-3: var(--apc-warn);
+  --vp-c-yellow-soft: rgb(163 92 0 / 10%);
+
+  --vp-c-red-1: var(--apc-danger);
+  --vp-c-red-2: var(--apc-danger);
+  --vp-c-red-3: var(--apc-danger);
+  --vp-c-red-soft: rgb(194 49 43 / 10%);
+
+  --vp-c-sponsor: var(--apc-accent);
+
+  /* Backgrounds */
+  --vp-c-bg: var(--apc-bg);
+  --vp-c-bg-alt: var(--apc-bg-alt);
+  --vp-c-bg-elv: var(--apc-bg-raised);
+  --vp-c-bg-soft: var(--apc-bg-soft);
+
+  /* Borders */
+  --vp-c-border: var(--apc-border-heavy);
+  --vp-c-divider: var(--apc-border);
+  --vp-c-gutter: var(--apc-border);
+
+  /* Text */
+  --vp-c-text-1: var(--apc-text-1);
+  --vp-c-text-2: var(--apc-text-2);
+  --vp-c-text-3: var(--apc-text-3);
+
+  /* Typography */
+  --vp-font-family-base: var(--apc-font-sans);
+  --vp-font-family-mono: var(--apc-font-mono);
+
+  /* Elevation */
+  --vp-shadow-1: var(--apc-shadow-sm);
+  --vp-shadow-2: var(--apc-shadow-md);
+  --vp-shadow-3: var(--apc-shadow-lg);
+  --vp-shadow-4: var(--apc-shadow-lg);
+  --vp-shadow-5: var(--apc-shadow-lg);
+
+  /* Chrome */
+  --vp-nav-bg-color: var(--apc-bg-alt);
+  --vp-nav-screen-bg-color: var(--apc-bg);
+  --vp-sidebar-bg-color: var(--apc-bg-alt);
+  --vp-local-nav-bg-color: var(--apc-bg);
+  --vp-backdrop-bg-color: rgb(13 17 23 / 60%);
+
+  /* Inputs */
+  --vp-input-border-color: var(--apc-border-heavy);
+  --vp-input-bg-color: var(--apc-bg-raised);
+  --vp-input-switch-bg-color: var(--apc-border-heavy);
+
+  /* Local search */
+  --vp-local-search-bg: var(--apc-bg-raised);
+  --vp-local-search-result-bg: var(--apc-bg);
+  --vp-local-search-result-border: var(--apc-border);
+  --vp-local-search-result-selected-bg: var(--apc-accent-soft);
+  --vp-local-search-result-selected-border: var(--apc-accent);
+  --vp-local-search-highlight-bg: var(--apc-accent-soft);
+  --vp-local-search-highlight-text: var(--apc-accent);
+
+  /*
+   * Code blocks get their own ground rather than --apc-bg-soft. Once the
+   * neutrals were tinted toward the mark, bg-soft measured 4.5005:1 against
+   * the lightest Shiki token — passing arithmetically, but with no margin at
+   * all. --apc-code-bg is one step lighter and measures 4.69:1, and the
+   * syntax theme is pinned in config.ts on that assumption.
+   */
+  --vp-code-color: var(--apc-accent);
+  --vp-code-link-color: var(--apc-accent);
+  --vp-code-link-hover-color: var(--apc-accent-deep);
+  --vp-code-bg: var(--apc-code-bg);
+  --vp-code-block-color: var(--apc-text-1);
+  --vp-code-block-bg: var(--apc-code-bg);
+  --vp-code-block-divider-color: var(--apc-border);
+  --vp-code-lang-color: var(--apc-text-3);
+  --vp-code-line-number-color: var(--apc-text-3);
+  --vp-code-copy-code-border-color: var(--apc-border);
+  --vp-code-copy-code-bg: var(--apc-bg-raised);
+  --vp-code-copy-code-hover-border-color: var(--apc-border-heavy);
+  --vp-code-copy-code-hover-bg: var(--apc-bg);
+  --vp-code-copy-code-active-text: var(--apc-text-2);
+  --vp-code-tab-text-color: var(--apc-text-2);
+  --vp-code-tab-hover-text-color: var(--apc-text-1);
+  --vp-code-tab-active-text-color: var(--apc-text-1);
+  --vp-code-tab-active-bar-color: var(--apc-accent);
+
+  /*
+   * Brand buttons. The default theme puts --vp-c-white on --vp-c-brand-3, so
+   * the whole family is set explicitly. Light hover darkens rather than
+   * lightening: white on --apc-accent-hi measures 4.09:1, under the AA floor,
+   * while white on --apc-accent-deep measures 8.00:1.
+   */
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: var(--apc-bg);
+  --vp-button-brand-bg: var(--apc-accent);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: var(--apc-bg);
+  --vp-button-brand-hover-bg: var(--apc-accent-deep);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: var(--apc-bg);
+  --vp-button-brand-active-bg: var(--apc-accent-deep);
+
+  --vp-button-alt-border: var(--apc-border);
+  --vp-button-alt-text: var(--apc-text-1);
+  --vp-button-alt-bg: var(--apc-bg-soft);
+  --vp-button-alt-hover-border: var(--apc-border-heavy);
+  --vp-button-alt-hover-text: var(--apc-text-1);
+  --vp-button-alt-hover-bg: var(--apc-bg-alt);
+  --vp-button-alt-active-border: var(--apc-border-heavy);
+  --vp-button-alt-active-text: var(--apc-text-1);
+  --vp-button-alt-active-bg: var(--apc-bg-soft);
+
+  /* Custom blocks. Hairline borders carry the structure, per the direction. */
+  --vp-custom-block-font-size: var(--apc-text-base);
+  --vp-custom-block-code-font-size: var(--apc-text-sm);
+
+  --vp-custom-block-info-border: var(--apc-border);
+  --vp-custom-block-info-text: var(--apc-text-1);
+  --vp-custom-block-info-bg: var(--apc-bg-soft);
+  --vp-custom-block-info-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-note-border: var(--apc-border);
+  --vp-custom-block-note-text: var(--apc-text-1);
+  --vp-custom-block-note-bg: var(--apc-bg-soft);
+  --vp-custom-block-note-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-tip-border: var(--apc-accent-line);
+  --vp-custom-block-tip-text: var(--apc-text-1);
+  --vp-custom-block-tip-bg: var(--apc-accent-soft);
+  --vp-custom-block-tip-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-important-border: var(--apc-accent-line);
+  --vp-custom-block-important-text: var(--apc-text-1);
+  --vp-custom-block-important-bg: var(--apc-accent-soft);
+  --vp-custom-block-important-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-warning-border: var(--apc-warn-line);
+  --vp-custom-block-warning-text: var(--apc-text-1);
+  --vp-custom-block-warning-bg: var(--apc-warn-soft);
+  --vp-custom-block-warning-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-danger-border: var(--apc-danger-line);
+  --vp-custom-block-danger-text: var(--apc-text-1);
+  --vp-custom-block-danger-bg: var(--apc-danger-soft);
+  --vp-custom-block-danger-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-caution-border: var(--apc-danger-line);
+  --vp-custom-block-caution-text: var(--apc-text-1);
+  --vp-custom-block-caution-bg: var(--apc-danger-soft);
+  --vp-custom-block-caution-code-bg: var(--apc-bg-raised);
+
+  --vp-custom-block-details-border: var(--apc-border);
+  --vp-custom-block-details-text: var(--apc-text-1);
+  --vp-custom-block-details-bg: var(--apc-bg-soft);
+  --vp-custom-block-details-code-bg: var(--apc-bg-raised);
+
+  /* Badges */
+  --vp-badge-info-border: var(--apc-border);
+  --vp-badge-info-text: var(--apc-text-2);
+  --vp-badge-info-bg: var(--apc-bg-soft);
+  --vp-badge-tip-border: var(--apc-accent-line);
+  --vp-badge-tip-text: var(--apc-accent);
+  --vp-badge-tip-bg: var(--apc-accent-soft);
+  --vp-badge-warning-border: var(--apc-warn-line);
+  --vp-badge-warning-text: var(--apc-warn);
+  --vp-badge-warning-bg: var(--apc-warn-soft);
+  --vp-badge-danger-border: var(--apc-danger-line);
+  --vp-badge-danger-text: var(--apc-danger);
+  --vp-badge-danger-bg: var(--apc-danger-soft);
+
+  /* Home hero. No gradient text, no glow: one flat accent. */
+  --vp-home-hero-name-color: var(--apc-accent);
+  --vp-home-hero-name-background: none;
+  --vp-home-hero-image-background-image: none;
+  --vp-home-hero-image-filter: none;
+}
+
+.dark {
+  --vp-c-gray-soft: rgb(125 136 153 / 14%);
+  --vp-c-indigo-soft: rgb(122 165 255 / 14%);
+  --vp-c-purple-soft: rgb(122 165 255 / 14%);
+  --vp-c-green-soft: rgb(77 219 160 / 14%);
+  --vp-c-yellow-soft: rgb(240 180 94 / 14%);
+  --vp-c-red-soft: rgb(255 139 139 / 14%);
+
+  --vp-backdrop-bg-color: rgb(0 0 0 / 70%);
+
+  /*
+   * Dark accents are light, so the brand button inverts: dark label on the
+   * accent fill. --apc-bg on --apc-accent-hi measures 10.33:1, which lets the
+   * dark button lighten on hover the way the spec describes.
+   */
+  --vp-button-brand-hover-bg: var(--apc-accent-hi);
+  --vp-button-brand-active-bg: var(--apc-accent-deep);
+
+  --vp-code-link-hover-color: var(--apc-accent-hi);
+}

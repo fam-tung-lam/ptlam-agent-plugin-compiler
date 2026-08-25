@@ -1,0 +1,413 @@
+/*
+ * Site chrome: navbar, sidebar, table of contents, footer, and search.
+ *
+ * Owner: docs-surface worker. Consumes the tokens in tokens.css and declares
+ * none of its own.
+ *
+ * Lengths below 4px — hairline borders, the 2px focus ring and active bar,
+ * the padding inside an inline chip — sit under the 4px spacing scale and
+ * have no token by design; everything at or above 4px uses one.
+ *
+ * The chrome speaks in two voices. Anything a reader navigates by — page
+ * links, outline entries, pager titles — is sans at --apc-text-sm. Anything
+ * that only labels a group — sidebar section headings, the outline title,
+ * metadata — is mono at --apc-text-2xs in uppercase, the label voice the
+ * design direction reserves for metadata. Nothing renders below 11px.
+ *
+ * The default theme's rules come from scoped single-file components, so each
+ * of its selectors carries an extra `[data-v-*]` attribute. Overrides here are
+ * written with an ancestor class so they match or exceed that specificity;
+ * custom.css is imported after the default theme, so an equal match wins.
+ * Where the tokens in tokens.css already deliver the right value through a
+ * --vp-* variable, no rule is written at all.
+ */
+
+/* ---------------------------------------------------------------- Navbar - */
+
+/*
+ * Translucency: rejected. --vp-nav-bg-color and --vp-sidebar-bg-color are both
+ * --apc-bg-alt, so at >=960px the navbar's title block and the sidebar beneath
+ * it already read as one continuous chrome column. A backdrop-filter would
+ * blur a surface it matches exactly, buying a per-scroll repaint and nothing
+ * else, and it would cost navbar labels their full contrast whenever a code
+ * block scrolled underneath. The bar stays opaque, and its bottom hairline
+ * comes from --vp-c-gutter. No rule needed — that is the decision.
+ */
+
+.VPNavBarTitle .title {
+  font-size: var(--apc-text-md);
+  font-weight: var(--apc-weight-semibold);
+  letter-spacing: var(--apc-tracking-tight);
+}
+
+/*
+ * Below 360px the 16px title pushes the navbar content past the viewport and
+ * carries the hamburger — the only route into the sidebar — off-screen, so
+ * every page scrolls horizontally and WCAG 1.4.10 Reflow fails. The outgoing
+ * stylesheet guarded this; the per-surface split dropped the rule.
+ */
+@media (max-width: 359px) {
+  .VPNavBarTitle .title {
+    font-size: var(--apc-text-sm);
+  }
+}
+
+/*
+ * The local-search result list is anchor-based, and the default theme zeroes
+ * its outline at (0,2,0) via a scoped-style attribute. The specificity bump in
+ * base.css only reaches button, input, select, and textarea, so these links
+ * need their ring restored explicitly.
+ */
+.VPLocalSearchBox a.result:focus-visible {
+  outline: 2px solid var(--apc-accent);
+  outline-offset: -2px;
+}
+
+.VPNavBar .VPNavBarMenu .VPNavBarMenuLink {
+  position: relative;
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-text-2);
+}
+
+.VPNavBar .VPNavBarMenu .VPNavBarMenuLink:hover {
+  color: var(--apc-text-1);
+}
+
+.VPNavBar .VPNavBarMenu .VPNavBarMenuLink.active {
+  color: var(--apc-accent);
+}
+
+/*
+ * The default theme marks the active section with color alone. A short accent
+ * bar under the label carries the same fact without depending on hue, which
+ * matters here because the accent is also the link color on every page.
+ */
+.VPNavBar .VPNavBarMenu .VPNavBarMenuLink.active::after {
+  position: absolute;
+  right: var(--apc-space-3);
+  bottom: var(--apc-space-5);
+  left: var(--apc-space-3);
+  height: 2px;
+  border-radius: var(--apc-radius-full);
+  background: var(--apc-accent);
+  content: "";
+}
+
+/* --------------------------------------------------------------- Sidebar - */
+
+.VPSidebar {
+  border-right: 1px solid var(--apc-border);
+}
+
+/* Section headings ("Guide", "Reference") are labels, not destinations. */
+.VPSidebar .VPSidebarItem.level-0 > .item > .text {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+.VPSidebar .VPSidebarItem.level-0 > .items {
+  margin-top: var(--apc-space-2);
+}
+
+.VPSidebar .VPSidebarItem.level-1 > .item {
+  margin: 0 calc(var(--apc-space-3) * -1);
+  border-radius: var(--apc-radius-sm);
+  padding: 0 var(--apc-space-3);
+  transition: background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.VPSidebar .VPSidebarItem.level-1 > .item > .link > .text {
+  padding: var(--apc-space-2) 0;
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-medium);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+.VPSidebar .VPSidebarItem.level-1.is-link:hover > .item {
+  background: var(--apc-overlay-subtle);
+}
+
+.VPSidebar .VPSidebarItem.level-1.is-link:hover > .item > .link > .text {
+  color: var(--apc-text-1);
+}
+
+/*
+ * The active page gets a tinted row, not only accent text. In a flat list of
+ * eleven links, "which page am I on" has to survive a glance that never
+ * registers a color change on one word.
+ */
+.VPSidebar .VPSidebarItem.level-1.is-active > .item {
+  background: var(--apc-accent-soft);
+}
+
+.VPSidebar .VPSidebarItem.level-1.is-active > .item > .link > .text {
+  font-weight: var(--apc-weight-semibold);
+  color: var(--apc-accent);
+}
+
+/* --------------------------------------------- Outline / table of contents */
+
+.VPDocAsideOutline .outline-title {
+  padding-bottom: var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+.VPDocAsideOutline .outline-link,
+.VPLocalNavOutlineDropdown .outline-link {
+  padding: var(--apc-space-1) 0;
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-normal);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+.VPDocAsideOutline .outline-link:hover,
+.VPLocalNavOutlineDropdown .outline-link:hover {
+  color: var(--apc-text-1);
+}
+
+.VPDocAsideOutline .outline-link.active {
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-accent);
+}
+
+/* ---------------------------------------------------------------- Search - */
+
+/*
+ * Colors reach the search UI through the --vp-local-search-* bridge in
+ * tokens.css. What is left here is shape and voice: the trigger should read as
+ * an input, and the shortcut hint should read as keys. The button's own styles
+ * are unscoped in the default theme, so plain class selectors match them.
+ */
+.DocSearch-Button {
+  border-radius: var(--apc-radius-sm);
+  transition:
+    border-color var(--apc-duration-fast) var(--apc-ease),
+    background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+@media (min-width: 768px) {
+  .DocSearch-Button {
+    border-color: var(--apc-border);
+    background-color: var(--apc-bg);
+  }
+
+  .DocSearch-Button:hover {
+    border-color: var(--apc-border-heavy);
+    background-color: var(--apc-bg);
+  }
+}
+
+.DocSearch-Button .DocSearch-Button-Placeholder {
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-normal);
+  color: var(--apc-text-3);
+}
+
+/*
+ * Border radius is left alone: the default theme joins the two keys into one
+ * capsule by rounding their outer corners only. The modifier glyph lives in a
+ * ::after on the first key, so it needs the type treatment separately.
+ */
+.DocSearch-Button .DocSearch-Button-Key {
+  border-color: var(--apc-border);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-text-3);
+}
+
+.DocSearch-Button .DocSearch-Button-Key:first-child::after {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-text-3);
+}
+
+.VPLocalSearchBox .shell {
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-lg);
+  box-shadow: var(--apc-shadow-lg);
+}
+
+.VPLocalSearchBox .search-bar {
+  border-color: var(--apc-border);
+  border-radius: var(--apc-radius-sm);
+}
+
+.VPLocalSearchBox .search-input {
+  font-size: var(--apc-text-md);
+}
+
+.VPLocalSearchBox .result {
+  border-radius: var(--apc-radius-sm);
+}
+
+.VPLocalSearchBox .titles .title {
+  font-size: var(--apc-text-sm);
+}
+
+.VPLocalSearchBox .title-icon {
+  font-family: var(--apc-font-mono);
+  color: var(--apc-text-3);
+}
+
+.VPLocalSearchBox .search-keyboard-shortcuts {
+  font-size: var(--apc-text-xs);
+  color: var(--apc-text-3);
+}
+
+.VPLocalSearchBox .search-keyboard-shortcuts kbd {
+  border-radius: var(--apc-radius-sm);
+  font-family: var(--apc-font-mono);
+  background: var(--apc-bg-soft);
+}
+
+/* ---------------------------------------------------------------- Footer - */
+
+/*
+ * The default theme hides the site footer on any page that has a sidebar, so
+ * these rules reach the home page and the 404 only. --apc-bg-alt ties the
+ * footer to the navbar at the other end of the page.
+ */
+.Layout .VPFooter {
+  border-top-color: var(--apc-border);
+  background-color: var(--apc-bg-alt);
+}
+
+.VPFooter .message {
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-normal);
+  line-height: var(--apc-leading-normal);
+  color: var(--apc-text-2);
+}
+
+.VPFooter .copyright {
+  margin-top: var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-medium);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+/* ------------------------------------------------------------- Not found - */
+
+/*
+ * A 404 is a navigation surface, which is why it lives in this file rather
+ * than doc.css: its whole job is to put a reader back on a route.
+ */
+.apc-not-found {
+  margin: 0 auto;
+  padding: var(--apc-space-16) var(--apc-space-6) var(--apc-space-20);
+  max-width: 44rem;
+}
+
+@media (min-width: 768px) {
+  .apc-not-found {
+    padding: var(--apc-space-20) var(--apc-space-8);
+  }
+}
+
+.apc-not-found__code {
+  margin: 0;
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  color: var(--apc-accent);
+}
+
+.apc-not-found__title {
+  margin: var(--apc-space-3) 0 0;
+  font-size: var(--apc-text-3xl);
+  font-weight: var(--apc-weight-bold);
+  line-height: var(--apc-leading-tight);
+  letter-spacing: var(--apc-tracking-tight);
+  color: var(--apc-text-1);
+}
+
+.apc-not-found__lead {
+  margin: var(--apc-space-4) 0 0;
+  max-width: 34rem;
+  font-size: var(--apc-text-lg);
+  line-height: var(--apc-leading-normal);
+  color: var(--apc-text-2);
+}
+
+.apc-not-found__routes {
+  display: grid;
+  gap: var(--apc-space-3);
+  margin-top: var(--apc-space-10);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .apc-not-found__routes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.apc-not-found__route {
+  display: grid;
+  gap: var(--apc-space-1);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-4);
+  text-decoration: none;
+  background: var(--apc-bg-soft);
+  transition:
+    border-color var(--apc-duration-fast) var(--apc-ease),
+    background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.apc-not-found__route:hover {
+  border-color: var(--apc-accent-line);
+  background: var(--apc-accent-soft);
+}
+
+.apc-not-found__route-text {
+  font-size: var(--apc-text-base);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-accent);
+}
+
+.apc-not-found__route-hint {
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-text-2);
+}
+
+.apc-not-found__hint {
+  margin: var(--apc-space-8) 0 0;
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-normal);
+  color: var(--apc-text-3);
+}
+
+.apc-not-found__hint kbd {
+  border: 1px solid var(--apc-border-heavy);
+  border-radius: var(--apc-radius-sm);
+  padding: 1px var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  color: var(--apc-text-2);
+  background: var(--apc-bg-soft);
+}

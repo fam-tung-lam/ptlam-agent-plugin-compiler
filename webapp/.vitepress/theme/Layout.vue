@@ -4,18 +4,31 @@ import DefaultTheme from "vitepress/theme";
 import CapabilityGrid from "./components/CapabilityGrid.vue";
 import CompilerFlow from "./components/CompilerFlow.vue";
 import DocContext from "./components/DocContext.vue";
+import HomeCommands from "./components/HomeCommands.vue";
+import HomeHosts from "./components/HomeHosts.vue";
+import HomeInstall from "./components/HomeInstall.vue";
+import HomeNext from "./components/HomeNext.vue";
+import HomeVerify from "./components/HomeVerify.vue";
 
 const { Layout } = DefaultTheme;
 </script>
 
 <template>
   <Layout>
+    <template #home-hero-actions-after>
+      <HomeInstall />
+    </template>
+
     <template #home-hero-image>
       <CompilerFlow />
     </template>
 
-    <template #home-features-before>
+    <template #home-features-after>
       <CapabilityGrid />
+      <HomeHosts />
+      <HomeCommands />
+      <HomeVerify />
+      <HomeNext />
     </template>
 
     <template #doc-before>

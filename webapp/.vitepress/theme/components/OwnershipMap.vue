@@ -2,7 +2,8 @@
   <figure
     class="apc-graph"
     role="img"
-    aria-labelledby="ownership-map-title ownership-map-description"
+    aria-labelledby="ownership-map-title"
+    aria-describedby="ownership-map-description"
   >
     <figcaption id="ownership-map-title" class="apc-sr-only">
       Which repository paths the compiler owns

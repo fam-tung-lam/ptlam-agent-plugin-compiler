@@ -1,0 +1,531 @@
+/*
+ * Documentation content: .vp-doc prose, headings, tables, and code blocks.
+ *
+ * Owner: docs-surface worker. Consumes the tokens in tokens.css and declares
+ * none of its own.
+ *
+ * Lengths below 4px — hairline borders, the 2px focus ring and active bar,
+ * the padding inside an inline chip — sit under the 4px spacing scale and
+ * have no token by design; everything at or above 4px uses one.
+ *
+ * These pages are read end to end, not skimmed for a headline: the shortest
+ * guide runs past two screens and reference/cli.md past four. Everything below
+ * serves that — a heading ladder whose steps are unmistakable at a glance,
+ * relaxed leading on body copy, and tables and code blocks that stay inside
+ * their own bounds instead of widening the page.
+ */
+
+/* --------------------------------------------------------- Page context - */
+
+/*
+ * The eyebrow above every doc title, injected through the doc-before slot.
+ * The outgoing design set it at 9px, well under the floor; it is now the same
+ * --apc-text-2xs mono label used by sidebar headings and the outline title, so
+ * all three read as one voice.
+ */
+.apc-doc-context {
+  display: flex;
+  align-items: center;
+  gap: var(--apc-space-3);
+  margin-bottom: var(--apc-space-5);
+  min-width: 0;
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  color: var(--apc-text-3);
+}
+
+.apc-doc-context__nodes {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: var(--apc-space-1);
+}
+
+.apc-doc-context__nodes i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--apc-border-heavy);
+}
+
+.apc-doc-context__nodes i:nth-child(3) {
+  background: var(--apc-accent);
+}
+
+.apc-doc-context__line {
+  flex: 1 1 auto;
+  min-width: var(--apc-space-5);
+  height: 1px;
+  background: var(--apc-border);
+}
+
+/* --------------------------------------------------------------- Focus - */
+
+/*
+/*
+ * The visually hidden code-group radio sits at 13x13 with opacity 0, so the
+ * global ring lands on something nobody can see. Only the `+ label` hop puts a
+ * ring on the tab a reader is actually looking at. Plain buttons are covered
+ * by the specificity-bumped rule in base.css and need nothing here.
+ */
+.vp-code-group input:focus-visible + label {
+  outline: 2px solid var(--apc-accent);
+  outline-offset: 3px;
+  border-radius: var(--apc-radius-sm);
+}
+
+/* --------------------------------------------------------------- Headings */
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  color: var(--apc-text-1);
+}
+
+.vp-doc h1 {
+  margin-top: 0;
+  margin-bottom: var(--apc-space-5);
+  font-size: var(--apc-text-3xl);
+  font-weight: var(--apc-weight-bold);
+  line-height: var(--apc-leading-tight);
+  letter-spacing: var(--apc-tracking-tight);
+}
+
+/*
+ * The rule above every h2 survives the rebrand, demoted from a saturated teal
+ * line to a hairline. On a page with eight or nine sections it is the single
+ * strongest "a new section starts here" cue a reader gets while scrolling, and
+ * the design direction asks for exactly that: structure carried by hairline
+ * borders and spacing. What does not survive is the saturated color. Repeated
+ * nine times down a column whose only other accent-colored thing is the links,
+ * a teal rule was decoration competing with navigation.
+ */
+.vp-doc h2 {
+  margin: var(--apc-space-12) 0 var(--apc-space-4);
+  border-top: 1px solid var(--apc-border);
+  padding-top: var(--apc-space-6);
+  font-size: var(--apc-text-2xl);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-tight);
+}
+
+.vp-doc h3 {
+  margin: var(--apc-space-8) 0 var(--apc-space-2);
+  font-size: var(--apc-text-xl);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-normal);
+}
+
+/*
+ * h4 drops to body size and separates from h3 by weight and by the mono-ish
+ * tracking, not by another size step. Three visible sizes are enough ladder
+ * for pages that never nest deeper than h4.
+ */
+.vp-doc h4 {
+  margin: var(--apc-space-6) 0 var(--apc-space-2);
+  font-size: var(--apc-text-md);
+  font-weight: var(--apc-weight-bold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-normal);
+}
+
+.vp-doc .header-anchor {
+  color: var(--apc-text-3);
+}
+
+.vp-doc .header-anchor:hover,
+.vp-doc .header-anchor:focus {
+  color: var(--apc-accent);
+}
+
+/* ------------------------------------------------------------------ Prose */
+
+.vp-doc p,
+.vp-doc li {
+  line-height: var(--apc-leading-relaxed);
+}
+
+.vp-doc p {
+  margin: var(--apc-space-4) 0;
+  color: var(--apc-text-1);
+}
+
+.vp-doc ul,
+.vp-doc ol {
+  margin: var(--apc-space-4) 0;
+}
+
+.vp-doc li + li {
+  margin-top: var(--apc-space-2);
+}
+
+.vp-doc a {
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/*
+ * Hover darkens in light mode and lightens in dark. --apc-accent-hi on white
+ * measures 4.09:1, under the AA floor, so light-mode hover has to travel
+ * toward --apc-accent-deep instead.
+ */
+.vp-doc a:hover {
+  color: var(--apc-accent-deep);
+}
+
+.dark .vp-doc a:hover {
+  color: var(--apc-accent-hi);
+}
+
+.vp-doc strong {
+  font-weight: var(--apc-weight-semibold);
+  color: var(--apc-text-1);
+}
+
+.vp-doc blockquote {
+  margin: var(--apc-space-4) 0;
+  border-left: 2px solid var(--apc-border-heavy);
+  padding-left: var(--apc-space-4);
+  color: var(--apc-text-2);
+}
+
+.vp-doc blockquote > p {
+  font-size: var(--apc-text-base);
+  color: var(--apc-text-2);
+}
+
+.vp-doc hr {
+  margin: var(--apc-space-10) 0;
+  border-top-color: var(--apc-border);
+}
+
+/* -------------------------------------------------------------- Code type */
+
+/*
+ * Inline code stays at text color. On these pages almost every noun is inline
+ * code — plugin.yml, compile, --provider, skills/ — and the default theme
+ * paints all of it in the brand accent. That makes a paragraph look like a
+ * paragraph of links and destroys the one signal a reader actually needs from
+ * color here. Code inside a link keeps --vp-code-link-color, so a real link
+ * still announces itself.
+ */
+.vp-doc :not(pre, a) > code {
+  color: var(--apc-text-1);
+}
+
+.vp-doc :not(pre) > code {
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-sm);
+  padding: 2px 5px;
+  font-family: var(--apc-font-mono);
+  background: var(--apc-bg-soft);
+}
+
+/* Code inside a heading inherits the heading's size, so it must not re-border. */
+.vp-doc h1 > code,
+.vp-doc h2 > code,
+.vp-doc h3 > code,
+.vp-doc h4 > code,
+.vp-doc h5 > code,
+.vp-doc h6 > code {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+/* ------------------------------------------------------------ Code blocks */
+
+/*
+ * A hairline and a radius, no shadow: the well is one step off the page ground
+ * already, and the direction rules out elevation as a structural device.
+ */
+.vp-doc div[class*="language-"] {
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+}
+
+/*
+ * Below 640px the default theme bleeds code blocks into the container's own
+ * 24px gutters so long lines get the full viewport. That stays; only the
+ * side borders go, because they would sit off-screen.
+ */
+@media (max-width: 639px) {
+  .vp-doc div[class*="language-"] {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+}
+
+.vp-doc div[class*="language-"] pre {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.vp-doc div[class*="language-"] > span.lang {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-medium);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+}
+
+.vp-doc div[class*="language-"] > button.copy {
+  border-radius: var(--apc-radius-sm);
+}
+
+/*
+ * A code group is one object: the tab strip carries the top half of the
+ * border and the panel below carries the bottom half, so the two do not draw
+ * a doubled line where they meet. The default theme pins the panel's top
+ * corners square with !important, which is what makes that work.
+ */
+.vp-code-group .tabs {
+  border: 1px solid var(--apc-border);
+  border-bottom: 0;
+  border-radius: var(--apc-radius-md) var(--apc-radius-md) 0 0;
+  background: var(--apc-bg-alt);
+  box-shadow: none;
+}
+
+.vp-code-group .tabs label {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-medium);
+}
+
+.vp-code-group div[class*="language-"] {
+  border-radius: 0 0 var(--apc-radius-md) var(--apc-radius-md);
+}
+
+/* ----------------------------------------------------------------- Tables */
+
+/*
+ * reference/cli.md and reference/manifest.md carry the densest tables on the
+ * site. The default theme already makes the table its own scroll container
+ * (display: block; overflow-x: auto), which is what keeps a five-column table
+ * from widening the page at 390px. Added here: the border that makes the
+ * scrollable region visible as a region, and a header row that reads as a
+ * header at a glance.
+ *
+ * width: fit-content keeps that border tight around a two-column table instead
+ * of stretching it across the measure; max-width: 100% keeps the wide ones
+ * scrolling rather than overflowing.
+ */
+.vp-doc table {
+  display: block;
+  overflow-x: auto;
+  margin: var(--apc-space-6) 0;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  width: fit-content;
+  max-width: 100%;
+  background: var(--apc-bg);
+}
+
+.vp-doc th,
+.vp-doc td {
+  border: 0;
+  border-bottom: 1px solid var(--apc-border);
+  padding: var(--apc-space-2) var(--apc-space-4);
+  vertical-align: top;
+}
+
+/* Column rules only between columns, so the outer border stays a single line. */
+.vp-doc th + th,
+.vp-doc td + td {
+  border-left: 1px solid var(--apc-border);
+}
+
+.vp-doc th {
+  border-bottom: 1px solid var(--apc-border-heavy);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-semibold);
+  letter-spacing: var(--apc-tracking-wide);
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--apc-text-2);
+  background: var(--apc-bg-alt);
+  white-space: nowrap;
+}
+
+.vp-doc td {
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-normal);
+  color: var(--apc-text-1);
+}
+
+/*
+ * Zebra striping instead of a rule per row: a five-column row in cli.md is
+ * read across, and a tinted band tracks the eye better than a hairline.
+ */
+.vp-doc tr {
+  border: 0;
+  background: transparent;
+}
+
+.vp-doc tbody tr:nth-child(2n) {
+  background: var(--apc-bg-soft);
+}
+
+.vp-doc tbody tr:last-child > td {
+  border-bottom: 0;
+}
+
+/* ---------------------------------------------------------- Custom blocks */
+
+/*
+ * Only ::: tip appears in the docs today, but all eight variants resolve
+ * against the --vp-custom-block-* families in tokens.css, so this shapes the
+ * shared container and lets the tokens carry the color.
+ */
+/*
+ * border-color is deliberately absent: each variant sets its own from the
+ * --vp-custom-block-*-border families, and a shorthand here would flatten all
+ * eight to one color.
+ */
+.vp-doc .custom-block {
+  margin: var(--apc-space-6) 0;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-4) var(--apc-space-5);
+  line-height: var(--apc-leading-normal);
+}
+
+.vp-doc .custom-block p {
+  margin: var(--apc-space-2) 0 0;
+  line-height: var(--apc-leading-normal);
+}
+
+.vp-doc .custom-block a {
+  font-weight: var(--apc-weight-semibold);
+}
+
+/*
+ * Each variant paints its inline code in its own signal color, which puts blue
+ * chips on a blue tip and undoes the rule above about code not looking like
+ * links. Inside a block, code takes the block's own text color; a real link
+ * still keeps the variant color, because code inside an anchor is excluded.
+ */
+.vp-doc .custom-block :not(pre, a) > code {
+  color: inherit;
+}
+
+/* Declared after the paragraph rule above, which also matches this element. */
+.vp-doc .custom-block-title {
+  margin-bottom: var(--apc-space-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------- Doc footer */
+
+.VPDoc .VPDocFooter {
+  margin-top: var(--apc-space-16);
+}
+
+.VPDocFooter .edit-info {
+  gap: var(--apc-space-3);
+  padding-bottom: var(--apc-space-5);
+}
+
+/*
+ * "Edit this page" is an invitation, so it gets a button's outline rather than
+ * a link lost at the bottom of a long page.
+ */
+.VPDocFooter .edit-link-button {
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-sm);
+  padding: 0 var(--apc-space-3);
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-medium);
+  color: var(--apc-text-2);
+  transition:
+    border-color var(--apc-duration-fast) var(--apc-ease),
+    color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.VPDocFooter .edit-link-button:hover {
+  border-color: var(--apc-accent);
+  color: var(--apc-accent);
+}
+
+.VPDocFooter .VPLastUpdated {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-normal);
+  color: var(--apc-text-3);
+}
+
+.VPDocFooter .prev-next {
+  border-top: 1px solid var(--apc-border);
+  padding-top: var(--apc-space-6);
+}
+
+.VPDocFooter .pager-link {
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-3) var(--apc-space-4);
+  background: var(--apc-bg);
+  transition:
+    border-color var(--apc-duration-fast) var(--apc-ease),
+    background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.VPDocFooter .pager-link:hover {
+  border-color: var(--apc-accent-line);
+  background: var(--apc-accent-soft);
+}
+
+.VPDocFooter .pager-link .desc {
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+  color: var(--apc-text-3);
+}
+
+.VPDocFooter .pager-link .title {
+  margin-top: var(--apc-space-1);
+  font-size: var(--apc-text-base);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  color: var(--apc-accent);
+}
+
+/* ------------------------------------------------------------ Small print */
+
+@media (max-width: 639px) {
+  .apc-doc-context {
+    margin-bottom: var(--apc-space-4);
+    white-space: nowrap;
+  }
+
+  .vp-doc h2 {
+    margin-top: var(--apc-space-10);
+    padding-top: var(--apc-space-5);
+  }
+
+  .vp-doc th,
+  .vp-doc td {
+    padding: var(--apc-space-2) var(--apc-space-3);
+  }
+}

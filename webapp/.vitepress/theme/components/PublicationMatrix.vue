@@ -2,7 +2,8 @@
   <figure
     class="apc-matrix"
     role="img"
-    aria-labelledby="publication-matrix-title publication-matrix-description"
+    aria-labelledby="publication-matrix-title"
+    aria-describedby="publication-matrix-description"
   >
     <figcaption id="publication-matrix-title" class="apc-sr-only">
       What visibility and lifecycle status compile to

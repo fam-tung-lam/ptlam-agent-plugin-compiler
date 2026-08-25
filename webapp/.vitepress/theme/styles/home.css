@@ -1,0 +1,966 @@
+/*
+ * Landing page: the hero, the install command, and the six sections below it.
+ *
+ * Owner: landing worker. Consumes the tokens in tokens.css and declares none
+ * of its own, apart from the two layout variables on .VPHome below. Motion is
+ * neutralised globally in base.css, so nothing here repeats the
+ * prefers-reduced-motion block.
+ *
+ * The .VPHero rules restyle the default theme's hero in place. They carry the
+ * extra `.VPHome` qualifier because VitePress ships those declarations as
+ * scoped CSS, which adds a `[data-v-*]` attribute to every selector; without
+ * the qualifier the two rules tie and injection order decides the winner.
+ */
+
+.VPHome {
+  /*
+   * Derived, not in the spec: the spacing scale stops at 5rem, and sections
+   * have to line up with the hero. 72rem is VPHero's own container width and
+   * the gutters are its own 24 / 48 / 64px paddings, expressed as tokens.
+   */
+  --apc-home-measure: 72rem;
+  --apc-home-gutter: var(--apc-space-6);
+}
+
+@media (min-width: 640px) {
+  .VPHome {
+    --apc-home-gutter: var(--apc-space-12);
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHome {
+    --apc-home-gutter: var(--apc-space-16);
+  }
+}
+
+/* ---------------------------------------------------------------- Hero -- */
+
+/*
+ * The hero figure's halo is deliberately wider than the figure (inset -9%), so
+ * it reaches past the viewport on a narrow screen and would otherwise add a
+ * horizontal scrollbar. `clip` rather than `hidden`: it clips without creating
+ * a scroll container, so it cannot break a sticky descendant.
+ */
+.VPHome {
+  overflow-x: clip;
+}
+
+/*
+ * The default hero centres its text whenever an image slot is filled. A code
+ * block cannot be centred, so the whole column is left-aligned instead.
+ */
+.VPHome .VPHero.has-image .container {
+  text-align: left;
+}
+
+.VPHome .VPHero.has-image .name,
+.VPHome .VPHero.has-image .text,
+.VPHome .VPHero.has-image .tagline {
+  margin-inline: 0;
+  max-width: 100%;
+}
+
+.VPHome .VPHero .heading .text {
+  font-size: var(--apc-text-4xl);
+  font-weight: var(--apc-weight-bold);
+  line-height: var(--apc-leading-tight);
+  letter-spacing: var(--apc-tracking-tight);
+}
+
+.VPHome .VPHero .tagline {
+  padding-top: var(--apc-space-5);
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-lg);
+  font-weight: var(--apc-weight-normal);
+  line-height: var(--apc-leading-normal);
+}
+
+.VPHome .VPHero .actions {
+  padding-top: var(--apc-space-8);
+}
+
+.VPHome .VPHero.has-image .actions {
+  justify-content: flex-start;
+}
+
+/*
+ * Below 960px the default hero puts the image above the headline and pulls it
+ * up under the navbar, so the first fold is decoration. Order 3 moves it below
+ * the headline, tagline, actions, and install command.
+ */
+@media (max-width: 959px) {
+  .VPHome .VPHero .image {
+    order: 3;
+    margin: var(--apc-space-10) 0 0;
+  }
+}
+
+/* The hero visual is a card, not a 320px square with a radial glow behind it. */
+.VPHome .VPHero .image-container {
+  width: 100%;
+  height: auto;
+  transform: none;
+}
+
+@media (min-width: 960px) {
+  .VPHome .VPHero .image-container {
+    height: 100%;
+  }
+}
+
+.VPHome .VPHero .image-bg {
+  display: none;
+}
+
+/* ---------------------------------------------------- Section scaffold -- */
+
+.apc-section {
+  padding: var(--apc-space-16) var(--apc-home-gutter);
+}
+
+.apc-section--soft {
+  border-block: 1px solid var(--apc-border);
+  background-color: var(--apc-bg-alt);
+}
+
+.apc-section__inner {
+  margin: 0 auto;
+  max-width: var(--apc-home-measure);
+}
+
+.apc-section__head {
+  display: grid;
+  gap: var(--apc-space-3);
+  margin-bottom: var(--apc-space-10);
+  max-width: 46rem;
+}
+
+.apc-eyebrow {
+  color: var(--apc-text-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+}
+
+.apc-section__title {
+  margin: 0;
+  color: var(--apc-text-1);
+  font-size: var(--apc-text-3xl);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-tight);
+  letter-spacing: var(--apc-tracking-tight);
+}
+
+.apc-section__lede {
+  margin: 0;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-lg);
+  line-height: var(--apc-leading-normal);
+}
+
+.apc-section__footnote {
+  margin: var(--apc-space-8) 0 0;
+  max-width: 46rem;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-normal);
+}
+
+.apc-section p code {
+  border-radius: var(--apc-radius-sm);
+  padding: 0 var(--apc-space-1);
+  background-color: var(--apc-overlay-subtle);
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-sm);
+}
+
+.apc-section p a {
+  color: var(--apc-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  transition: color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.apc-section p a:hover {
+  color: var(--apc-accent-deep);
+}
+
+/* -------------------------------------------------- Shared primitives -- */
+
+.apc-chip {
+  display: inline-flex;
+  gap: var(--apc-space-2);
+  align-items: center;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-full);
+  padding: var(--apc-space-1) var(--apc-space-3);
+  background-color: var(--apc-bg-soft);
+  color: var(--apc-text-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-chip__dot {
+  flex: none;
+  border-radius: var(--apc-radius-full);
+  width: var(--apc-space-2);
+  height: var(--apc-space-2);
+  background-color: currentcolor;
+}
+
+/*
+ * Semantic chips keep --apc-text-1 for the label and carry their meaning in
+ * the dot and the border. --apc-ok on --apc-ok-soft measures 4.36:1, under the
+ * 4.5:1 floor these 11px labels need.
+ */
+.apc-chip--warn {
+  border-color: var(--apc-warn-line);
+  background-color: var(--apc-warn-soft);
+  color: var(--apc-text-1);
+}
+
+.apc-chip--warn .apc-chip__dot {
+  background-color: var(--apc-warn);
+}
+
+.apc-chip--accent {
+  border-color: var(--apc-accent-line);
+  background-color: var(--apc-accent-soft);
+  color: var(--apc-text-1);
+}
+
+/*
+ * Soft-wraps rather than scrolling. The longest quoted line is an 78-column
+ * YAML value, and a reader who has to drag a code block sideways to reach the
+ * end of the sentence has not been shown the argument. The highlight on a
+ * wrapped fact is cloned across the break, so a continuation still reads as
+ * part of the same value. overflow-x stays as the net for an unbreakable path.
+ */
+.apc-code {
+  overflow-x: auto;
+  margin: 0;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-4);
+  background-color: var(--apc-bg-soft);
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-relaxed);
+  white-space: pre-wrap;
+  tab-size: 2;
+}
+
+@media (min-width: 640px) {
+  .apc-code {
+    font-size: var(--apc-text-sm);
+  }
+}
+
+.apc-code__dim {
+  color: var(--apc-text-3);
+}
+
+/* A fact the reader is meant to find, marked amber inside a code sample. */
+.apc-fact {
+  border-radius: var(--apc-radius-sm);
+  padding: 0 var(--apc-space-1);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/*
+ * The mark is a border, not a box-shadow: forced-colors mode drops box-shadow
+ * and overrides background-color, which erased the highlight entirely.
+ */
+.apc-fact--loose {
+  border-bottom: 1px dashed var(--apc-warn);
+  background-color: var(--apc-warn-soft);
+}
+
+/* --------------------------------------------------------- Hero visual -- */
+
+/*
+ * The compiler-flow diagram. It no longer carries its own palette: the site
+ * tokens are now derived from the same mark, so the figure inherits the exact
+ * violet and teal it used to hard-code.
+ *
+ * Type sizes are the one thing not carried over from the original, which set
+ * its labels at 6-8px. Every size below the 11px floor was raised and the
+ * panel widened to hold them at the same proportions.
+ */
+.apc-compiler-flow {
+  position: relative;
+  margin: 0 auto;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-xl);
+  padding: 0;
+  width: 100%;
+  max-width: 33rem;
+  color: var(--apc-text-1);
+  background:
+    linear-gradient(var(--apc-overlay-accent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--apc-overlay-accent) 1px, transparent 1px),
+    var(--apc-bg-raised);
+  background-size: 20px 20px;
+  box-shadow: var(--apc-shadow-lg);
+}
+
+/* The soft halo the original carried behind the card. */
+.apc-compiler-flow::before {
+  position: absolute;
+  z-index: -1;
+  inset: 14% -9%;
+  border-radius: var(--apc-radius-full);
+  background: linear-gradient(90deg, var(--apc-accent), var(--apc-ok));
+  opacity: 0.16;
+  filter: blur(34px);
+  content: "";
+}
+
+.apc-compiler-flow__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--apc-space-3);
+  border-bottom: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-xl) var(--apc-radius-xl) 0 0;
+  padding: var(--apc-space-3) var(--apc-space-4);
+  color: var(--apc-accent);
+  background-color: var(--apc-bg-alt);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+  letter-spacing: var(--apc-tracking-wide);
+}
+
+.apc-compiler-flow__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--apc-space-2);
+  color: var(--apc-ok);
+}
+
+.apc-compiler-flow__status i {
+  border-radius: var(--apc-radius-full);
+  width: 6px;
+  height: 6px;
+  background-color: var(--apc-ok);
+  animation: apc-live-pulse 2s ease-out infinite;
+}
+
+.apc-compiler-flow__diagram {
+  display: grid;
+  justify-items: center;
+  padding: var(--apc-space-5) var(--apc-space-6) var(--apc-space-6);
+  min-width: 0;
+}
+
+.apc-flow-node {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apc-space-2);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-4);
+  min-width: 0;
+  color: var(--apc-text-2);
+  background-image: linear-gradient(
+    135deg,
+    var(--apc-accent-soft),
+    var(--apc-ok-soft)
+  );
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-flow-node__eyebrow {
+  color: var(--apc-accent);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+  letter-spacing: var(--apc-tracking-wide);
+}
+
+.apc-flow-node strong {
+  color: var(--apc-text-1);
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-flow-source,
+.apc-flow-output {
+  width: 100%;
+}
+
+.apc-flow-tree__entry {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--apc-space-1) var(--apc-space-3);
+  border-top: 1px solid var(--apc-border);
+  padding-top: var(--apc-space-2);
+}
+
+.apc-flow-tree__entry code {
+  color: var(--apc-accent);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
+}
+
+.apc-flow-tree__entry span {
+  font-size: var(--apc-text-2xs);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-flow-compiler {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--apc-space-3);
+  padding: var(--apc-space-3) var(--apc-space-4);
+}
+
+.apc-flow-compiler img {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+}
+
+.apc-flow-compiler div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--apc-space-1);
+  min-width: 0;
+}
+
+.apc-flow-compiler span {
+  color: var(--apc-ok);
+  font-size: var(--apc-text-2xs);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-flow-arrow {
+  overflow: visible;
+  width: 100%;
+  fill: none;
+  stroke: var(--apc-accent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.apc-flow-arrow--input {
+  height: 54px;
+}
+
+.apc-flow-arrow--outputs {
+  height: 82px;
+}
+
+.apc-flow-arrow > path {
+  stroke-dasharray: 5 5;
+  animation: apc-flow-dash 1.1s linear infinite;
+}
+
+.apc-flow-arrow marker path {
+  fill: var(--apc-accent);
+  stroke: none;
+}
+
+/*
+ * Inside a viewBox this length is user units, not CSS pixels. Both arrows use
+ * the default preserveAspectRatio and are never scaled below 1, so 12 here
+ * renders at 12px or larger — above the floor at every width.
+ */
+.apc-flow-arrow text {
+  fill: var(--apc-ok);
+  stroke: none;
+  font-family: var(--apc-font-mono);
+  font-size: 12px;
+  font-weight: var(--apc-weight-semibold);
+}
+
+@keyframes apc-flow-dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+@keyframes apc-live-pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ----------------------------------------------------- Install command -- */
+
+.apc-install {
+  display: grid;
+  gap: var(--apc-space-3);
+  justify-items: start;
+  margin-top: var(--apc-space-8);
+  max-width: 36rem;
+  text-align: left;
+}
+
+.apc-install__channels {
+  display: inline-flex;
+  gap: var(--apc-space-1);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-full);
+  padding: var(--apc-space-1);
+  background-color: var(--apc-bg-soft);
+}
+
+.apc-install__channel {
+  /* Transparent, not absent, so the active state can show a border without
+   * shifting either pill by a pixel. */
+  border: 1px solid transparent;
+  border-radius: var(--apc-radius-full);
+  padding: var(--apc-space-1) var(--apc-space-4);
+  background-color: transparent;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-medium);
+  cursor: pointer;
+  transition:
+    color var(--apc-duration-fast) var(--apc-ease),
+    background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.apc-install__channel:hover {
+  background-color: var(--apc-overlay-subtle);
+  color: var(--apc-text-1);
+}
+
+/*
+ * The fill alone separates active from inactive by 1.10:1, under the 3:1 that
+ * WCAG 1.4.11 asks of a state indicator, and both the fill and the shadow are
+ * lost in forced-colors mode. The border and the heavier label survive both.
+ */
+.apc-install__channel--active,
+.apc-install__channel--active:hover {
+  border-color: var(--apc-border-heavy);
+  background-color: var(--apc-bg-raised);
+  color: var(--apc-text-1);
+  font-weight: var(--apc-weight-semibold);
+  box-shadow: var(--apc-shadow-sm);
+}
+
+.apc-install__command {
+  display: flex;
+  gap: var(--apc-space-3);
+  align-items: flex-start;
+  width: 100%;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-3) var(--apc-space-3) var(--apc-space-3)
+    var(--apc-space-4);
+  background-color: var(--apc-bg-soft);
+}
+
+.apc-install__prompt {
+  flex: none;
+  color: var(--apc-text-3);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-normal);
+  user-select: none;
+}
+
+/*
+ * The command wraps between arguments and never inside one. Left to normal
+ * wrapping the browser breaks after a hyphen, which turns the package name
+ * into `@fam-tung-` / `lam/...` and reads as a typo. Each argument sits in a
+ * `white-space: pre` span, so only the real spaces between them are wrap
+ * opportunities; those spaces stay in the DOM, which keeps a manual
+ * select-and-copy identical to what the button writes.
+ */
+.apc-install__text {
+  flex: 1 1 auto;
+  overflow-x: auto;
+  min-width: 0;
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-normal);
+  white-space: normal;
+}
+
+.apc-install__word {
+  white-space: pre;
+}
+
+.apc-install__copy {
+  display: inline-flex;
+  flex: none;
+  gap: var(--apc-space-2);
+  align-items: center;
+  border: 1px solid var(--apc-border-heavy);
+  border-radius: var(--apc-radius-sm);
+  padding: var(--apc-space-2) var(--apc-space-3);
+  background-color: var(--apc-bg-raised);
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-medium);
+  cursor: pointer;
+  transition:
+    color var(--apc-duration-fast) var(--apc-ease),
+    border-color var(--apc-duration-fast) var(--apc-ease),
+    background-color var(--apc-duration-fast) var(--apc-ease);
+}
+
+.apc-install__copy:hover {
+  border-color: var(--apc-accent);
+  color: var(--apc-text-1);
+}
+
+.apc-install__copy[data-state="copied"] {
+  border-color: var(--apc-ok);
+  background-color: var(--apc-ok-soft);
+  color: var(--apc-text-1);
+}
+
+.apc-install__copy[data-state="copied"] .apc-install__icon {
+  stroke: var(--apc-ok);
+}
+
+.apc-install__copy[data-state="failed"] {
+  border-color: var(--apc-danger);
+  background-color: var(--apc-danger-soft);
+  color: var(--apc-text-1);
+}
+
+.apc-install__copy[data-state="failed"] .apc-install__icon {
+  stroke: var(--apc-danger);
+}
+
+.apc-install__icon {
+  flex: none;
+  fill: none;
+  width: var(--apc-space-4);
+  height: var(--apc-space-4);
+  stroke: currentcolor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.apc-install__note {
+  margin: 0;
+  color: var(--apc-text-3);
+  font-size: var(--apc-text-sm);
+  line-height: var(--apc-leading-snug);
+}
+
+@media (max-width: 559px) {
+  .apc-install__command {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--apc-space-2);
+    padding: var(--apc-space-3);
+  }
+
+  .apc-install__text {
+    font-size: var(--apc-text-xs);
+  }
+
+  .apc-install__copy {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* ------------------------------------------------------------ Pipeline -- */
+
+.apc-pipeline,
+.apc-hosts,
+.apc-commands,
+.apc-next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--apc-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .apc-pipeline,
+  .apc-hosts,
+  .apc-commands,
+  .apc-next {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .apc-commands,
+  .apc-next {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  /* Six stages and five hosts both land evenly on three columns. */
+  .apc-pipeline,
+  .apc-hosts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.apc-pipeline__step,
+.apc-host,
+.apc-command {
+  display: grid;
+  gap: var(--apc-space-3);
+  align-content: start;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-5);
+  background-color: var(--apc-bg-soft);
+}
+
+.apc-pipeline__marker {
+  display: flex;
+  gap: var(--apc-space-2);
+  align-items: center;
+  margin: 0;
+}
+
+.apc-pipeline__marker::after {
+  flex: 1 1 auto;
+  background-color: var(--apc-border-heavy);
+  height: 1px;
+  content: "";
+}
+
+.apc-pipeline__index {
+  color: var(--apc-accent);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  font-weight: var(--apc-weight-semibold);
+}
+
+.apc-pipeline__stage {
+  color: var(--apc-text-3);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  letter-spacing: var(--apc-tracking-wide);
+  text-transform: uppercase;
+}
+
+.apc-pipeline__title {
+  margin: 0;
+  color: var(--apc-text-1);
+  font-size: var(--apc-text-lg);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-pipeline__body,
+.apc-command__purpose {
+  margin: 0;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-normal);
+}
+
+/* --------------------------------------------------------------- Hosts -- */
+
+.apc-host__head,
+.apc-command__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--apc-space-2);
+  align-items: center;
+  margin: 0;
+}
+
+.apc-host__name {
+  color: var(--apc-text-1);
+  font-size: var(--apc-text-base);
+  font-weight: var(--apc-weight-semibold);
+}
+
+.apc-host .apc-host__id {
+  border: 1px solid var(--apc-accent-line);
+  border-radius: var(--apc-radius-full);
+  padding: 0 var(--apc-space-2);
+  background-color: var(--apc-accent-soft);
+  color: var(--apc-accent-deep);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-2xs);
+}
+
+.apc-host__manifests {
+  display: grid;
+  gap: var(--apc-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.apc-host__manifests code {
+  color: var(--apc-text-2);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-xs);
+  line-height: var(--apc-leading-snug);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------ Commands -- */
+
+.apc-command .apc-command__name {
+  padding: 0;
+  background-color: transparent;
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-lg);
+  font-weight: var(--apc-weight-semibold);
+}
+
+/* ---------------------------------------------------------------- Drift -- */
+
+.apc-verify {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--apc-space-6);
+}
+
+@media (min-width: 960px) {
+  .apc-verify {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--apc-space-8);
+    align-items: start;
+  }
+}
+
+.apc-verify__terminal {
+  display: grid;
+  gap: var(--apc-space-4);
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-lg);
+  padding: var(--apc-space-5);
+  background-color: var(--apc-bg-raised);
+  box-shadow: var(--apc-shadow-sm);
+}
+
+.apc-verify__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--apc-space-2);
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+}
+
+.apc-verify__codes {
+  display: grid;
+  gap: var(--apc-space-3);
+  align-content: start;
+}
+
+.apc-verify__caption {
+  margin: 0;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-normal);
+}
+
+.apc-exits {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--apc-space-3) var(--apc-space-4);
+  margin: var(--apc-space-4) 0 0;
+}
+
+.apc-exits dt {
+  margin: 0;
+}
+
+.apc-exits dt code {
+  display: inline-block;
+  border-radius: var(--apc-radius-sm);
+  padding: 0 var(--apc-space-2);
+  background-color: var(--apc-overlay-subtle);
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-mono);
+  font-size: var(--apc-text-sm);
+  font-weight: var(--apc-weight-semibold);
+}
+
+.apc-exits dd {
+  margin: 0;
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-snug);
+}
+
+/* ----------------------------------------------------------- Next steps -- */
+
+.apc-next .apc-next__card {
+  display: grid;
+  gap: var(--apc-space-2);
+  align-content: start;
+  height: 100%;
+  border: 1px solid var(--apc-border);
+  border-radius: var(--apc-radius-md);
+  padding: var(--apc-space-5);
+  background-color: var(--apc-bg-raised);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--apc-duration-base) var(--apc-ease),
+    background-color var(--apc-duration-base) var(--apc-ease);
+}
+
+.apc-next .apc-next__card:hover {
+  border-color: var(--apc-accent-line);
+  background-color: var(--apc-accent-soft);
+}
+
+.apc-next__title {
+  display: flex;
+  gap: var(--apc-space-2);
+  align-items: center;
+  color: var(--apc-text-1);
+  font-size: var(--apc-text-lg);
+  font-weight: var(--apc-weight-semibold);
+  line-height: var(--apc-leading-snug);
+}
+
+.apc-next__arrow {
+  flex: none;
+  fill: none;
+  width: var(--apc-space-4);
+  height: var(--apc-space-4);
+  stroke: var(--apc-accent);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--apc-duration-base) var(--apc-ease);
+}
+
+.apc-next .apc-next__card:hover .apc-next__arrow {
+  transform: translateX(var(--apc-space-1));
+}
+
+.apc-next__summary {
+  color: var(--apc-text-2);
+  font-size: var(--apc-text-base);
+  line-height: var(--apc-leading-normal);
+}
