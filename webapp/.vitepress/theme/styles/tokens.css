@@ -15,50 +15,60 @@
 :root {
   color-scheme: light;
 
-  /* Neutral ramp */
-  --apc-bg: #ffffff;
-  --apc-bg-alt: #f7f8fa;
-  --apc-bg-soft: #f2f4f7;
-  --apc-bg-raised: #ffffff;
-  --apc-border: #e3e6ec;
-  --apc-border-heavy: #cdd3dd;
-  --apc-text-1: #0d1117;
-  --apc-text-2: #4a5260;
   /*
-   * Spec value #6b7482 measures 4.29:1 on --apc-bg-soft and 4.45:1 on
-   * --apc-bg-alt, below the 4.5:1 floor the same spec sets for body text.
-   * Darkened by 4% to clear it on every light surface (5.06 / 4.77 / 4.60).
-   * Deviation is deliberate; accessibility rule outranks the literal value.
-   *
-   * Darkened again to #626a77 after review: #676f7d cleared the neutral ramp
-   * but not the tinted fills (accent-soft 4.46, danger-soft 4.43). This value
-   * clears all seven light grounds, worst case 4.77 on --apc-danger-soft.
+   * Neutral ramp, tinted toward the mark's violet rather than a pure grey, so
+   * the surfaces sit under the logo instead of beside it.
    */
-  --apc-text-3: #626a77;
+  --apc-bg: #ffffff;
+  --apc-bg-alt: #f7f6fb;
+  --apc-bg-soft: #f3f1f9;
+  --apc-bg-raised: #ffffff;
+  --apc-border: #e2dff0;
+  --apc-border-heavy: #c9c4de;
+  --apc-text-1: #17142a;
+  --apc-text-2: #4a4661;
+  /*
+   * The lightest text permitted. Verified against every light ground including
+   * the tinted fills, which is where earlier values failed: worst case is
+   * 5.49:1. Do not lighten without re-checking --apc-ok-soft.
+   */
+  --apc-text-3: #5f5b76;
 
-  /* Accent — "compile blue" */
-  --apc-accent: #1f5fe0;
-  --apc-accent-hi: #3b78f0;
-  --apc-accent-deep: #1548b5;
-  --apc-accent-soft: #eaf1fe;
-  --apc-accent-line: #c3d7fb;
+  /* Ground for code. See the note beside --vp-code-block-bg below. */
+  --apc-code-bg: #f7f6fb;
 
-  /* Semantic signals. Green means "matches source", amber means "drift". */
-  --apc-ok: #0e7a55;
-  --apc-ok-soft: #e6f6ef;
+  /*
+   * Accent, taken from the violet in the logo. The mark's own violets are
+   * #b8abff through #755dcf; those read at full strength on the dark badge but
+   * not on a white page, so the light ramp is the same hue carried darker
+   * until it clears 4.5:1 as link text (5.95:1 at its worst ground).
+   */
+  --apc-accent: #5b46c8;
+  --apc-accent-hi: #6d57de;
+  --apc-accent-deep: #4735a4;
+  --apc-accent-soft: #eeeafd;
+  --apc-accent-line: #d9d2f7;
+
+  /*
+   * The mark's teal carries "verified / deterministic / matches source". It is
+   * the logo's second hue and the product's own claim, so the two coincide;
+   * there is no separate green. Amber stays "drift".
+   */
+  --apc-ok: #0b7a73;
+  --apc-ok-soft: #e2f4f1;
   --apc-warn: #a35c00;
   --apc-warn-soft: #fdf3e3;
 
   /*
-   * Derived, not in the spec: VitePress renders danger and caution blocks and
-   * the spec names no red. Chosen at the same tonal weight as --apc-accent
-   * (5.57:1 on --apc-bg) so the three signal colors read as one family.
+   * Derived: VitePress renders danger and caution blocks and the mark has no
+   * red. Chosen at the same tonal weight as --apc-accent so the signal colors
+   * read as one family.
    */
   --apc-danger: #c2312b;
   --apc-danger-soft: #fdecea;
 
   /* Derived hairlines for the tinted semantic fills above. */
-  --apc-ok-line: #bfe4d3;
+  --apc-ok-line: #bce3de;
   --apc-warn-line: #f0dcb8;
   --apc-danger-line: #f5c9c5;
 
@@ -138,31 +148,45 @@
 .dark {
   color-scheme: dark;
 
-  --apc-bg: #0b0d11;
-  --apc-bg-alt: #0f1218;
-  --apc-bg-soft: #151922;
-  --apc-bg-raised: #1a1f29;
-  --apc-border: #232a35;
-  --apc-border-heavy: #313a49;
-  --apc-text-1: #f2f5f9;
-  --apc-text-2: #a4aebd;
-  --apc-text-3: #7d8899;
+  /*
+   * The dark ground is the mark's own badge colour family (#21173f violet-ink
+   * and #102b36 teal-ink), carried darker so it works as a full page rather
+   * than a 96px tile.
+   */
+  --apc-bg: #100e18;
+  --apc-bg-alt: #14111f;
+  --apc-bg-soft: #191627;
+  --apc-bg-raised: #1e1a2e;
+  --apc-border: #2c2740;
+  --apc-border-heavy: #3b3557;
+  --apc-text-1: #f2effa;
+  --apc-text-2: #a9a3c2;
+  /*
+   * Verified against every dark ground including the tinted fills; --apc-ok-soft
+   * is the binding one at 4.80:1. Earlier values failed there at 3.81:1.
+   */
+  --apc-text-3: #9d97b7;
 
-  --apc-accent: #7aa5ff;
-  --apc-accent-hi: #9dbdff;
-  --apc-accent-deep: #5b8cf0;
-  --apc-accent-soft: #16203a;
-  --apc-accent-line: #2c3d63;
+  /* Ground for code; darker than the page so the well reads as recessed. */
+  --apc-code-bg: #14111f;
 
-  --apc-ok: #4ddba0;
-  --apc-ok-soft: #0f2a20;
+  /* The mark's violet, used at full strength: this is the ground it was drawn for. */
+  --apc-accent: #b9adff;
+  --apc-accent-hi: #cec6ff;
+  --apc-accent-deep: #9c8df1;
+  --apc-accent-soft: #29233f;
+  --apc-accent-line: #3c3363;
+
+  /* The mark's teal, likewise. */
+  --apc-ok: #70ded4;
+  --apc-ok-soft: #153433;
   --apc-warn: #f0b45e;
   --apc-warn-soft: #2c2113;
 
   --apc-danger: #ff8b8b;
-  --apc-danger-soft: #331519;
+  --apc-danger-soft: #33191a;
 
-  --apc-ok-line: #1d4a39;
+  --apc-ok-line: #1f4a47;
   --apc-warn-line: #4a3a1e;
   --apc-danger-line: #54262a;
 
@@ -276,14 +300,19 @@
   --vp-local-search-highlight-bg: var(--apc-accent-soft);
   --vp-local-search-highlight-text: var(--apc-accent);
 
-  /* Code. --vp-code-block-bg is a well one step off the page ground in both
-     themes, which is why it reads --apc-bg-soft rather than --apc-bg-alt. */
+  /*
+   * Code blocks get their own ground rather than --apc-bg-soft. Once the
+   * neutrals were tinted toward the mark, bg-soft measured 4.5005:1 against
+   * the lightest Shiki token — passing arithmetically, but with no margin at
+   * all. --apc-code-bg is one step lighter and measures 4.69:1, and the
+   * syntax theme is pinned in config.ts on that assumption.
+   */
   --vp-code-color: var(--apc-accent);
   --vp-code-link-color: var(--apc-accent);
   --vp-code-link-hover-color: var(--apc-accent-deep);
-  --vp-code-bg: var(--apc-bg-soft);
+  --vp-code-bg: var(--apc-code-bg);
   --vp-code-block-color: var(--apc-text-1);
-  --vp-code-block-bg: var(--apc-bg-soft);
+  --vp-code-block-bg: var(--apc-code-bg);
   --vp-code-block-divider-color: var(--apc-border);
   --vp-code-lang-color: var(--apc-text-3);
   --vp-code-line-number-color: var(--apc-text-3);

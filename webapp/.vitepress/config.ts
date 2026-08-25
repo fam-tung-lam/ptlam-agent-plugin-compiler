@@ -64,7 +64,7 @@ export default defineConfig({
     /*
      * Matches --apc-accent in tokens.css. The retired violet lived here.
      */
-    ["meta", { name: "theme-color", content: "#1f5fe0" }],
+    ["meta", { name: "theme-color", content: "#5b46c8" }],
     ["link", { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
     [
       "meta",
