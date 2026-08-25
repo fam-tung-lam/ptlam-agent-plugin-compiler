@@ -124,6 +124,8 @@ skills:
   - id: write-commit-message
     description: Write a concise conventional commit message.
     # disable_model_invocation: true
+    # compilation:
+    #   markdown_references: inline
     category_id: engineering
     visibility: public # Possible values: internal, public.
     status: active # Possible values: draft, active, deprecated, archived.

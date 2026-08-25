@@ -5,8 +5,9 @@ title: Agent Plugin Compiler
 hero:
   text: Author the plugin once. Compile every agent host.
   tagline: >-
-    Declare the skill graph once. The compiler validates it, then emits
-    self-contained skills and an exact manifest for every host you target.
+    Validate the skill graph once, then ship self-contained skills, a visual
+    catalog, portable hooks, and exact manifests for every supported agent host.
+    Deterministic output keeps local builds and CI aligned.
   actions:
     - theme: brand
       text: Get started

@@ -60,7 +60,8 @@ containing, in order:
    `description` is the manifest description, and an enabled schema-v2
    `disable_model_invocation` becomes `disable-model-invocation: true`. Authored
    sources must not contain frontmatter, so this metadata has exactly one owner.
-2. **Your Markdown**, unchanged.
+2. **Your Markdown**, unchanged unless its schema-v2 compilation policy inlines
+   Markdown references.
 3. **A `## Required skills` section**, one subsection per requirement, with the
    reason, the instructions, and a relative link to the nested copy. Its
    position is the marker, when the source has one, and otherwise directly after
@@ -71,6 +72,14 @@ generated skill at the same relative path, so a skill can ship templates,
 schemas, or reference documents. `plugin/skills/<skill-id>/skills/` is reserved:
 the compiler builds that directory, and an authored one is rejected.
 
+With `compilation.markdown_references: inline`, only `references/**/*.md` files
+are merged into `SKILL.md`, in relative-path order, and are not emitted
+separately. The exact `<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->` marker
+chooses their position; otherwise they are appended. Local destinations are
+rebased from each reference document to the generated skill root. Every
+non-Markdown reference and all resources outside `references/` retain their
+paths and bytes.
+
 Each required skill is copied into `skills/<skill-id>/skills/`, recursively, so
 the dependency exists once in the source and as many times in the output as
 there are published skills that need it. [Skill graph](/guide/skill-graph)
@@ -78,28 +87,41 @@ covers the rules that decide which skills become roots and what gets nested.
 
 ## The generated catalog
 
-`skills/README.md` lists every published skill with its category, description,
-visibility, lifecycle status, and replacement:
+`skills/README.md` shows the dependency graph before listing every published
+skill with its category, description, visibility, lifecycle status, and
+replacement:
 
 <!-- prettier-ignore -->
-```markdown
-## Available skills
+````markdown
+## Available Skills
+
+Arrows point from a dependent skill to the skill it requires.
+
+```mermaid
+flowchart TB
+    subgraph SkillCategory0["Engineering"]
+        SkillNode0["`inspect-repository (active/internal)`"]
+        SkillNode1["`prepare-change-plan (active/public)`"]
+    end
+    SkillNode1 --> SkillNode0
+```
 
 | Skill                 | Category    | Description                                                    | Visibility | Status | Replacement |
 | --------------------- | ----------- | -------------------------------------------------------------- | ---------- | ------ | ----------- |
 | `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | public     | Active | —           |
-```
+````
 
 A deprecated skill appears with its migration guidance in the status column, so
 the catalog is a truthful index of what the plugin currently offers.
 
-The catalog follows the table with a GitHub-renderable Mermaid dependency graph.
-It includes every published root, every transitive required skill that can be
-reached from those roots, and isolated roots that have no dependencies. Each
-arrow points from a dependent skill to the skill it requires. Node labels and
-styles distinguish public roots, internal dependencies, and deprecated skills.
-Draft, archived, and unreachable internal skills stay out of the graph because
-they are not part of the published package.
+The GitHub-renderable Mermaid graph includes every published root, every
+transitive required skill that can be reached from those roots, and isolated
+roots that have no dependencies. Each arrow points from a dependent skill to the
+skill it requires. Each multiline node label shows the skill's lifecycle status
+and visibility. Styles distinguish public, internal, and deprecated skills,
+while category subgraphs show where each skill belongs. Draft, archived, and
+unreachable internal skills stay out of the graph because they are not part of
+the published package.
 
 ## Host manifests
 

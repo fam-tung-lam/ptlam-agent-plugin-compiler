@@ -16,12 +16,34 @@
 [Reference](https://agent-plugin-compiler.phamtunglam.com/reference/)
 
 Markdown-based agent skills have no build step. Agent Plugin Compiler adds one:
-declare your skills and their dependencies in a single manifest, and compile
-self-contained public skills plus the plugin manifests for Claude, Codex,
-Copilot, Gemini, and Kimi.
+declare your skills, dependencies, lifecycle, and portable hooks in a single
+manifest, then compile self-contained public skills, a visual catalog, and the
+plugin manifests for Claude, Codex, Copilot, Gemini, and Kimi.
 
 Full docs at
 [agent-plugin-compiler.phamtunglam.com](https://agent-plugin-compiler.phamtunglam.com).
+
+## What you get
+
+- **A validated skill graph.** Missing, duplicate, self-referencing, circular,
+  and invalid lifecycle dependencies fail before generated files change.
+- **Complete installable skills.** Every public root recursively carries its
+  required skills, generated dependency instructions, frontmatter, and
+  supporting files.
+- **A reviewable catalog.** `skills/README.md` combines an installable-skill
+  table with a Mermaid dependency graph grouped by category and labelled with
+  lifecycle status and visibility.
+- **Publication and invocation controls.** Visibility and lifecycle metadata
+  decide what ships, while invocation metadata can keep supported-host workflows
+  explicit-only.
+- **Portable hooks.** One ordered handler tree maps 19 universal events to each
+  selected host where equivalent native semantics exist.
+- **Five built-in hosts and an extension seam.** Generate Claude, Codex, GitHub
+  Copilot CLI, Gemini CLI, and Kimi Code CLI output, or register a custom
+  provider adapter through the Node.js API.
+- **Deterministic, bounded output.** Exact ownership, drift detection, atomic
+  managed-path writes, and post-write verification make committed output safe to
+  review and straightforward to enforce in CI.
 
 ## The problem
 
@@ -97,7 +119,7 @@ flowchart TD
 
     subgraph Generated["The compiler owns"]
         SharedSkills["skills/**"]
-        SharedHooks["hooks/handlers/**"]
+        SharedHooks["hooks/handlers/** (when needed)"]
         ClaudePlugin[".claude-plugin/**"]
         CodexPlugin[".codex-plugin/plugin.json"]
         CopilotPlugin["plugin.json"]
@@ -181,14 +203,17 @@ instruction files.
 
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
-source and compile again. The compiler owns the root `skills/` tree. Schema v2
-also owns the shared hook-handler tree and provider hook-config paths so
-removing a hook cleans stale output; schema v1 retains its original hook-free
-ownership. Every other path stays outside the write plan. Compilation is
-deterministic, so the same source always produces the same bytes and `check` can
-prove that committed output is current.
+source and compile again. The compiler always owns the root `skills/` tree.
+Built-in provider adapters retain stable exact-file ownership for files that
+carry native hook configuration, so removing a hook cleans stale native output.
+The compiler owns the shared `hooks/handlers/**` tree only while at least one
+selected provider supports an authored event; when no effective hooks remain, an
+existing shared handler tree becomes unowned rather than being deleted. Every
+other path stays outside the write plan. Compilation is deterministic, so the
+same source always produces the same bytes and `check` can prove that committed
+output is current.
 
-Schema v2 also lets an author mark a workflow as manual-only:
+Invocation controls also let an author mark a workflow as manual-only:
 
 ```yaml
 skills:
@@ -205,6 +230,24 @@ The compiler emits `disable-model-invocation: true` in the generated skill
 frontmatter. Claude Code, GitHub Copilot CLI, and Kimi Code CLI currently honor
 the restriction. Codex and Gemini CLI accept the skill but ignore this field, so
 they may still select it automatically.
+
+Schema v2 also lets a skill merge its authored Markdown references into the
+generated `SKILL.md`:
+
+```yaml
+skills:
+  - id: deploy
+    compilation:
+      markdown_references: inline
+```
+
+Only Markdown files below `plugin/skills/deploy/references/` are merged, in
+relative-path order. Put `<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->` in the
+authored `SKILL.md` to choose their position; without it, the compiler appends
+them. Local links are rebased to the generated root. Other resources, including
+non-Markdown files below `references/`, keep their relative paths and bytes.
+Omitting `compilation` or selecting `preserve` retains the existing generated
+bytes and tree.
 
 ## Dependency instructions are generated
 
@@ -292,10 +335,11 @@ skills/
 Either way, installing `skill-a` alone gets everything it needs.
 `skills/README.md` is the generated catalog of published skills. Its Mermaid
 dependency graph includes every published root and reachable required skill;
-arrows point from each dependent skill to its requirement, and labels and styles
-distinguish public, internal, and deprecated skills. `status` controls
-publication over time: `active` and `deprecated` skills are published as root
-skills, while `draft` and `archived` ones are not.
+each skill appears in its category subgraph, arrows point from each dependent
+skill to its requirement, and each multiline label shows the skill's status and
+visibility. Styles also distinguish public, internal, and deprecated skills.
+`status` controls publication over time: `active` and `deprecated` skills are
+published as root skills, while `draft` and `archived` ones are not.
 
 ## Install
 
@@ -385,7 +429,7 @@ Every flag, precedence rule, and exit code →
 | `gemini`  | Gemini CLI extension | `gemini-extension.json`                                         |
 | `kimi`    | Kimi Code CLI plugin | `kimi.plugin.json`                                              |
 
-Schema v2 accepts the 19 universal hook events documented in the
+The portable hook contract accepts the 19 universal events documented in the
 [manifest reference](https://agent-plugin-compiler.phamtunglam.com/reference/manifest#hook).
 Each built-in adapter declares the events for which its host has an equivalent.
 Custom adapters expose `supportedHookEvents`; omitted events produce structured,

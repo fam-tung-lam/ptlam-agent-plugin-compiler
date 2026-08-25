@@ -33,7 +33,20 @@ function requirement(skillId: string) {
 }
 
 function makeGraphPlugin() {
-  const manifest = makeManifest();
+  const manifest = makeManifest({
+    categories: [
+      {
+        id: "engineering",
+        name: "Engineering",
+        description: "Engineering skills.",
+      },
+      {
+        id: "foundations",
+        name: "Foundations",
+        description: "Foundational skills.",
+      },
+    ],
+  });
   return createPlugin({
     ...manifest,
     categories: manifest.categories,
@@ -43,12 +56,14 @@ function makeGraphPlugin() {
       withSource(
         makeSkill({
           id: "shared-skill",
+          category_id: "foundations",
           visibility: SkillVisibility.Internal,
         }),
       ),
       withSource(
         makeSkill({
           id: "middle-skill",
+          category_id: "foundations",
           visibility: SkillVisibility.Internal,
           required_skills: [requirement("shared-skill")],
         }),
@@ -95,45 +110,74 @@ function makeGraphPlugin() {
 }
 
 describe("renderSkillsCatalog", () => {
-  it("renders the complete published dependency graph in manifest order", () => {
+  it("renders the categorized dependency graph before the skills table", () => {
     // GIVEN: Published roots have direct, transitive, shared, isolated, and deprecated graph shapes.
     const plugin = makeGraphPlugin();
     const publishedSkills = selectPublishedSkills(plugin.skills);
 
     // WHEN: The validated model is rendered as a skills catalog.
     const catalog = renderSkillsCatalog(plugin, publishedSkills);
-    const graph = catalog.slice(catalog.indexOf("## Skill dependency graph"));
+    const graphStart = catalog.indexOf(
+      "Arrows point from a dependent skill to the skill it requires.",
+    );
+    const tableStart = catalog.indexOf("| Skill");
+    const graph = catalog.slice(graphStart, tableStart);
 
-    // THEN: Every publishable reachable node and unique edge appears in deterministic order.
+    // THEN: One heading introduces the graph, followed directly by the table.
+    assert.equal(catalog.startsWith("## Available Skills\n\n"), true);
+    assert.doesNotMatch(catalog, /## Skill dependency graph/u);
     assert.equal(
       graph,
-      `## Skill dependency graph
-
-Arrows point from a dependent skill to the skill it requires.
+      `Arrows point from a dependent skill to the skill it requires.
 
 \`\`\`mermaid
-flowchart LR
-  skill_0["shared-skill [internal dependency]"]
-  skill_1["middle-skill [internal dependency]"]
-  skill_2["public-skill [public root]"]
-  skill_3["old-skill [public root, deprecated]"]
-  skill_4["isolated-skill [public root]"]
-  skill_1 --> skill_0
-  skill_2 --> skill_1
-  skill_2 --> skill_0
-  skill_3 --> skill_0
-  classDef publicRoot fill:#dbeafe,stroke:#1d4ed8,color:#172554
-  classDef internalDependency fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
-  classDef deprecated fill:#fef3c7,stroke:#b45309,color:#78350f
-  class skill_0 internalDependency
-  class skill_1 internalDependency
-  class skill_2 publicRoot
-  class skill_3 publicRoot
-  class skill_3 deprecated
-  class skill_4 publicRoot
+---
+config:
+  htmlLabels: false
+---
+flowchart TB
+    subgraph SkillCategory0["Engineering"]
+        SkillNode2["\`
+            public-skill
+            (active/public)
+        \`"]
+        SkillNode3["\`
+            old-skill
+            (deprecated/public)
+        \`"]
+        SkillNode4["\`
+            isolated-skill
+            (active/public)
+        \`"]
+    end
+    subgraph SkillCategory1["Foundations"]
+        SkillNode0["\`
+            shared-skill
+            (active/internal)
+        \`"]
+        SkillNode1["\`
+            middle-skill
+            (active/internal)
+        \`"]
+    end
+    SkillNode1 --> SkillNode0
+    SkillNode2 --> SkillNode1
+    SkillNode2 --> SkillNode0
+    SkillNode3 --> SkillNode0
+    classDef publicSkill fill:#dbeafe,stroke:#1d4ed8,color:#172554
+    classDef internalSkill fill:#f3f4f6,stroke:#4b5563,color:#111827,stroke-dasharray:5 5
+    classDef deprecatedSkill fill:#fef3c7,stroke:#b45309,color:#78350f
+    class SkillNode0 internalSkill
+    class SkillNode1 internalSkill
+    class SkillNode2 publicSkill
+    class SkillNode3 publicSkill
+    class SkillNode3 deprecatedSkill
+    class SkillNode4 publicSkill
 \`\`\`
+
 `,
     );
+    assert.ok(graphStart < tableStart);
     assert.doesNotMatch(
       catalog,
       /draft-skill|archived-skill|unreachable-skill/u,
@@ -148,12 +192,13 @@ flowchart LR
     const catalog = renderSkillsCatalog(plugin, []);
 
     // THEN: The existing table remains and the graph does not emit an empty Mermaid block.
-    assert.match(catalog, /## Available skills/u);
+    assert.match(catalog, /^## Available Skills/u);
     assert.match(catalog, /\| Skill\s+\| Category\s+\| Description/u);
     assert.match(
       catalog,
-      /## Skill dependency graph\n\nNo skills are currently published\.\n$/u,
+      /^## Available Skills\n\nNo skills are currently published\.\n\n\| Skill/u,
     );
+    assert.doesNotMatch(catalog, /## Skill dependency graph/u);
     assert.doesNotMatch(catalog, /```mermaid/u);
   });
 
@@ -185,7 +230,7 @@ flowchart LR
     // THEN: A stable generated node ID carries an entity-escaped display label.
     assert.match(
       catalog,
-      /skill_0\["unsafe&quot;&amp;&lt;&gt; \[public root\]"\]/u,
+      /SkillNode0\["`\s+unsafe&quot;&amp;&lt;&gt;\s+\(active\/public\)\s+`"\]/u,
     );
     assert.doesNotMatch(catalog, /unsafe"&<> \[public root\]/u);
   });

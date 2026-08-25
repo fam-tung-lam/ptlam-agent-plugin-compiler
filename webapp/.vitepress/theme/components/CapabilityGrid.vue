@@ -14,53 +14,73 @@ type PipelineStep = {
 
 /*
  * The body is segmented data rather than template prose so that a step's text
- * cannot drift from its title. The previous version looped over this array and
+ * cannot drift from its title. An earlier version looped over this array and
  * then re-branched on `index` inside the loop, so renumbering a step, or
- * adding a fifth, silently rendered one step's prose under another's heading.
+ * adding one, silently rendered one step's prose under another's heading.
  */
 const steps: readonly PipelineStep[] = [
   {
     index: "01",
-    stage: "source",
-    title: "Author the complete plugin",
+    stage: "model",
+    title: "Declare the graph and lifecycle",
     body: [
-      { text: "Keep metadata and dependencies in " },
+      {
+        text: "Give dependencies, visibility, status, migration guidance, and manual-only invocation one source of truth in ",
+      },
       { code: true, text: "plugin/plugin.yml" },
-      { text: ", with every authored skill under " },
-      { code: true, text: "plugin/skills/**" },
       { text: "." },
     ],
   },
   {
     index: "02",
     stage: "validate",
-    title: "Prove the skill graph",
+    title: "Catch stale contracts before output",
     body: [
       {
-        text: "Validate schema, Markdown links, lifecycle rules, and recursive skill dependencies before any generated path changes.",
+        text: "Validate schema, source layout, Markdown links, lifecycle rules, and recursive dependencies before any generated path changes.",
       },
     ],
   },
   {
     index: "03",
-    stage: "compile",
-    title: "Build self-contained skills",
+    stage: "package",
+    title: "Ship complete installable skills",
     body: [
       {
-        text: "Compile each public root with the required skills it needs, then reconcile the compiler-owned ",
+        text: "Compile each public root with generated frontmatter, dependency instructions, supporting files, and every required skill nested recursively.",
       },
-      { code: true, text: "skills/**" },
-      { text: " tree atomically." },
     ],
   },
   {
     index: "04",
-    stage: "providers",
-    title: "Emit exact host contracts",
+    stage: "catalog",
+    title: "Review the published graph",
     body: [
       {
-        text: "Project the same validated model into each selected provider’s exact manifest format.",
+        text: "Generate an installable-skill table and Mermaid dependency graph, grouped by category and labelled with lifecycle status and visibility.",
       },
+    ],
+  },
+  {
+    index: "05",
+    stage: "translate",
+    title: "Target five hosts from one source",
+    body: [
+      {
+        text: "Emit exact manifests and translate portable hooks only where Claude, Codex, Copilot, Gemini, or Kimi exposes equivalent native events.",
+      },
+    ],
+  },
+  {
+    index: "06",
+    stage: "verify",
+    title: "Make generated state a build gate",
+    body: [
+      {
+        text: "Write bounded output with atomic file and tree operations, verify it from disk, and use read-only ",
+      },
+      { code: true, text: "check" },
+      { text: " to fail CI on deterministic drift." },
     ],
   },
 ];
@@ -70,13 +90,13 @@ const steps: readonly PipelineStep[] = [
   <section class="apc-section" aria-labelledby="apc-pipeline-title">
     <div class="apc-section__inner">
       <header class="apc-section__head">
-        <span class="apc-eyebrow">Compiler pipeline</span>
+        <span class="apc-eyebrow">What the compiler gives you</span>
         <h2 id="apc-pipeline-title" class="apc-section__title">
-          One authored tree. Verified output.
+          From a skill graph to a release-ready plugin.
         </h2>
         <p class="apc-section__lede">
-          Every compile walks the same four stages in the same order, and stops
-          at the first one that cannot prove its result.
+          Every compile walks these stages in order, and stops at the first one
+          that cannot prove its result.
         </p>
       </header>
 

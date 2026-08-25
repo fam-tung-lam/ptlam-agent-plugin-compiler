@@ -54,7 +54,7 @@ export default defineConfig({
   lang: "en-US",
   title: "Agent Plugin Compiler",
   description:
-    "Compile one authored agent plugin into deterministic provider-specific output.",
+    "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
   base: "/",
   cleanUrls: true,
   sitemap: {
@@ -70,7 +70,8 @@ export default defineConfig({
       "meta",
       {
         name: "keywords",
-        content: "agent plugin compiler, Claude, Codex, Copilot, Gemini, Kimi",
+        content:
+          "agent plugin compiler, agent skills, skill dependency graph, portable hooks, Claude, Codex, Copilot, Gemini, Kimi",
       },
     ],
     ["meta", { property: "og:type", content: "website" }],
@@ -81,7 +82,7 @@ export default defineConfig({
       {
         property: "og:description",
         content:
-          "Compile one authored agent plugin into deterministic provider-specific output.",
+          "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
       },
     ],
     ["meta", { property: "og:image", content: `${productionUrl}/og.png` }],
@@ -92,7 +93,7 @@ export default defineConfig({
       {
         name: "twitter:description",
         content:
-          "Compile one authored agent plugin into deterministic provider-specific output.",
+          "Validate skill graphs and compile self-contained skills, visual catalogs, portable hooks, and exact host manifests.",
       },
     ],
     ["meta", { name: "twitter:image", content: `${productionUrl}/og.png` }],

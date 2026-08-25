@@ -680,12 +680,13 @@
 }
 
 @media (min-width: 1024px) {
-  .apc-pipeline,
   .apc-commands,
   .apc-next {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  /* Six stages and five hosts both land evenly on three columns. */
+  .apc-pipeline,
   .apc-hosts {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

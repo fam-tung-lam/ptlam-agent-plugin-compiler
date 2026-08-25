@@ -137,6 +137,14 @@
         "instructions": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
+    "skillCompilation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["markdown_references"],
+      "properties": {
+        "markdown_references": { "enum": ["preserve", "inline"] }
+      }
+    },
     "replacement": {
       "type": "object",
       "additionalProperties": false,
@@ -174,6 +182,7 @@
         "category_id": { "$ref": "#/$defs/identifier" },
         "visibility": { "enum": ["internal", "public"] },
         "status": { "enum": ["draft", "active", "deprecated", "archived"] },
+        "compilation": { "$ref": "#/$defs/skillCompilation" },
         "required_skills": {
           "type": "array",
           "items": { "$ref": "#/$defs/skillRequirement" }

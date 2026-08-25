@@ -40,7 +40,8 @@ const hosts: readonly Host[] = [
         <p class="apc-section__lede">
           Select any combination in <code>plugin/plugin.yml</code>, or override
           the selection for a single run. Each adapter declares the exact
-          manifest files it owns.
+          manifest files it owns, and receives portable hooks only where the
+          host exposes an equivalent native event.
         </p>
       </header>
 

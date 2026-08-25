@@ -156,9 +156,9 @@ sequenceDiagram
   `plugin.json`, `gemini-extension.json`, `kimi.plugin.json`, and their native
   hook configurations.
 - `src/schemas/v1/plugin-manifest.schema.json` is the frozen skill-only
-  contract; `src/schemas/v2/plugin-manifest.schema.json` adds portable hooks.
-  Both are versioned data resources, not code modules, and the build copies them
-  to matching paths under `dist/`.
+  contract; `src/schemas/v2/plugin-manifest.schema.json` adds portable hooks and
+  skill compilation policies. Both are versioned data resources, not code
+  modules, and the build copies them to matching paths under `dist/`.
 - Root `README.md`, `LICENSE`, and every unowned path remain human-owned.
 - Cross-module TypeScript imports target the module's `index.js`.
 - Code outside `compiler/` imports only `compiler/index.js`, never a private
@@ -341,18 +341,21 @@ flowchart LR
 
 ## Portable hook seam
 
-Manifest v2 exposes the standard session, prompt, tool, permission, subagent,
-context, lifecycle, and file events as keys whose values are ordered lists of
-authored `.mjs` handlers below `plugin/hooks/`. Handler-adjacent files are
-internal resources, so policy data can be shared without becoming a public
-manifest concept.
+The portable hook contract exposes the standard session, prompt, tool,
+permission, subagent, context, lifecycle, and file events as keys whose values
+are ordered lists of authored `.mjs` handlers below `plugin/hooks/`.
+Handler-adjacent files are internal resources, so policy data can be shared
+without becoming a public manifest concept.
 
-For v2, the shared renderer owns `hooks/handlers/**`, copies the shared authored
-hook tree once, and adds a small dispatcher. An empty v2 hook map retains an
-empty owned root so stale resources are removed; v1 claims no hook paths.
-Provider adapters point their native command entries at that shared tree and
-translate event names, inputs, and results. Adapters use explicit mappings and
-omit events without a semantic equivalent rather than approximating them.
+The shared renderer owns `hooks/handlers/**` only when at least one selected
+provider supports an authored event. It then copies the shared authored hook
+tree once and adds a small dispatcher. With no effective hooks it contributes no
+shared fragment, so a pre-existing handler tree is unowned rather than deleted.
+Built-in provider adapters still own the stable exact files that carry native
+hook configuration, allowing stale configuration to be removed. They point
+native command entries at the shared tree and translate event names, inputs, and
+results. Adapters use explicit mappings and omit events without a semantic
+equivalent rather than approximating them.
 
 The dispatcher fails open on handler errors. It passes `provider`, the universal
 `event`, the immutable native `input`, and common prompt/response fields to the

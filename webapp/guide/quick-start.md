@@ -212,21 +212,33 @@ Read [inspect-repository](skills/inspect-repository/SKILL.md).
 2. Order the implementation and verification steps.
 ```
 
-`skills/README.md` begins with the generated table of installable skills:
+`skills/README.md` presents the dependency graph under one heading, then places
+the installable-skills table directly after the diagram:
 
 <!-- prettier-ignore -->
-```markdown
-## Available skills
+````markdown
+## Available Skills
+
+Arrows point from a dependent skill to the skill it requires.
+
+```mermaid
+flowchart TB
+    subgraph SkillCategory0["Engineering"]
+        SkillNode0["`inspect-repository (active/internal)`"]
+        SkillNode1["`prepare-change-plan (active/public)`"]
+    end
+    SkillNode1 --> SkillNode0
+```
 
 | Skill                 | Category    | Description                                                    | Visibility | Status | Replacement |
 | --------------------- | ----------- | -------------------------------------------------------------- | ---------- | ------ | ----------- |
 | `prepare-change-plan` | Engineering | Prepare an implementation plan from verified repository facts. | public     | Active | —           |
-```
+````
 
-The same file follows the table with a Mermaid graph whose arrows point from
-dependent skills to their requirements. The graph also shows internal
-dependencies that are nested into a published root rather than installed on
-their own.
+The graph groups skills by category, labels each node with lifecycle status and
+visibility, and styles public, internal, and deprecated skills differently.
+Internal dependencies appear when they are nested into a published root, even
+though users cannot install them on their own.
 
 `.claude-plugin/plugin.json` is the host manifest, projected from the same
 validated model:

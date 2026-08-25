@@ -8,6 +8,30 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-24
+
+### Added
+
+- Added the schema-v2 per-skill `compilation.markdown_references` policy to
+  inline Markdown reference resources into generated `SKILL.md` files while
+  preserving non-Markdown resources and existing output by default.
+
+## [0.2.3] - 2026-08-21
+
+### Changed
+
+- Expanded the public feature overview around generated dependency graphs,
+  recursive packaging, portable hooks, lifecycle and invocation controls,
+  provider output, and deterministic CI verification.
+
+## [0.2.2] - 2026-08-18
+
+### Changed
+
+- Grouped generated skill dependency graphs by category, laid them out from top
+  to bottom, and showed each skill's lifecycle status and visibility in its
+  label.
+
 ## [0.2.1] - 2026-08-17
 
 ### Added
@@ -210,7 +234,13 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.3.0...HEAD
+[0.3.0]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...v0.3.0
+[0.2.3]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.2...v0.2.3
+[0.2.2]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.1...v0.2.2
 [0.2.1]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.0...v0.2.1
 [0.2.0]:

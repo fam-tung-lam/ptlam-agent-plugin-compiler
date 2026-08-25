@@ -24,6 +24,19 @@ export enum SkillStatus {
 export const REQUIRED_SKILLS_MARKER =
   "<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->";
 
+/** Marker replaced with inlined Markdown references in generated documents. */
+export const MARKDOWN_REFERENCES_MARKER =
+  "<!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES -->";
+
+/** How authored Markdown reference resources are compiled. */
+export type MarkdownReferencesPolicy = "inline" | "preserve";
+
+/** Optional authored compilation choices normalized to explicit policies. */
+export interface SkillCompilationPolicy {
+  /** Treatment of Markdown resources below `references/`. */
+  readonly markdown_references: MarkdownReferencesPolicy;
+}
+
 /** One directed dependency on another skill. */
 export interface SkillRequirement {
   /** Identifier of the required skill. */
@@ -68,6 +81,8 @@ export interface SkillManifest {
   readonly status: SkillStatus;
   /** Other skills that must be available with this skill. */
   readonly required_skills: readonly SkillRequirement[];
+  /** Provider-neutral compilation choices for this skill. */
+  readonly compilation: SkillCompilationPolicy;
   /** Required guidance when the lifecycle state is deprecated. */
   readonly deprecation?: SkillDeprecation;
   /** Required guidance when the lifecycle state is archived. */
@@ -91,7 +106,10 @@ export interface SkillResource {
 }
 
 /** Mutable-input form of a validated skill and its loaded sources. */
-export interface SkillInput extends Omit<SkillManifest, "required_skills"> {
+export interface SkillInput
+  extends Omit<SkillManifest, "compilation" | "required_skills"> {
+  /** Compilation choices; omission preserves every resource as a file. */
+  readonly compilation?: SkillCompilationPolicy;
   /** Dependencies to copy into the immutable skill. */
   readonly required_skills: Iterable<SkillRequirement>;
   /** Repository-relative path of the authored `SKILL.md`. */
@@ -131,6 +149,9 @@ function createSkillResource(input: SkillResourceInput): SkillResource {
 export function createSkill(input: SkillInput): Skill {
   return Object.freeze({
     ...input,
+    compilation: Object.freeze({
+      markdown_references: input.compilation?.markdown_references ?? "preserve",
+    }),
     required_skills: Object.freeze(
       [...input.required_skills].map((requirement) =>
         Object.freeze({ ...requirement }),

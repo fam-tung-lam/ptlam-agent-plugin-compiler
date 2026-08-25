@@ -19,7 +19,7 @@ import {
 export enum PluginSchemaVersion {
   /** Version one of the authored plugin manifest schema. */
   V1 = 1,
-  /** Version two adds provider-neutral universal hook events. */
+  /** Version two adds portable hooks and skill compilation policies. */
   V2 = 2,
 }
 

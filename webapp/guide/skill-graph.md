@@ -70,6 +70,20 @@ Create a focused implementation plan from verified repository facts.
 The marker is removed when the skill has no requirements, so leaving it in place
 is harmless.
 
+## The catalog makes the graph visible
+
+Every compile renders the published dependency graph into `skills/README.md` as
+GitHub-compatible Mermaid. It includes every installable root, reachable
+internal dependency, and isolated root, so a reviewer can see the shipped skill
+architecture without reconstructing it from YAML.
+
+Category subgraphs organize the nodes. Arrows point from each dependent skill to
+what it requires, node labels show lifecycle status and visibility, and styles
+distinguish public, internal, and deprecated skills. Draft, archived, and
+unreachable internal skills stay out because they are not part of the published
+package. The catalog table appears directly after the graph, keeping the skill
+architecture visible before its installable-skill details.
+
 ## Visibility
 
 `visibility` decides whether a skill is something users install or a building
