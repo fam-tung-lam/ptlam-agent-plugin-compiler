@@ -1,0 +1,154 @@
+/*
+ * Document base: element defaults, focus, selection, scrollbars, the one
+ * screen-reader utility, and the two global escape hatches (reduced motion and
+ * the color-mix fallback).
+ *
+ * Owner: foundation. Nothing here targets a page surface — no navbar, no doc
+ * content, no landing section. Those live in nav.css, doc.css, diagram.css,
+ * and home.css.
+ */
+
+/*
+ * Form controls do not inherit type from the document in any browser. `:where`
+ * keeps the specificity at zero so a component can restyle them freely.
+ */
+:where(button, input, optgroup, select, textarea) {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--apc-border-heavy) transparent;
+}
+
+body {
+  color: var(--apc-text-1);
+  font-family: var(--apc-font-sans);
+  font-size: var(--apc-text-md);
+  font-weight: var(--apc-weight-normal);
+  line-height: var(--apc-leading-normal);
+  letter-spacing: var(--apc-tracking-normal);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* WebKit ignores `scrollbar-color`, so the thumb is drawn again here. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: var(--apc-radius-full);
+  background-color: var(--apc-border-heavy);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--apc-text-3);
+  background-clip: padding-box;
+}
+
+::selection {
+  color: var(--apc-text-1);
+  background-color: var(--apc-accent-soft);
+}
+
+/*
+ * The focus ring. It sits outside the element so it stays visible on
+ * accent-filled controls, where an inset ring would disappear into the fill.
+ *
+ * The first selector carries zero specificity so any component can restyle its
+ * own focus without an !important. Nothing in the default theme sets an
+ * outline on links, summaries, or [tabindex] elements, so those are served by
+ * that selector alone.
+ *
+ * The second selector exists because the default theme strips the outline from
+ * four element types with rules that outrank zero specificity:
+ *
+ *   button:focus, button:focus-visible          (0,1,1)  the browser's own ring
+ *   input:focus, textarea:focus, select:focus   (0,1,1)  outline: none
+ *   .DocSearch-Button:focus                     (0,2,0)  the browser's own ring
+ *
+ * The third is live here because VitePress's local search reuses the DocSearch
+ * button markup. Repeating :focus-visible lifts that selector to (0,2,1), the
+ * least that clears all three, and the bump is confined to those four types so
+ * everything else stays cheap to override. A selector list is weighed per
+ * matching selector, which is why both can share one declaration block.
+ *
+ * Mouse focus stays ring-free without help: the default theme's
+ * `button:focus:not(:focus-visible) { outline: none !important }` still wins in
+ * that state, which is why nothing here needs !important of its own.
+ *
+ * Outline only, deliberately. The outline already follows each control's own
+ * border-radius, so setting a radius here would buy nothing and would reshape
+ * pill controls such as the appearance switch for as long as they held focus.
+ */
+:where(a, area, button, input, label[for], select, summary, textarea, [tabindex]):focus-visible,
+:is(button, input, select, textarea):focus-visible:focus-visible {
+  outline: 2px solid var(--apc-accent);
+  outline-offset: 3px;
+}
+
+.apc-sr-only {
+  position: absolute;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  white-space: nowrap;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+}
+
+/*
+ * Site-wide motion kill switch. Declared once here so no surface stylesheet
+ * has to repeat it for its own animations.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    animation-delay: -0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Pre-mixed equivalents of the three overlay tokens for browsers without
+ * color-mix(). Surface stylesheets that need a translucent fill use those
+ * tokens rather than calling color-mix() themselves, which is what keeps this
+ * fallback to one block instead of one rule per component.
+ */
+@supports not (color: color-mix(in srgb, black, white)) {
+  :root {
+    --apc-overlay-subtle: rgb(103 111 125 / 7%);
+    --apc-overlay-hover: rgb(103 111 125 / 12%);
+    --apc-overlay-accent: rgb(31 95 224 / 12%);
+  }
+
+  .dark {
+    --apc-overlay-subtle: rgb(125 136 153 / 7%);
+    --apc-overlay-hover: rgb(125 136 153 / 12%);
+    --apc-overlay-accent: rgb(122 165 255 / 12%);
+  }
+}
