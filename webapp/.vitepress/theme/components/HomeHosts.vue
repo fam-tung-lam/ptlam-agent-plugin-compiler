@@ -39,8 +39,8 @@ const hosts: readonly Host[] = [
         </h2>
         <p class="apc-section__lede">
           Select any combination in <code>plugin/plugin.yml</code>, or override
-          the selection for a single run. Each adapter declares exactly which
-          files it owns.
+          the selection for a single run. Each adapter declares the exact
+          manifest files it owns.
         </p>
       </header>
 

@@ -1,19 +1,68 @@
 <script setup lang="ts">
+type BodySegment = {
+  /** Rendered as inline code when true, as prose otherwise. */
+  readonly code?: boolean;
+  readonly text: string;
+};
+
 type PipelineStep = {
   readonly index: string;
   readonly stage: string;
   readonly title: string;
+  readonly body: readonly BodySegment[];
 };
 
-/**
- * Prose stays in the template so the code fragments inside it keep their
- * `<code>` markup; only the fixed labels are data.
+/*
+ * The body is segmented data rather than template prose so that a step's text
+ * cannot drift from its title. The previous version looped over this array and
+ * then re-branched on `index` inside the loop, so renumbering a step, or
+ * adding a fifth, silently rendered one step's prose under another's heading.
  */
 const steps: readonly PipelineStep[] = [
-  { index: "01", stage: "source", title: "Author the complete plugin" },
-  { index: "02", stage: "validate", title: "Prove the skill graph" },
-  { index: "03", stage: "compile", title: "Build self-contained skills" },
-  { index: "04", stage: "providers", title: "Emit exact host contracts" },
+  {
+    index: "01",
+    stage: "source",
+    title: "Author the complete plugin",
+    body: [
+      { text: "Keep metadata and dependencies in " },
+      { code: true, text: "plugin/plugin.yml" },
+      { text: ", with every authored skill under " },
+      { code: true, text: "plugin/skills/**" },
+      { text: "." },
+    ],
+  },
+  {
+    index: "02",
+    stage: "validate",
+    title: "Prove the skill graph",
+    body: [
+      {
+        text: "Validate schema, Markdown links, lifecycle rules, and recursive skill dependencies before any generated path changes.",
+      },
+    ],
+  },
+  {
+    index: "03",
+    stage: "compile",
+    title: "Build self-contained skills",
+    body: [
+      {
+        text: "Compile each public root with the required skills it needs, then reconcile the compiler-owned ",
+      },
+      { code: true, text: "skills/**" },
+      { text: " tree atomically." },
+    ],
+  },
+  {
+    index: "04",
+    stage: "providers",
+    title: "Emit exact host contracts",
+    body: [
+      {
+        text: "Project the same validated model into each selected provider’s exact manifest format.",
+      },
+    ],
+  },
 ];
 </script>
 
@@ -26,8 +75,8 @@ const steps: readonly PipelineStep[] = [
           One authored tree. Verified output.
         </h2>
         <p class="apc-section__lede">
-          Every run walks the same four stages in the same order, and stops at
-          the first one that cannot prove its result.
+          Every compile walks the same four stages in the same order, and stops
+          at the first one that cannot prove its result.
         </p>
       </header>
 
@@ -39,21 +88,11 @@ const steps: readonly PipelineStep[] = [
           </p>
           <h3 class="apc-pipeline__title">{{ step.title }}</h3>
 
-          <p v-if="step.index === '01'" class="apc-pipeline__body">
-            Keep metadata and dependencies in <code>plugin/plugin.yml</code>,
-            with every authored skill under <code>plugin/skills/**</code>.
-          </p>
-          <p v-else-if="step.index === '02'" class="apc-pipeline__body">
-            Validate schema, Markdown links, lifecycle rules, and recursive skill
-            dependencies before any generated path changes.
-          </p>
-          <p v-else-if="step.index === '03'" class="apc-pipeline__body">
-            Compile each public root with the required skills it needs, then
-            reconcile the compiler-owned <code>skills/**</code> tree atomically.
-          </p>
-          <p v-else class="apc-pipeline__body">
-            Project the same validated model into each selected provider&#39;s
-            exact manifest format.
+          <p class="apc-pipeline__body">
+            <template v-for="(segment, index) in step.body" :key="index"
+              ><code v-if="segment.code">{{ segment.text }}</code
+              ><template v-else>{{ segment.text }}</template></template
+            >
           </p>
         </li>
       </ol>

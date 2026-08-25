@@ -149,9 +149,16 @@ onBeforeUnmount(clearResetTimer);
           }}<span class="apc-install__word">{{ word }}</span></template
         ></code
       >
+      <!--
+        The visible label changes with the copy result, so it cannot also serve
+        as the accessible name — "Copy failed the npm install command" is not a
+        sentence. The name stays fixed and the result is announced through the
+        live region below.
+      -->
       <button
         type="button"
         class="apc-install__copy"
+        :aria-label="`Copy the ${selected.label} install command`"
         :data-state="copyResult"
         @click="copyCommand"
       >
@@ -174,8 +181,7 @@ onBeforeUnmount(clearResetTimer);
           <rect x="5.5" y="5.5" width="9" height="9" rx="2" />
           <path d="M10.5 5.5v-3a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h3" />
         </svg>
-        <span>{{ copyLabel }}</span>
-        <span class="apc-sr-only"> the {{ selected.label }} install command</span>
+        <span aria-hidden="true">{{ copyLabel }}</span>
       </button>
     </div>
 

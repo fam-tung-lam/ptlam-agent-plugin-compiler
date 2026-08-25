@@ -34,27 +34,33 @@
  * comes from --vp-c-gutter. No rule needed — that is the decision.
  */
 
-/*
- * The default theme's own base.css declares
- * `button:focus-visible { outline: 4px auto -webkit-focus-ring-color }`, which
- * outranks the zero-specificity `:where(...)` ring in styles/base.css. Every
- * button on the site inherits the platform ring instead of the token one; this
- * restores it on the chrome. The general fix belongs in the foundation's
- * base.css, which this worker does not own.
- */
-.VPNavBar button:focus-visible,
-.VPSidebar button:focus-visible,
-.VPLocalNav button:focus-visible,
-.VPLocalSearchBox button:focus-visible {
-  outline: 2px solid var(--apc-accent);
-  outline-offset: 3px;
-  border-radius: var(--apc-radius-sm);
-}
-
 .VPNavBarTitle .title {
   font-size: var(--apc-text-md);
   font-weight: var(--apc-weight-semibold);
   letter-spacing: var(--apc-tracking-tight);
+}
+
+/*
+ * Below 360px the 16px title pushes the navbar content past the viewport and
+ * carries the hamburger — the only route into the sidebar — off-screen, so
+ * every page scrolls horizontally and WCAG 1.4.10 Reflow fails. The outgoing
+ * stylesheet guarded this; the per-surface split dropped the rule.
+ */
+@media (max-width: 359px) {
+  .VPNavBarTitle .title {
+    font-size: var(--apc-text-sm);
+  }
+}
+
+/*
+ * The local-search result list is anchor-based, and the default theme zeroes
+ * its outline at (0,2,0) via a scoped-style attribute. The specificity bump in
+ * base.css only reaches button, input, select, and textarea, so these links
+ * need their ring restored explicitly.
+ */
+.VPLocalSearchBox a.result:focus-visible {
+  outline: 2px solid var(--apc-accent);
+  outline-offset: -2px;
 }
 
 .VPNavBar .VPNavBarMenu .VPNavBarMenuLink {

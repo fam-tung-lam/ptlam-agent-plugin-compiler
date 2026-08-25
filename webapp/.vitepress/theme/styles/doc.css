@@ -65,12 +65,12 @@
 /* --------------------------------------------------------------- Focus - */
 
 /*
- * Same reason as the matching rule in nav.css: the default theme's base.css
- * gives every button the platform focus ring at element specificity, which
- * outranks the token ring. This covers the buttons inside doc content — copy
- * code, and the code-group tabs.
+/*
+ * The visually hidden code-group radio sits at 13x13 with opacity 0, so the
+ * global ring lands on something nobody can see. Only the `+ label` hop puts a
+ * ring on the tab a reader is actually looking at. Plain buttons are covered
+ * by the specificity-bumped rule in base.css and need nothing here.
  */
-.vp-doc button:focus-visible,
 .vp-code-group input:focus-visible + label {
   outline: 2px solid var(--apc-accent);
   outline-offset: 3px;

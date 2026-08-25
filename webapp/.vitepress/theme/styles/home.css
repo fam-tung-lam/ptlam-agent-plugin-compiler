@@ -127,10 +127,10 @@
 }
 
 .apc-eyebrow {
-  color: var(--apc-text-3);
+  color: var(--apc-text-2);
   font-family: var(--apc-font-mono);
-  font-size: var(--apc-text-xs);
-  font-weight: var(--apc-weight-medium);
+  font-size: var(--apc-text-2xs);
+  font-weight: var(--apc-weight-semibold);
   line-height: var(--apc-leading-snug);
   letter-spacing: var(--apc-tracking-wide);
   text-transform: uppercase;
@@ -278,13 +278,20 @@
   -webkit-box-decoration-break: clone;
 }
 
+/*
+ * The mark is a border, not a box-shadow, because forced-colors mode drops
+ * box-shadow and overrides background-color — which erased both variants and
+ * with them this section's entire argument. Borders survive, and the solid
+ * vs dashed distinction carries the amber/green difference as shape rather
+ * than as hue.
+ */
 .apc-fact--loose {
-  box-shadow: inset 0 -1px 0 var(--apc-warn);
+  border-bottom: 1px dashed var(--apc-warn);
   background-color: var(--apc-warn-soft);
 }
 
 .apc-fact--declared {
-  box-shadow: inset 0 -1px 0 var(--apc-ok);
+  border-bottom: 1px solid var(--apc-ok);
   background-color: var(--apc-ok-soft);
 }
 
@@ -404,7 +411,9 @@
 }
 
 .apc-install__channel {
-  border: 0;
+  /* Transparent, not absent, so the active state can show a border without
+   * shifting either pill by a pixel. */
+  border: 1px solid transparent;
   border-radius: var(--apc-radius-full);
   padding: var(--apc-space-1) var(--apc-space-4);
   background-color: transparent;
@@ -417,27 +426,22 @@
     background-color var(--apc-duration-fast) var(--apc-ease);
 }
 
-/*
- * The default theme ships `button:focus-visible { outline: 4px auto }` at a
- * higher specificity than the zero-specificity `:where(...)` ring in base.css,
- * so a plain button falls back to the browser's own ring. Restated here at
- * two classes so the install controls carry the design-system ring.
- */
-.apc-install__channel:focus-visible,
-.apc-install__copy:focus-visible {
-  outline: 2px solid var(--apc-accent);
-  outline-offset: 3px;
-}
-
 .apc-install__channel:hover {
   background-color: var(--apc-overlay-subtle);
   color: var(--apc-text-1);
 }
 
+/*
+ * The fill alone separates active from inactive by 1.10:1, under the 3:1 that
+ * WCAG 1.4.11 asks of a state indicator, and both the fill and the shadow are
+ * lost in forced-colors mode. The border and the heavier label survive both.
+ */
 .apc-install__channel--active,
 .apc-install__channel--active:hover {
+  border-color: var(--apc-border-heavy);
   background-color: var(--apc-bg-raised);
   color: var(--apc-text-1);
+  font-weight: var(--apc-weight-semibold);
   box-shadow: var(--apc-shadow-sm);
 }
 
@@ -576,6 +580,12 @@
 @media (min-width: 960px) {
   .apc-contrast {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    /*
+     * Each panel ends at its own content. Stretching them to a shared height
+     * left 209px of empty card under the shorter one, which read as a missing
+     * paragraph rather than as alignment.
+     */
+    align-items: start;
     gap: var(--apc-space-8);
   }
 }

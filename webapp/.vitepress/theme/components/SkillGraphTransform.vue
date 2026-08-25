@@ -2,7 +2,8 @@
   <figure
     class="apc-graph"
     role="img"
-    aria-labelledby="skill-graph-title skill-graph-description"
+    aria-labelledby="skill-graph-title"
+    aria-describedby="skill-graph-description"
   >
     <figcaption id="skill-graph-title" class="apc-sr-only">
       From a declared skill graph to self-contained generated skills

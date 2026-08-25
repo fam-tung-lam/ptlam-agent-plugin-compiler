@@ -29,8 +29,12 @@
    * --apc-bg-alt, below the 4.5:1 floor the same spec sets for body text.
    * Darkened by 4% to clear it on every light surface (5.06 / 4.77 / 4.60).
    * Deviation is deliberate; accessibility rule outranks the literal value.
+   *
+   * Darkened again to #626a77 after review: #676f7d cleared the neutral ramp
+   * but not the tinted fills (accent-soft 4.46, danger-soft 4.43). This value
+   * clears all seven light grounds, worst case 4.77 on --apc-danger-soft.
    */
-  --apc-text-3: #676f7d;
+  --apc-text-3: #626a77;
 
   /* Accent — "compile blue" */
   --apc-accent: #1f5fe0;

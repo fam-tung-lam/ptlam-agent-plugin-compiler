@@ -226,29 +226,6 @@
   }
 }
 
-/*
- * SVG text labels in any diagram surface. These elements carry no `fill`
- * attribute, and `fill` does not fall back to the CSS `color` property, so
- * without a rule they paint in the SVG initial value — black — which is
- * invisible against the dark page ground. The previous stylesheet colored
- * them; the split into per-surface sheets dropped that, and this restores it
- * for every figure at once rather than per component.
- *
- * font-size is left out on purpose. Inside a viewBox the value is user units,
- * not CSS pixels, so the rendered size depends on the scale each figure
- * chooses. The sheet that owns a figure's geometry has to set it, and has to
- * keep the rendered result at or above --apc-text-2xs.
- */
-.apc-graph text,
-.apc-matrix text,
-.apc-flow-arrow text {
-  fill: var(--apc-text-3);
-  stroke: none;
-  font-family: var(--apc-font-mono);
-  font-weight: var(--apc-weight-semibold);
-  letter-spacing: var(--apc-tracking-normal);
-}
-
 /* --------------------------------------------------------------- Compiler */
 
 .apc-graph__compiler {
@@ -478,12 +455,13 @@
     display: none;
   }
 
-  .apc-matrix__row {
+  /*
+   * Keyed on position, not element type. `:first-of-type` was scoped to the
+   * span type and never matched, because the first span child of the grid is
+   * the corner cell, not a row.
+   */
+  .apc-matrix__cell + .apc-matrix__row {
     margin-top: var(--apc-space-3);
-  }
-
-  .apc-matrix__row:first-of-type {
-    margin-top: 0;
   }
 
   .apc-matrix__cell::before {
@@ -493,7 +471,7 @@
     line-height: var(--apc-leading-snug);
     letter-spacing: var(--apc-tracking-wide);
     text-transform: uppercase;
-    color: var(--apc-text-3);
+    color: var(--apc-text-2);
     content: attr(data-visibility);
   }
 }

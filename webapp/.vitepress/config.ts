@@ -97,6 +97,23 @@ export default defineConfig({
     ],
     ["meta", { name: "twitter:image", content: `${productionUrl}/og.png` }],
   ],
+  /*
+   * Shiki's `github-light` / `github-dark` fail WCAG AA against the code-block
+   * grounds this theme sets. Measured over the YAML, JSON, bash, markdown, and
+   * text samples these docs actually contain: light orange #e36209 reached
+   * 3.17:1 on #f2f4f7 (and only 3.49:1 on white, so a lighter ground is not a
+   * fix), and dark grey #6a737d reached 3.65:1 on #151922.
+   *
+   * These two are the least aggressive themes in the same family that clear
+   * 4.5:1 on the existing grounds, so no background token has to change:
+   * 4.57:1 light, 5.72:1 dark, with all eight token hues kept distinct.
+   */
+  markdown: {
+    theme: {
+      light: "github-light-high-contrast",
+      dark: "github-dark-default",
+    },
+  },
   lastUpdated: true,
   vite: {
     resolve: {
