@@ -50,7 +50,11 @@ export function validateAuthoredPlugin(
   }
 
   const manifest = manifestResult.manifest;
-  const graph = validateSkillGraph(manifest.categories, manifest.skills);
+  const graph = validateSkillGraph(
+    manifest.categories,
+    manifest.skills,
+    manifest.config.skill_dependency_depth_limit,
+  );
   const hooks =
     manifest.schema_version === PluginSchemaVersion.V1
       ? {

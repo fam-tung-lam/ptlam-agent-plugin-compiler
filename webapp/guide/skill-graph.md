@@ -36,6 +36,27 @@ only dependency contract in a compiled skill package.
 Dependencies may be nested: a required skill can require further skills, and the
 compiler follows the chain.
 
+## Limit dependency depth
+
+Schema v2 can reject dependency chains before they become too deeply nested:
+
+```yaml
+config:
+  skill_dependency_depth_limit: 3
+```
+
+Depth counts `required_skills` edges from each declared skill. A leaf has depth
+`0`; a direct dependency has depth `1`; branching uses the longest reachable
+path. The configured integer is exclusive, so `3` permits depths through `2` and
+rejects the path as soon as its third edge is reached. Every declared skill is
+checked, including draft, archived, internal, and disconnected skills.
+
+Omit the setting or use `null` for unlimited depth. A violation identifies the
+starting skill, the declaration-order path that reaches the boundary, the
+configured limit, and `plugin/plugin.yml#/config/skill_dependency_depth_limit`.
+Shorten the path, raise the boundary, or restore `null`, then rerun the
+operation.
+
 ## What the compiler generates from it
 
 Each requirement becomes one subsection of a generated `## Required skills`
@@ -185,6 +206,7 @@ rejected by the schema.
 - the same skill is required twice by the same parent;
 - a skill requires itself;
 - requirements form a cycle;
+- a dependency path reaches the configured exclusive depth limit;
 - an authored `SKILL.md` or nested Markdown reference repeats that skill's exact
   declared required-skill ID;
 - a skill references a category that is not declared;
@@ -201,6 +223,10 @@ Two situations produce warnings instead, so compilation continues:
 
 Each diagnostic names the manifest location, for example
 `plugin/plugin.yml#/skills/0/required_skills/0/skill_id`.
+
+`validate`, `check`, and `compile` all apply graph validation before inspecting
+or changing generated output. A depth violation is therefore fatal for all three
+operations, and failed compilation leaves managed output unchanged.
 
 ## Next steps
 

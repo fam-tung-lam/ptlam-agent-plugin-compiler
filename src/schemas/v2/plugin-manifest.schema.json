@@ -26,6 +26,7 @@
       "uniqueItems": true,
       "items": { "$ref": "#/$defs/providerIdentifier" }
     },
+    "config": { "$ref": "#/$defs/config" },
     "name": { "$ref": "#/$defs/identifier" },
     "description": { "$ref": "#/$defs/nonEmptyString" },
     "version": { "$ref": "#/$defs/version" },
@@ -71,6 +72,16 @@
     }
   },
   "$defs": {
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "skill_dependency_depth_limit": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        }
+      }
+    },
     "identifier": {
       "type": "string",
       "maxLength": 64,

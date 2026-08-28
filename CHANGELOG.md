@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- Added optional schema-v2 `config.skill_dependency_depth_limit` validation.
+  Positive integers are exclusive dependency-depth boundaries, while omission
+  and `null` preserve unlimited depth and existing generated output.
+
 ## [0.3.0] - 2026-08-24
 
 ### Added

@@ -124,6 +124,7 @@ export function makeManifest(
   return {
     schema_version: PluginSchemaVersion.V2,
     providers: [createProviderId("claude"), createProviderId("codex")],
+    config: { skill_dependency_depth_limit: null },
     name: "fixture-skills",
     description: "Fixture plugin.",
     version: "1.2.3+1",

@@ -21,11 +21,19 @@ import {
   makeSkill,
 } from "../test-fixtures/plugin-fixture.ts";
 
+function requirement(skill_id: string) {
+  return {
+    skill_id,
+    reason: `Provides ${skill_id}.`,
+    instructions: `Read ${skill_id} first.`,
+  };
+}
+
 describe("validateAuthoredPlugin", () => {
   it("ignores hook-tree entries for a schema-v1 plugin", () => {
     // GIVEN: A legacy plugin has an unrelated directory under plugin/hooks/.
     const manifest = makeManifest();
-    const { hooks: _hooks, ...withoutHooks } = manifest;
+    const { config: _config, hooks: _hooks, ...withoutHooks } = manifest;
     const legacySkills = manifest.skills.map(
       ({
         compilation: _compilation,
@@ -273,6 +281,200 @@ describe("validateAuthoredPlugin", () => {
     // THEN: Marker placement remains optional for every skill.
     assert.equal(result.plugin.skills[0]?.required_skills.length, 1);
     assert.equal(result.plugin.skills[1]?.required_skills.length, 0);
+  });
+
+  it("accepts dependency depths below the configured exclusive boundary", () => {
+    // GIVEN: The longest path has two edges under an exclusive limit of three.
+    const manifest = makeManifest({
+      config: { skill_dependency_depth_limit: 3 },
+      skills: [
+        makeSkill({
+          id: "root-skill",
+          required_skills: [requirement("middle-skill")],
+        }),
+        makeSkill({
+          id: "middle-skill",
+          required_skills: [requirement("leaf-skill")],
+        }),
+        makeSkill({ id: "leaf-skill" }),
+      ],
+    });
+
+    // WHEN: Authored-source validation evaluates leaf, direct, and transitive depth.
+    const result = validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: Depths zero through two remain valid and config is immutable.
+    assert.equal(result.plugin.skills.length, 3);
+    assert.deepEqual(result.plugin.config, {
+      skill_dependency_depth_limit: 3,
+    });
+    assert.equal(Object.isFrozen(result.plugin.config), true);
+  });
+
+  it("rejects every declared skill that reaches the configured boundary", () => {
+    // GIVEN: A branching path and a disconnected archived path reach three edges.
+    const manifest = makeManifest({
+      config: { skill_dependency_depth_limit: 3 },
+      skills: [
+        makeSkill({
+          id: "root-skill",
+          required_skills: [
+            requirement("first-branch"),
+            requirement("second-branch"),
+          ],
+        }),
+        makeSkill({
+          id: "first-branch",
+          required_skills: [requirement("shared-skill")],
+        }),
+        makeSkill({
+          id: "second-branch",
+          required_skills: [requirement("shared-skill")],
+        }),
+        makeSkill({
+          id: "shared-skill",
+          required_skills: [requirement("leaf-skill")],
+        }),
+        makeSkill({ id: "leaf-skill" }),
+        makeSkill({
+          id: "draft-skill",
+          visibility: SkillVisibility.Internal,
+          status: SkillStatus.Draft,
+          required_skills: [requirement("first-branch")],
+        }),
+        makeSkill({
+          id: "deprecated-skill",
+          status: SkillStatus.Deprecated,
+          required_skills: [requirement("first-branch")],
+          deprecation: {
+            reason: "Legacy root.",
+            instructions: "Use root-skill.",
+          },
+        }),
+        makeSkill({
+          id: "disconnected-skill",
+          visibility: SkillVisibility.Internal,
+          status: SkillStatus.Archived,
+          required_skills: [requirement("archived-middle")],
+          archive: { reason: "Retired chain." },
+        }),
+        makeSkill({
+          id: "archived-middle",
+          visibility: SkillVisibility.Internal,
+          status: SkillStatus.Archived,
+          required_skills: [requirement("archived-base")],
+          archive: { reason: "Retired chain." },
+        }),
+        makeSkill({
+          id: "archived-base",
+          visibility: SkillVisibility.Internal,
+          status: SkillStatus.Archived,
+          required_skills: [requirement("archived-leaf")],
+          archive: { reason: "Retired chain." },
+        }),
+        makeSkill({
+          id: "archived-leaf",
+          visibility: SkillVisibility.Internal,
+          status: SkillStatus.Archived,
+          archive: { reason: "Retired chain." },
+        }),
+      ],
+    });
+
+    // WHEN: Validation evaluates the complete graph rather than published roots.
+    const validation = () =>
+      validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: Declaration order chooses paths and both violating starts are reported.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      const depthErrors = error.errors.filter((diagnostic) =>
+        diagnostic.includes("skill_dependency_depth_limit"),
+      );
+      assert.deepEqual(depthErrors, [
+        'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "root-skill" reaches configured dependency depth limit 3 through root-skill -> first-branch -> shared-skill -> leaf-skill',
+        'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "draft-skill" reaches configured dependency depth limit 3 through draft-skill -> first-branch -> shared-skill -> leaf-skill',
+        'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "deprecated-skill" reaches configured dependency depth limit 3 through deprecated-skill -> first-branch -> shared-skill -> leaf-skill',
+        'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "disconnected-skill" reaches configured dependency depth limit 3 through disconnected-skill -> archived-middle -> archived-base -> archived-leaf',
+      ]);
+      return true;
+    });
+  });
+
+  it("rejects deeper paths at the first forbidden edge", () => {
+    // GIVEN: A four-edge chain crosses an exclusive limit of three.
+    const manifest = makeManifest({
+      config: { skill_dependency_depth_limit: 3 },
+      skills: [
+        makeSkill({
+          id: "skill-a",
+          required_skills: [requirement("skill-b")],
+        }),
+        makeSkill({
+          id: "skill-b",
+          required_skills: [requirement("skill-c")],
+        }),
+        makeSkill({
+          id: "skill-c",
+          required_skills: [requirement("skill-d")],
+        }),
+        makeSkill({
+          id: "skill-d",
+          required_skills: [requirement("skill-e")],
+        }),
+        makeSkill({ id: "skill-e" }),
+      ],
+    });
+
+    // WHEN: Validation evaluates the configured graph.
+    const validation = () =>
+      validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: Each violating start stops its diagnostic path at edge three.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.deepEqual(
+        error.errors.filter((diagnostic) =>
+          diagnostic.includes("skill_dependency_depth_limit"),
+        ),
+        [
+          'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "skill-a" reaches configured dependency depth limit 3 through skill-a -> skill-b -> skill-c -> skill-d',
+          'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "skill-b" reaches configured dependency depth limit 3 through skill-b -> skill-c -> skill-d -> skill-e',
+        ],
+      );
+      return true;
+    });
+  });
+
+  it("keeps deep acyclic graphs unlimited when config is null", () => {
+    // GIVEN: A four-edge dependency chain uses the normalized unlimited default.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({
+          id: "skill-a",
+          required_skills: [requirement("skill-b")],
+        }),
+        makeSkill({
+          id: "skill-b",
+          required_skills: [requirement("skill-c")],
+        }),
+        makeSkill({
+          id: "skill-c",
+          required_skills: [requirement("skill-d")],
+        }),
+        makeSkill({
+          id: "skill-d",
+          required_skills: [requirement("skill-e")],
+        }),
+        makeSkill({ id: "skill-e" }),
+      ],
+    });
+
+    // WHEN: Authored-source validation evaluates the deep graph.
+    const result = validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: Depth alone does not reject an unlimited plugin.
+    assert.equal(result.plugin.config.skill_dependency_depth_limit, null);
   });
 
   it("rejects exact required-skill IDs across authored Markdown forms", () => {

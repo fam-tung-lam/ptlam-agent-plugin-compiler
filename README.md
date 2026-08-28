@@ -169,6 +169,15 @@ skills:
     required_skills: []
 ```
 
+Schema v2 can set an exclusive plugin-wide dependency-depth boundary. A limit of
+`3` accepts paths with zero through two `required_skills` edges and rejects the
+third; omit it or use `null` to preserve unlimited behavior:
+
+```yaml
+config:
+  skill_dependency_depth_limit: 3
+```
+
 The same manifest can key ordered handler lists directly by universal event.
 Handler paths are relative to `plugin/hooks/`:
 
@@ -452,6 +461,11 @@ await compiler.compile();
 
 const { upToDate } = await compiler.check();
 ```
+
+Successful validation exposes the normalized, deeply immutable value at
+`plugin.config.skill_dependency_depth_limit`. A configured depth violation
+rejects `validate`, `check`, and `compile` before generated output is read or
+written.
 
 Pass `providers` to override the manifest selection, or register your own
 `ProviderAdapter` to emit a host the compiler does not ship.
