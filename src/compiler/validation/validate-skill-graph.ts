@@ -67,12 +67,8 @@ export function validateSkillGraph(
   });
 
   if (![...skillCounts.values()].some((count) => count > 1)) {
-    const errorCountBeforeCycleValidation = errors.length;
-    validateAcyclicGraph(skills, skillsById, errors);
-    if (
-      dependencyDepthLimit !== null &&
-      errors.length === errorCountBeforeCycleValidation
-    ) {
+    const isAcyclic = validateAcyclicGraph(skills, skillsById, errors);
+    if (isAcyclic && dependencyDepthLimit !== null) {
       validateDependencyDepth(skills, skillsById, dependencyDepthLimit, errors);
     }
     warnForUnreachableInternalSkills(skills, skillsById, warnings);
@@ -245,7 +241,7 @@ function validateAcyclicGraph(
   skills: readonly SkillManifest[],
   skillsById: ReadonlyMap<SkillId, SkillManifest>,
   errors: string[],
-): void {
+): boolean {
   const state = new Map<SkillId, 1 | 2>();
   const stack: SkillId[] = [];
   let cycleReported = false;
@@ -274,6 +270,7 @@ function validateAcyclicGraph(
   for (const skill of skills) {
     if (!state.has(skill.id)) visitSkill(skill.id);
   }
+  return !cycleReported;
 }
 
 function warnForUnreachableInternalSkills(

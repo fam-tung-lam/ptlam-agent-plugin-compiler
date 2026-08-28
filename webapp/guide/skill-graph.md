@@ -57,6 +57,12 @@ configured limit, and `plugin/plugin.yml#/config/skill_dependency_depth_limit`.
 Shorten the path, raise the boundary, or restore `null`, then rerun the
 operation.
 
+Cycle validation runs before depth validation. If any dependency cycle exists,
+the compiler reports the cycle and skips depth checking for the whole graph.
+Fix the reported cycle and rerun the operation. Depth checking resumes only
+after the graph is acyclic, so another cycle or a depth violation may appear on
+a later run.
+
 ## What the compiler generates from it
 
 Each requirement becomes one subsection of a generated `## Required skills`
