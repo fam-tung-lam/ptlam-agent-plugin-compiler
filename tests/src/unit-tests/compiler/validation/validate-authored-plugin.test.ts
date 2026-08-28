@@ -499,6 +499,57 @@ describe("validateAuthoredPlugin", () => {
     });
   });
 
+  it("stops dependency-depth validation when the graph contains a cycle", () => {
+    // GIVEN: A cyclic component accompanies an independent path at depth three.
+    const manifest = makeManifest({
+      config: { skill_dependency_depth_limit: 3 },
+      skills: [
+        makeSkill({
+          id: "cycle-a",
+          required_skills: [requirement("cycle-b")],
+        }),
+        makeSkill({
+          id: "cycle-b",
+          required_skills: [requirement("cycle-a")],
+        }),
+        makeSkill({
+          id: "depth-a",
+          required_skills: [requirement("depth-b")],
+        }),
+        makeSkill({
+          id: "depth-b",
+          required_skills: [requirement("depth-c")],
+        }),
+        makeSkill({
+          id: "depth-c",
+          required_skills: [requirement("depth-d")],
+        }),
+        makeSkill({ id: "depth-d" }),
+      ],
+    });
+
+    // WHEN: Authored-source validation evaluates the invalid graph.
+    const validation = () =>
+      validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: The cycle is reported and depth waits for a later validation run.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.ok(
+        error.errors.includes(
+          "plugin/plugin.yml#skills: required_skills must form an acyclic graph; found cycle-a -> cycle-b -> cycle-a",
+        ),
+      );
+      assert.equal(
+        error.errors.some((diagnostic) =>
+          diagnostic.includes("skill_dependency_depth_limit"),
+        ),
+        false,
+      );
+      return true;
+    });
+  });
+
   it("keeps deep acyclic graphs unlimited when config is null", () => {
     // GIVEN: A four-edge dependency chain uses the normalized unlimited default.
     const manifest = makeManifest({
