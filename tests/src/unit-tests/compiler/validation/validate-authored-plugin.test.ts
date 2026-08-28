@@ -446,6 +446,59 @@ describe("validateAuthoredPlugin", () => {
     });
   });
 
+  it("selects the first declared branch that reaches the boundary", () => {
+    // GIVEN: An earlier branch reaches depth three and a later branch reaches four.
+    const manifest = makeManifest({
+      config: { skill_dependency_depth_limit: 3 },
+      skills: [
+        makeSkill({
+          id: "root-skill",
+          required_skills: [
+            requirement("earlier-branch"),
+            requirement("later-branch"),
+          ],
+        }),
+        makeSkill({
+          id: "earlier-branch",
+          required_skills: [requirement("earlier-middle")],
+        }),
+        makeSkill({
+          id: "earlier-middle",
+          required_skills: [requirement("earlier-leaf")],
+        }),
+        makeSkill({ id: "earlier-leaf" }),
+        makeSkill({
+          id: "later-branch",
+          required_skills: [requirement("later-middle")],
+        }),
+        makeSkill({
+          id: "later-middle",
+          required_skills: [requirement("later-deep")],
+        }),
+        makeSkill({
+          id: "later-deep",
+          required_skills: [requirement("later-leaf")],
+        }),
+        makeSkill({ id: "later-leaf" }),
+      ],
+    });
+
+    // WHEN: Validation constructs the boundary witness for the root skill.
+    const validation = () =>
+      validateAuthoredPlugin(makePluginSource({ manifest }));
+
+    // THEN: Declaration order wins even though the later branch is deeper.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.ok(
+        error.errors.includes(
+          'plugin/plugin.yml#/config/skill_dependency_depth_limit: skill "root-skill" reaches configured dependency depth limit 3 through root-skill -> earlier-branch -> earlier-middle -> earlier-leaf',
+        ),
+      );
+      return true;
+    });
+  });
+
   it("keeps deep acyclic graphs unlimited when config is null", () => {
     // GIVEN: A four-edge dependency chain uses the normalized unlimited default.
     const manifest = makeManifest({

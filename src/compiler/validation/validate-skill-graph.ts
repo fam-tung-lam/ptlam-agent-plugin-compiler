@@ -90,36 +90,68 @@ function validateDependencyDepth(
   limit: number,
   errors: string[],
 ): void {
-  const longestPaths = new Map<SkillId, readonly SkillId[]>();
+  const dependencyDepths = new Map<SkillId, number>();
   for (const skill of skills) {
-    const path = longestDependencyPath(skill, skillsById, longestPaths);
-    if (path.length <= limit) continue;
+    const depth = dependencyDepth(skill, skillsById, dependencyDepths);
+    if (depth < limit) continue;
+    const path = dependencyPathAtDepth(
+      skill,
+      skillsById,
+      dependencyDepths,
+      limit,
+    );
     errors.push(
-      `${SOURCE_MANIFEST_PATH}#/config/skill_dependency_depth_limit: skill "${skill.id}" reaches configured dependency depth limit ${limit} through ${path.slice(0, limit + 1).join(" -> ")}`,
+      `${SOURCE_MANIFEST_PATH}#/config/skill_dependency_depth_limit: skill "${skill.id}" reaches configured dependency depth limit ${limit} through ${path.join(" -> ")}`,
     );
   }
 }
 
-function longestDependencyPath(
+function dependencyDepth(
   skill: SkillManifest,
   skillsById: ReadonlyMap<SkillId, SkillManifest>,
-  cache: Map<SkillId, readonly SkillId[]>,
-): readonly SkillId[] {
+  cache: Map<SkillId, number>,
+): number {
   const cached = cache.get(skill.id);
   if (cached !== undefined) return cached;
-  let longestPath: readonly SkillId[] = [skill.id];
+  let depth = 0;
   for (const { skill_id: dependencyId } of skill.required_skills) {
     if (dependencyId === skill.id) continue;
     const dependency = skillsById.get(dependencyId);
     if (dependency === undefined) continue;
-    const candidate = [
-      skill.id,
-      ...longestDependencyPath(dependency, skillsById, cache),
-    ];
-    if (candidate.length > longestPath.length) longestPath = candidate;
+    depth = Math.max(depth, 1 + dependencyDepth(dependency, skillsById, cache));
   }
-  cache.set(skill.id, longestPath);
-  return longestPath;
+  cache.set(skill.id, depth);
+  return depth;
+}
+
+function dependencyPathAtDepth(
+  skill: SkillManifest,
+  skillsById: ReadonlyMap<SkillId, SkillManifest>,
+  dependencyDepths: Map<SkillId, number>,
+  remainingEdges: number,
+): readonly SkillId[] {
+  if (remainingEdges === 0) return [skill.id];
+  for (const { skill_id: dependencyId } of skill.required_skills) {
+    if (dependencyId === skill.id) continue;
+    const dependency = skillsById.get(dependencyId);
+    if (dependency === undefined) continue;
+    const remainingDepth = dependencyDepth(
+      dependency,
+      skillsById,
+      dependencyDepths,
+    );
+    if (remainingDepth < remainingEdges - 1) continue;
+    return [
+      skill.id,
+      ...dependencyPathAtDepth(
+        dependency,
+        skillsById,
+        dependencyDepths,
+        remainingEdges - 1,
+      ),
+    ];
+  }
+  throw new Error(`Missing dependency path at depth ${remainingEdges}`);
 }
 
 function validateRequirements(
