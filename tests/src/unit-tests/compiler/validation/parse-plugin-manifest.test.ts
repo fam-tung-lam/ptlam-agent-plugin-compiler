@@ -17,10 +17,14 @@ const pluginManifestSchemaV1 = require("../../../../../src/schemas/v1/plugin-man
 const pluginManifestSchemaV2 = require("../../../../../src/schemas/v2/plugin-manifest.schema.json");
 
 function removeV2SkillFields<
-  T extends { readonly skills: ReturnType<typeof makeManifest>["skills"] },
+  T extends {
+    readonly config: ReturnType<typeof makeManifest>["config"];
+    readonly skills: ReturnType<typeof makeManifest>["skills"];
+  },
 >(manifest: T) {
+  const { config: _config, ...manifestWithoutConfig } = manifest;
   return {
-    ...manifest,
+    ...manifestWithoutConfig,
     skills: manifest.skills.map(
       ({
         compilation: _compilation,
@@ -61,6 +65,93 @@ describe("parsePluginManifest", () => {
       "manifest" in result && Object.isFrozen(result.manifest.skills[0]),
       true,
     );
+  });
+
+  it("normalizes closed schema-v2 dependency-depth configuration", () => {
+    // GIVEN: Equivalent unlimited forms and one configured exclusive boundary.
+    const manifest = makeManifest();
+    const { config: _config, ...withoutConfig } = manifest;
+    const inputs = [
+      withoutConfig,
+      { ...withoutConfig, config: {} },
+      {
+        ...withoutConfig,
+        config: { skill_dependency_depth_limit: undefined },
+      },
+      {
+        ...withoutConfig,
+        config: { skill_dependency_depth_limit: null },
+      },
+      { ...withoutConfig, config: { skill_dependency_depth_limit: 3 } },
+    ];
+
+    // WHEN: Each schema-v2 form crosses the public parsing boundary.
+    const results = inputs.map((input) =>
+      parsePluginManifest(JSON.stringify(input)),
+    );
+
+    // THEN: Unlimited forms normalize to null and the integer remains immutable.
+    assert.deepEqual(
+      results.map((result) =>
+        "manifest" in result
+          ? result.manifest.config.skill_dependency_depth_limit
+          : undefined,
+      ),
+      [null, null, null, null, 3],
+    );
+    for (const result of results) {
+      assert.equal(
+        "manifest" in result && Object.isFrozen(result.manifest.config),
+        true,
+      );
+    }
+  });
+
+  it.each([
+    ["object shape", []],
+    ["null object", null],
+    ["boolean", { skill_dependency_depth_limit: true }],
+    ["string", { skill_dependency_depth_limit: "3" }],
+    ["zero", { skill_dependency_depth_limit: 0 }],
+    ["negative", { skill_dependency_depth_limit: -1 }],
+    ["fraction", { skill_dependency_depth_limit: 1.5 }],
+    ["unknown property", { unknown: true }],
+  ])("rejects invalid dependency-depth config: %s", (_label, config) => {
+    // GIVEN: Schema-v2 configuration violates its closed positive-integer shape.
+    const source = JSON.stringify({ ...makeManifest(), config });
+
+    // WHEN: The manifest crosses the public parsing boundary.
+    const result = parsePluginManifest(source);
+
+    // THEN: The field-level schema diagnostic points into config.
+    assert.equal("manifest" in result, false);
+    assert.ok(
+      "errors" in result &&
+        result.errors.every((error) =>
+          error.startsWith("plugin/plugin.yml/config"),
+        ),
+    );
+  });
+
+  it("keeps schema v1 byte-for-byte closed against config", () => {
+    // GIVEN: The frozen v1 shape adds only the new schema-v2 configuration.
+    const current = removeV2SkillFields(makeManifest());
+    const { hooks: _hooks, ...currentWithoutHooks } = current;
+    const legacy = {
+      ...currentWithoutHooks,
+      schema_version: PluginSchemaVersion.V1,
+      config: { skill_dependency_depth_limit: 3 },
+    };
+
+    // WHEN: Versioned schema validation evaluates the manifest.
+    const result = parsePluginManifest(JSON.stringify(legacy));
+
+    // THEN: V1 rejects config at the top-level additional-property path.
+    assert.deepEqual(result, {
+      errors: [
+        "plugin/plugin.yml#/config: must NOT have additional properties",
+      ],
+    });
   });
 
   it("keeps v1 frozen and rejects lifecycle hooks", () => {
@@ -120,6 +211,7 @@ describe("parsePluginManifest", () => {
       JSON.stringify({
         ...source,
         schema_version: PluginSchemaVersion.V1,
+        config: undefined,
         hooks: undefined,
         skills: [{ ...legacySkill, disable_model_invocation: true }],
       }),

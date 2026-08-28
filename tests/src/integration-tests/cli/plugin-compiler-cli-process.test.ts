@@ -110,6 +110,68 @@ ${invalidManifest ? "unexpected: true\n" : ""}`,
   return rootDir;
 }
 
+async function useDependencyDepthViolation(rootDir: string): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const skillIds = ["skill-a", "skill-b", "skill-c", "skill-d"];
+  const manifest = {
+    schema_version: 2,
+    providers: ["claude", "codex"],
+    config: { skill_dependency_depth_limit: 3 },
+    name: "fixture-skills",
+    description: "Fixture plugin.",
+    version: "0.1.0",
+    author: { name: "Fixture Owner" },
+    homepage: "https://example.test/readme",
+    repository: "https://example.test/repository",
+    license: "MIT",
+    keywords: ["agent-skills"],
+    categories: [
+      {
+        id: "engineering",
+        name: "Engineering",
+        description: "Engineering skills.",
+      },
+    ],
+    skills: [
+      {
+        id: "fixture-skill",
+        description: "Existing fixture source.",
+        category_id: "engineering",
+        visibility: "public",
+        status: "active",
+        required_skills: [],
+      },
+      ...skillIds.map((skillId, index) => ({
+        id: skillId,
+        description: `Fixture ${skillId}.`,
+        category_id: "engineering",
+        visibility: index === 0 ? "public" : "internal",
+        status: "active",
+        required_skills:
+          index === skillIds.length - 1
+            ? []
+            : [
+                {
+                  skill_id: skillIds[index + 1],
+                  reason: "Provides the next dependency layer.",
+                  instructions: "Read the next layer first.",
+                },
+              ],
+      })),
+    ],
+  };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  for (const skill of manifest.skills) {
+    const skillId = String(skill["id"]);
+    const skillDirectory = path.join(rootDir, "plugin", "skills", skillId);
+    await mkdir(skillDirectory, { recursive: true });
+    await writeFile(
+      path.join(skillDirectory, "SKILL.md"),
+      `# ${skillId}\n\n<!-- PLUGIN-COMPILER:REQUIRED-SKILLS -->\n`,
+    );
+  }
+}
+
 describe("plugin compiler CLI process", () => {
   it("initializes missing source paths and preserves them on repeated runs", async () => {
     // GIVEN: An empty real directory will become an authored plugin repository.
@@ -470,6 +532,31 @@ describe("plugin compiler CLI process", () => {
     assert.match(result.stderr, /Plugin validation failed/u);
     assert.match(result.stderr, /unexpected/u);
   });
+
+  it.each(["validate", "check", "compile"])(
+    "returns validation failure for dependency depth through CLI %s",
+    async (command) => {
+      // GIVEN: A schema-v2 repository reaches its exclusive depth limit.
+      const rootDir = await createFixtureRepository();
+      await useDependencyDepthViolation(rootDir);
+
+      // WHEN: The executable runs one validating operation.
+      const result = await runCli([command, "--root", rootDir]);
+
+      // THEN: Every command exits one with the same actionable diagnostic.
+      assert.equal(result.exitCode, CliExitCode.Failure);
+      assert.equal(result.stdout, "");
+      assert.match(result.stderr, /Plugin validation failed/u);
+      assert.match(
+        result.stderr,
+        /skill "skill-a" reaches configured dependency depth limit 3 through skill-a -> skill-b -> skill-c -> skill-d/u,
+      );
+      assert.match(
+        result.stderr,
+        /plugin\/plugin\.yml#\/config\/skill_dependency_depth_limit/u,
+      );
+    },
+  );
 
   it.each([
     {

@@ -271,6 +271,47 @@ export async function useSkillDependencyGraph(rootDir: string): Promise<void> {
   }
 }
 
+/** Extend the dependency fixture to violate a schema-v2 depth limit of three. */
+export async function useSkillDependencyDepthViolation(
+  rootDir: string,
+): Promise<void> {
+  const manifestPath = path.join(rootDir, "plugin", "plugin.yml");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as {
+    schema_version: number;
+    config?: Record<string, unknown>;
+    skills: Record<string, unknown>[];
+  };
+  manifest.schema_version = 2;
+  manifest.config = { skill_dependency_depth_limit: 3 };
+  const sharedSkill = manifest.skills.find(
+    (skill) => skill["id"] === "shared-skill",
+  );
+  if (sharedSkill === undefined)
+    throw new Error("Shared fixture skill is missing");
+  sharedSkill["required_skills"] = [
+    {
+      skill_id: "boundary-skill",
+      reason: "Extends the graph to the configured boundary.",
+      instructions: "Read the boundary skill first.",
+    },
+  ];
+  manifest.skills.push({
+    id: "boundary-skill",
+    description: "Dependency at the first forbidden depth.",
+    category_id: "foundations",
+    visibility: "internal",
+    status: "active",
+    required_skills: [],
+  });
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const skillRoot = path.join(rootDir, "plugin", "skills", "boundary-skill");
+  await mkdir(skillRoot, { recursive: true });
+  await writeFile(
+    path.join(skillRoot, "SKILL.md"),
+    `# boundary-skill\n\n${REQUIRED_SKILLS_MARKER}\n`,
+  );
+}
+
 /** Add one valid adaptive hook to a compiler repository fixture. */
 export async function addAdaptiveHook(
   rootDir: string,

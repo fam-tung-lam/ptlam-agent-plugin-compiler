@@ -46,6 +46,18 @@ Results and their nested public collections are immutable snapshots. Methods
 reject when repository I/O, validation, planning, or verification cannot
 complete.
 
+The `plugin` returned by every validating operation exposes normalized immutable
+manifest configuration:
+
+```ts
+const { plugin } = await compiler.validate();
+const limit: number | null = plugin.config.skill_dependency_depth_limit;
+```
+
+Omitted schema-v2 configuration and every schema-v1 plugin report `null`.
+Configured depth violations reject `validate()`, `check()`, and `compile()` with
+`PluginValidationError` before generated state is read or written.
+
 ## Check before publication
 
 ```ts

@@ -3,7 +3,8 @@
 `plugin/plugin.yml` is the authored source of truth. Schema versions `1` and `2`
 are closed contracts: every required property must be present, and unknown
 properties are rejected. Version `1` is frozen for existing skill-only plugins;
-version `2` adds portable lifecycle hooks and is the default for new plugins.
+version `2` adds portable lifecycle hooks and plugin configuration and is the
+default for new plugins.
 
 ## Where it lives
 
@@ -44,6 +45,7 @@ characters. Underscores and uppercase letters are rejected.
 | ---------------- | ------------------ | ----------------------------------------------------- |
 | `schema_version` | integer            | `1` for the frozen skill-only contract; otherwise `2` |
 | `providers`      | unique string list | Empty is allowed; IDs match `^[a-z][a-z0-9-]*$`       |
+| `config`         | object             | Optional in v2; validation policy described below     |
 | `name`           | identifier         | Lowercase kebab-case, at most 64 characters           |
 | `description`    | non-empty string   | Describes the complete plugin                         |
 | `version`        | string             | Semantic Versioning                                   |
@@ -58,6 +60,23 @@ characters. Underscores and uppercase letters are rejected.
 
 The schema validates `homepage` and `repository` as non-empty strings. Use full
 HTTPS URLs so generated provider manifests are useful to consumers.
+
+## Config
+
+Schema v2 accepts one closed, optional plugin-wide configuration object. Schema
+v1 rejects `config`.
+
+```yaml
+config:
+  skill_dependency_depth_limit: 3
+```
+
+`skill_dependency_depth_limit` accepts `null` or a positive integer. Omitted
+`config`, an empty object, an omitted property, and explicit `null` all
+normalize to the same immutable unlimited value. An integer is an exclusive
+boundary: a limit of `3` accepts dependency depths `0`, `1`, and `2`, then
+rejects a path when its third `required_skills` edge is reached. The
+[Skill graph guide](/guide/skill-graph) explains path selection and failures.
 
 ## Category
 

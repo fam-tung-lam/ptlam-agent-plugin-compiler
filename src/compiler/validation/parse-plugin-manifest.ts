@@ -21,6 +21,7 @@ import {
   type HookManifest,
   type MarkdownReferencesPolicy,
   type PluginCategory,
+  type PluginConfig,
   type PluginManifest,
   PluginSchemaVersion,
   type SkillArchive,
@@ -93,7 +94,7 @@ type JsonSkillManifest = Omit<
 
 type JsonPluginManifestBase = Omit<
   PluginManifest,
-  "categories" | "hooks" | "providers" | "schema_version" | "skills"
+  "categories" | "config" | "hooks" | "providers" | "schema_version" | "skills"
 > & {
   readonly categories: readonly JsonPluginCategory[];
   readonly providers: readonly string[];
@@ -106,6 +107,9 @@ type JsonPluginManifestV1 = JsonPluginManifestBase & {
 
 type JsonPluginManifestV2 = JsonPluginManifestBase & {
   readonly schema_version: PluginSchemaVersion.V2;
+  readonly config?: {
+    readonly skill_dependency_depth_limit?: number | null;
+  };
   readonly hooks?: JsonHookManifest;
 };
 
@@ -126,6 +130,14 @@ function createHookManifest(value: JsonHookManifest): HookManifest {
       ]),
     ),
   ) as HookManifest;
+}
+
+function createPluginConfig(
+  value?: JsonPluginManifestV2["config"],
+): PluginConfig {
+  return Object.freeze({
+    skill_dependency_depth_limit: value?.skill_dependency_depth_limit ?? null,
+  });
 }
 
 /** Result of strict YAML, JSON-schema, identifier, and public-metadata parsing. */
@@ -246,8 +258,10 @@ function createSkillManifest(value: JsonSkillManifest): SkillManifest {
 /** Snapshot schema-validated JSON through the only branded-ID constructors. */
 function createPluginManifest(value: JsonPluginManifest): PluginManifest {
   const hooks = "hooks" in value ? (value.hooks ?? {}) : {};
+  const config = "config" in value ? value.config : undefined;
   return Object.freeze({
     ...value,
+    config: createPluginConfig(config),
     author: Object.freeze({ ...value.author }),
     providers: Object.freeze(value.providers.map(createProviderId)),
     keywords: Object.freeze([...value.keywords]),

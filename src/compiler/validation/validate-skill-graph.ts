@@ -21,11 +21,13 @@ export interface SkillGraphValidationResult {
  *
  * @param categories - Manifest categories referenced by skills.
  * @param skills - Manifest skills whose IDs, dependencies, lifecycle, and reachability are checked.
+ * @param dependencyDepthLimit - First forbidden dependency depth, or `null` for unlimited depth.
  * @returns Immutable fatal errors and non-fatal warnings.
  */
 export function validateSkillGraph(
   categories: readonly PluginCategory[],
   skills: readonly SkillManifest[],
+  dependencyDepthLimit: number | null = null,
 ): SkillGraphValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -65,7 +67,14 @@ export function validateSkillGraph(
   });
 
   if (![...skillCounts.values()].some((count) => count > 1)) {
+    const errorCountBeforeCycleValidation = errors.length;
     validateAcyclicGraph(skills, skillsById, errors);
+    if (
+      dependencyDepthLimit !== null &&
+      errors.length === errorCountBeforeCycleValidation
+    ) {
+      validateDependencyDepth(skills, skillsById, dependencyDepthLimit, errors);
+    }
     warnForUnreachableInternalSkills(skills, skillsById, warnings);
   }
 
@@ -73,6 +82,44 @@ export function validateSkillGraph(
     errors: Object.freeze(errors),
     warnings: Object.freeze(warnings),
   };
+}
+
+function validateDependencyDepth(
+  skills: readonly SkillManifest[],
+  skillsById: ReadonlyMap<SkillId, SkillManifest>,
+  limit: number,
+  errors: string[],
+): void {
+  const longestPaths = new Map<SkillId, readonly SkillId[]>();
+  for (const skill of skills) {
+    const path = longestDependencyPath(skill, skillsById, longestPaths);
+    if (path.length <= limit) continue;
+    errors.push(
+      `${SOURCE_MANIFEST_PATH}#/config/skill_dependency_depth_limit: skill "${skill.id}" reaches configured dependency depth limit ${limit} through ${path.slice(0, limit + 1).join(" -> ")}`,
+    );
+  }
+}
+
+function longestDependencyPath(
+  skill: SkillManifest,
+  skillsById: ReadonlyMap<SkillId, SkillManifest>,
+  cache: Map<SkillId, readonly SkillId[]>,
+): readonly SkillId[] {
+  const cached = cache.get(skill.id);
+  if (cached !== undefined) return cached;
+  let longestPath: readonly SkillId[] = [skill.id];
+  for (const { skill_id: dependencyId } of skill.required_skills) {
+    if (dependencyId === skill.id) continue;
+    const dependency = skillsById.get(dependencyId);
+    if (dependency === undefined) continue;
+    const candidate = [
+      skill.id,
+      ...longestDependencyPath(dependency, skillsById, cache),
+    ];
+    if (candidate.length > longestPath.length) longestPath = candidate;
+  }
+  cache.set(skill.id, longestPath);
+  return longestPath;
 }
 
 function validateRequirements(
