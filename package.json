@@ -1,6 +1,6 @@
 {
   "name": "@fam-tung-lam/ptlam-agent-plugin-compiler",
-  "version": "0.3.0",
+  "version": "0.4.0-alpha.1",
   "description": "Deterministic compiler for PTLam-compatible agent plugin projects.",
   "type": "module",
   "license": "MIT",
