@@ -1331,6 +1331,9 @@ ${REQUIRED_SKILLS_MARKER}
     });
     const source = makePluginSource({
       manifest,
+      skillSourcePaths: {
+        "alpha-skill": "projects/alpha-skill",
+      },
       skillSources: {
         "alpha-skill": `# Alpha
 
@@ -1349,7 +1352,7 @@ ${MARKDOWN_REFERENCES_MARKER}
       assert.ok(error instanceof PluginValidationError);
       assert.match(
         error.message,
-        /plugin\/skills\/alpha-skill\/SKILL\.md: expected at most one <!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES --> marker, found 2/u,
+        /plugin\/skills\/projects\/alpha-skill\/SKILL\.md: expected at most one <!-- PLUGIN-COMPILER:MARKDOWN-REFERENCES --> marker, found 2/u,
       );
       return true;
     });
