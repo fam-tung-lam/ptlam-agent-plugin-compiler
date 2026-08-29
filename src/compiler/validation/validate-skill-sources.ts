@@ -43,24 +43,34 @@ export function validateSkillSources(
   const errors: string[] = [];
   const entries = normalizeSourceEntries(source.skillEntries, errors);
   const roots = discoverSkillRoots(entries);
-  validateRootOwnership(entries, roots, errors);
-  validateRootMapping(manifestSkills, roots, errors);
+  validateRootLayout(roots, errors);
+  const entriesByRootPath = indexSourceOwnership(entries, roots, errors);
 
   const rootsById = groupRootsById(roots);
+  const manifestsById = indexManifestsById(manifestSkills);
+  const inspectedByRootPath = new Map<
+    string,
+    Pick<SkillInput, "source_path" | "source_body" | "resources">
+  >();
+  for (const root of roots) {
+    const inspected = inspectSkillSource(
+      entriesByRootPath.get(root.path) ?? [],
+      root,
+      manifestsById.get(root.id),
+      errors,
+    );
+    if (inspected !== null) inspectedByRootPath.set(root.path, inspected);
+  }
+  validateRootMapping(manifestSkills, roots, errors);
+
   const skills: SkillInput[] = [];
-  for (const [index, manifestSkill] of manifestSkills.entries()) {
+  for (const manifestSkill of manifestSkills) {
     const matchingRoots = rootsById.get(manifestSkill.id) ?? [];
     const matchingRoot = matchingRoots[0];
     if (matchingRoots.length !== 1 || matchingRoot === undefined) continue;
-    const inspected = inspectSkillSource(
-      entries,
-      roots,
-      matchingRoot,
-      manifestSkill,
-      index,
-      errors,
-    );
-    if (inspected !== null) skills.push({ ...manifestSkill, ...inspected });
+    const inspected = inspectedByRootPath.get(matchingRoot.path);
+    if (inspected !== undefined)
+      skills.push({ ...manifestSkill, ...inspected });
   }
 
   errors.sort();
@@ -116,8 +126,7 @@ function discoverSkillRoots(
   });
 }
 
-function validateRootOwnership(
-  entries: readonly SourceEntry[],
+function validateRootLayout(
   roots: readonly DiscoveredSkillRoot[],
   errors: string[],
 ): void {
@@ -129,23 +138,73 @@ function validateRootOwnership(
     );
   }
 
-  for (const [index, root] of roots.entries()) {
-    for (const candidate of roots.slice(index + 1)) {
-      if (!candidate.path.startsWith(`${root.path}/`)) continue;
+  for (let leftIndex = 0; leftIndex < roots.length; leftIndex += 1) {
+    const left = roots[leftIndex];
+    if (left === undefined) continue;
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < roots.length;
+      rightIndex += 1
+    ) {
+      const right = roots[rightIndex];
+      if (right === undefined) continue;
+      const overlap = overlappingRoots(left, right);
+      if (overlap === undefined) continue;
       errors.push(
-        `${candidate.path}: skill root overlaps ${root.path}; each ${SKILL_MARKER} must define a non-overlapping source root`,
+        `${overlap.descendant.path}: skill root overlaps ${overlap.ancestor.path}; each ${SKILL_MARKER} must define a non-overlapping source root`,
       );
     }
   }
+}
 
-  for (const entry of entries) {
-    if (entry.kind !== SourceEntryKind.File) continue;
-    const entryPath = String(entry.path);
-    if (owningRoot(entryPath, roots) !== undefined) continue;
-    errors.push(
-      `${entryPath}: unowned authored skill input; grouping directories may contain only directories leading to skills, and files belong inside a directory with ${SKILL_MARKER}`,
-    );
+function overlappingRoots(
+  left: DiscoveredSkillRoot,
+  right: DiscoveredSkillRoot,
+):
+  | {
+      readonly ancestor: DiscoveredSkillRoot;
+      readonly descendant: DiscoveredSkillRoot;
+    }
+  | undefined {
+  if (left.path.startsWith(`${right.path}/`)) {
+    return { ancestor: right, descendant: left };
   }
+  if (right.path.startsWith(`${left.path}/`)) {
+    return { ancestor: left, descendant: right };
+  }
+  return undefined;
+}
+
+function indexSourceOwnership(
+  entries: readonly SourceEntry[],
+  roots: readonly DiscoveredSkillRoot[],
+  errors: string[],
+): ReadonlyMap<string, readonly SourceEntry[]> {
+  const rootsByPath = new Map(roots.map((root) => [root.path, root]));
+  const entriesByRootPath = new Map<string, SourceEntry[]>(
+    roots.map((root) => [root.path, []]),
+  );
+  for (const entry of entries) {
+    const entryPath = String(entry.path);
+    const owner = findOwningRoot(entryPath, rootsByPath);
+    if (owner !== undefined) {
+      const ownedEntries = entriesByRootPath.get(owner.path);
+      if (ownedEntries === undefined) {
+        throw new Error(`Missing source ownership bucket for ${owner.path}`);
+      }
+      ownedEntries.push(entry);
+    } else if (entry.kind === SourceEntryKind.File) {
+      errors.push(
+        `${entryPath}: unowned authored skill input; grouping directories may contain only directories leading to skills, and files belong inside a directory with ${SKILL_MARKER}`,
+      );
+    }
+  }
+  return new Map(
+    [...entriesByRootPath].map(([rootPath, ownedEntries]) => [
+      rootPath,
+      Object.freeze(ownedEntries),
+    ]),
+  );
 }
 
 function groupRootsById(
@@ -160,20 +219,29 @@ function groupRootsById(
   return grouped;
 }
 
-function owningRoot(
+function findOwningRoot(
   entryPath: string,
-  roots: readonly DiscoveredSkillRoot[],
+  rootsByPath: ReadonlyMap<string, DiscoveredSkillRoot>,
 ): DiscoveredSkillRoot | undefined {
-  let owner: DiscoveredSkillRoot | undefined;
-  for (const root of roots) {
-    if (
-      entryPath.startsWith(`${root.path}/`) &&
-      (owner === undefined || root.path.length > owner.path.length)
-    ) {
-      owner = root;
-    }
+  let ancestorPath = entryPath;
+  while (ancestorPath !== SOURCE_SKILLS_PATH) {
+    const separatorIndex = ancestorPath.lastIndexOf("/");
+    if (separatorIndex < 0) return undefined;
+    ancestorPath = ancestorPath.slice(0, separatorIndex);
+    const root = rootsByPath.get(ancestorPath);
+    if (root !== undefined) return root;
   }
-  return owner;
+  return undefined;
+}
+
+function indexManifestsById(
+  skills: readonly SkillManifest[],
+): ReadonlyMap<string, SkillManifest> {
+  const manifestsById = new Map<string, SkillManifest>();
+  for (const skill of skills) {
+    if (!manifestsById.has(skill.id)) manifestsById.set(skill.id, skill);
+  }
+  return manifestsById;
 }
 
 function validateRootMapping(
@@ -201,18 +269,15 @@ function validateRootMapping(
 }
 
 function inspectSkillSource(
-  allEntries: readonly SourceEntry[],
-  allRoots: readonly DiscoveredSkillRoot[],
+  ownedEntries: readonly SourceEntry[],
   root: DiscoveredSkillRoot,
-  manifestSkill: SkillManifest,
-  index: number,
+  manifestSkill: SkillManifest | undefined,
   errors: string[],
 ): Pick<SkillInput, "source_path" | "source_body" | "resources"> | null {
   const files = new Map<string, Buffer>();
 
-  for (const entry of allEntries) {
+  for (const entry of ownedEntries) {
     const entryPath = String(entry.path);
-    if (owningRoot(entryPath, allRoots)?.path !== root.path) continue;
     const relativePath = entryPath.slice(`${root.path}/`.length);
     if (relativePath.split("/").includes(".DS_Store")) {
       errors.push(`${entryPath}: unsupported service file`);
@@ -235,7 +300,7 @@ function inspectSkillSource(
   const skillFile = files.get(SKILL_MARKER);
   if (skillFile === undefined) {
     errors.push(
-      `${SOURCE_MANIFEST_PATH}#/skills/${index}: expected ${root.path}/${SKILL_MARKER}`,
+      `${root.path}/${SKILL_MARKER}: discovered marker is unavailable`,
     );
     return null;
   }
@@ -273,13 +338,17 @@ function inspectSkillSource(
           sourceFiles,
           skillPath: root.path,
         }),
-        ...validateRequiredSkillContractOwnership({
-          source: markdownSource,
-          markdownPath: relativePath,
-          skill: manifestSkill,
-          skillPath: root.path,
-        }),
       );
+      if (manifestSkill !== undefined) {
+        errors.push(
+          ...validateRequiredSkillContractOwnership({
+            source: markdownSource,
+            markdownPath: relativePath,
+            skill: manifestSkill,
+            skillPath: root.path,
+          }),
+        );
+      }
     }
   }
 
