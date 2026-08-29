@@ -338,6 +338,101 @@ describe("validateAuthoredPlugin", () => {
     });
   });
 
+  it("aggregates root-local failures for ambiguous and undeclared sources", () => {
+    // GIVEN: Ambiguous and undeclared roots contain independent body, resource, and link failures.
+    const manifest = makeManifest({
+      skills: [makeSkill({ id: "alpha-skill" })],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSourcePaths: {
+        "alpha-skill": "groups/a/alpha-skill",
+      },
+      skillSources: {
+        "alpha-skill": "---\nname: forbidden\n---\n# Alpha\n",
+      },
+      extraEntries: [
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/b/alpha-skill/SKILL.md",
+          ),
+          content: Buffer.from("# Duplicate alpha\n\n[missing](missing.md)\n"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/b/alpha-skill/.DS_Store",
+          ),
+          content: Buffer.from("service"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/c/orphan-skill/SKILL.md",
+          ),
+          content: Buffer.from(
+            `---\nname: forbidden\n---\n${REQUIRED_SKILLS_MARKER}\n${REQUIRED_SKILLS_MARKER}\n`,
+          ),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/c/orphan-skill/skills/owned.md",
+          ),
+          content: Buffer.from("reserved"),
+        },
+      ],
+    });
+
+    // WHEN: Validation inspects every discovered root before mapping controls construction.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: Mapping failures do not suppress independent root-local diagnostics.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.equal(error.errors.length, 8);
+      for (const expected of [
+        'skill source basename "alpha-skill" is ambiguous',
+        "groups/a/alpha-skill/SKILL.md: authored SKILL.md must not contain YAML frontmatter",
+        "groups/b/alpha-skill/.DS_Store: unsupported service file",
+        "groups/b/alpha-skill/SKILL.md: local link target does not exist",
+        "groups/c/orphan-skill: source skill is not listed",
+        "groups/c/orphan-skill/SKILL.md: authored SKILL.md must not contain YAML frontmatter",
+        "groups/c/orphan-skill/SKILL.md: expected at most one",
+        "groups/c/orphan-skill/skills/owned.md: skills/ is owned by the plugin compiler",
+      ]) {
+        assert.ok(error.message.includes(expected), expected);
+      }
+      return true;
+    });
+  });
+
+  it("rejects a digit-leading child root discovered before its parent", () => {
+    // GIVEN: Lexical source order places a valid digit-leading nested skill before its parent marker.
+    const manifest = makeManifest({
+      skills: [makeSkill({ id: "alpha" }), makeSkill({ id: "0beta" })],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSourcePaths: {
+        "0beta": "alpha/0beta",
+      },
+    });
+
+    // WHEN: Validation compares discovered source roots in their filesystem order.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: Ancestor detection remains independent of which marker was discovered first.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.deepEqual(error.errors, [
+        "plugin/skills/alpha/0beta: skill root overlaps plugin/skills/alpha; each SKILL.md must define a non-overlapping source root",
+      ]);
+      return true;
+    });
+  });
+
   it("rejects overlapping roots and files owned only by grouping directories", () => {
     // GIVEN: One discovered root contains another while root and grouping-level files have no skill owner.
     const manifest = makeManifest({
