@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -13,6 +20,49 @@ import { readPluginSource } from "../../../../src/filesystem/index.ts";
 import { createFilesystemRepository } from "./test-fixtures/filesystem-repository-fixture.ts";
 
 describe("readPluginSource", () => {
+  it("reads flat, grouped, and empty skill directories in project-path order", async () => {
+    // GIVEN: Authored skills use mixed source depths beside an empty grouping directory.
+    const rootDir = await createFilesystemRepository();
+    const nestedParent = path.join(
+      rootDir,
+      "plugin",
+      "skills",
+      "projects",
+      "health-connector",
+    );
+    await mkdir(nestedParent, { recursive: true });
+    await rename(
+      path.join(rootDir, "plugin", "skills", "alpha-skill"),
+      path.join(nestedParent, "alpha-skill"),
+    );
+    await mkdir(path.join(rootDir, "plugin", "skills", "beta-skill"));
+    await writeFile(
+      path.join(rootDir, "plugin", "skills", "beta-skill", "SKILL.md"),
+      "# Beta\n",
+    );
+    await mkdir(path.join(rootDir, "plugin", "skills", "empty-group"));
+
+    // WHEN: The bounded authored tree is read recursively.
+    const snapshot = await readPluginSource(rootDir);
+
+    // THEN: Group directories and all skill entries are preserved in deterministic order.
+    assert.deepEqual(
+      snapshot.source.skillEntries.map((entry) => entry.path),
+      [
+        "plugin/skills/beta-skill",
+        "plugin/skills/beta-skill/SKILL.md",
+        "plugin/skills/empty-group",
+        "plugin/skills/projects",
+        "plugin/skills/projects/health-connector",
+        "plugin/skills/projects/health-connector/alpha-skill",
+        "plugin/skills/projects/health-connector/alpha-skill/SKILL.md",
+        "plugin/skills/projects/health-connector/alpha-skill/references",
+        "plugin/skills/projects/health-connector/alpha-skill/references/data.bin",
+      ],
+    );
+    assert.deepEqual(snapshot.diagnostics, []);
+  });
+
   it("returns deterministic defensive source facts and aggregated path diagnostics", async () => {
     // GIVEN: Valid source files coexist with a source symlink and an unrelated root README link.
     const rootDir = await createFilesystemRepository();

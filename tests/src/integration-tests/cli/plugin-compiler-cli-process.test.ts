@@ -5,6 +5,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  rename,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -342,6 +343,31 @@ describe("plugin compiler CLI process", () => {
     assert.equal(result.stderr, "");
   });
 
+  it("validates a grouped skill source through the executable entrypoint", async () => {
+    // GIVEN: A manifest-declared skill is nested below transparent grouping directories.
+    const rootDir = await createFixtureRepository();
+    const groupedParent = path.join(
+      rootDir,
+      "plugin",
+      "skills",
+      "projects",
+      "health-connector",
+    );
+    await mkdir(groupedParent, { recursive: true });
+    await rename(
+      path.join(rootDir, "plugin", "skills", "fixture-skill"),
+      path.join(groupedParent, "fixture-skill"),
+    );
+
+    // WHEN: The built CLI validates the real authored repository.
+    const result = await runCli(["validate", "--root", rootDir]);
+
+    // THEN: Recursive source mapping succeeds through the process boundary.
+    assert.equal(result.exitCode, CliExitCode.Success);
+    assert.match(result.stdout, /Validated fixture-skills@0\.1\.0/u);
+    assert.equal(result.stderr, "");
+  });
+
   it("accepts comma-separated providers through the executable entrypoint", async () => {
     // GIVEN: A valid authored plugin repository and both built-in provider IDs.
     const rootDir = await createFixtureRepository();
@@ -557,6 +583,26 @@ describe("plugin compiler CLI process", () => {
       );
     },
   );
+
+  it("returns validation failure for an unowned grouping file", async () => {
+    // GIVEN: A regular file exists in a grouping directory outside every skill root.
+    const rootDir = await createFixtureRepository();
+    const groupingRoot = path.join(rootDir, "plugin", "skills", "projects");
+    await mkdir(groupingRoot);
+    await writeFile(path.join(groupingRoot, "README.md"), "# Notes\n");
+
+    // WHEN: The executable validates the authored repository.
+    const result = await runCli(["validate", "--root", rootDir]);
+
+    // THEN: The CLI preserves validation exit semantics and reports the complete path.
+    assert.equal(result.exitCode, CliExitCode.Failure);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /Plugin validation failed/u);
+    assert.match(
+      result.stderr,
+      /plugin\/skills\/projects\/README\.md: unowned authored skill input/u,
+    );
+  });
 
   it.each([
     {
