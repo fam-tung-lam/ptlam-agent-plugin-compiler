@@ -76,7 +76,10 @@ skills:
 
 Every field above is required. Identifiers are lowercase kebab-case, `version`
 must be quoted so YAML keeps it a string, and each skill `id` must have a
-matching source directory.
+matching source directory whose final name equals that ID. This walkthrough
+keeps those directories flat. You may instead group them at any depth below
+`plugin/skills/`; [the manifest reference](/reference/manifest#skill-source-layout)
+defines grouping directories, skill roots, and source-discovery errors.
 
 `plugin/skills/inspect-repository/SKILL.md` holds the building block:
 

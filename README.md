@@ -210,6 +210,25 @@ its other output and reports unsupported events as skipped. Hooks do not have a
 `required` flag, do not become fallback skills, and do not write provider
 instruction files.
 
+Skill sources may be grouped at any depth below `plugin/skills/`. A directory is
+a skill root only when it directly contains a regular `SKILL.md`, and its final
+directory name must match the declared skill `id`. Directories without that file
+are transparent groups: they may contain only directories leading to skills, not
+their own files. For example, this source:
+
+```text
+plugin/skills/projects/health-connector/read-health/
+├── SKILL.md
+└── references/
+    └── api.md
+```
+
+still compiles to `skills/read-health/**`; grouping names never enter the skill
+ID or generated path. Skill roots cannot contain another skill root, and two
+roots cannot share a final directory name. The
+[manifest reference](https://agent-plugin-compiler.phamtunglam.com/reference/manifest#skill-source-layout)
+lists source-discovery failures and how to recover from them.
+
 Everything under `plugin/` is source you edit. Everything the compiler owns is a
 build result — never patch a generated skill or manifest by hand, change the
 source and compile again. The compiler always owns the root `skills/` tree.

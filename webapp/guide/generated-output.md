@@ -69,8 +69,11 @@ containing, in order:
 
 Supporting files that sit next to an authored `SKILL.md` are copied into the
 generated skill at the same relative path, so a skill can ship templates,
-schemas, or reference documents. `plugin/skills/<skill-id>/skills/` is reserved:
-the compiler builds that directory, and an authored one is rejected.
+schemas, or reference documents. The source root may be nested below
+`plugin/skills/`, but grouping directories are not reproduced: output remains
+flat at `skills/<skill-id>/`. The `skills/` directory inside any authored skill
+root is reserved; the compiler builds that directory, and an authored one is
+rejected.
 
 With `compilation.markdown_references: inline`, only `references/**/*.md` files
 are merged into `SKILL.md`, in relative-path order, and are not emitted
