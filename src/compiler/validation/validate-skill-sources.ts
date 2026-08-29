@@ -317,12 +317,12 @@ function inspectSkillSource(
       `${root.path}/${SKILL_MARKER}: expected at most one ${REQUIRED_SKILLS_MARKER} marker, found ${markerCount}`,
     );
   }
-  if (manifestSkill.compilation.markdown_references === "inline") {
+  if (manifestSkill?.compilation.markdown_references === "inline") {
     const referencesMarkerCount =
       sourceBody.split(MARKDOWN_REFERENCES_MARKER).length - 1;
     if (referencesMarkerCount > 1) {
       errors.push(
-        `${sourcePath}/SKILL.md: expected at most one ${MARKDOWN_REFERENCES_MARKER} marker, found ${referencesMarkerCount}`,
+        `${root.path}/${SKILL_MARKER}: expected at most one ${MARKDOWN_REFERENCES_MARKER} marker, found ${referencesMarkerCount}`,
       );
     }
   }
