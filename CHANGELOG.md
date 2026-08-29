@@ -13,6 +13,9 @@ and this project adheres to
 - Added optional schema-v2 `config.skill_dependency_depth_limit` validation.
   Positive integers are exclusive dependency-depth boundaries, while omission
   and `null` preserve unlimited depth and existing generated output.
+- Added recursive skill-source discovery, so authors can organize declared
+  skills in transparent grouping directories below `plugin/skills/` while
+  generated `skills/<id>/` paths remain flat.
 
 ## [0.3.0] - 2026-08-24
 

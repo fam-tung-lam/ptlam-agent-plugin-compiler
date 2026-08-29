@@ -150,6 +150,14 @@ sequenceDiagram
 - Authored inputs are `plugin/plugin.yml`, `plugin/skills/**`, and optional
   `plugin/hooks/**`. The manifest's required `providers` list is the
   project-default provider selection.
+- Below `plugin/skills/`, validation treats each directory with a direct regular
+  `SKILL.md` as one skill source boundary. Directories without that file are
+  transparent groups and may not own files. A boundary owns all descendant
+  resources, so another skill boundary cannot overlap it.
+- Each discovered boundary maps by its final directory segment to one manifest
+  skill ID. Basenames are globally unambiguous, while the complete nested path
+  becomes `Skill.source_path`; grouping segments do not enter domain identity or
+  generated paths.
 - Shared generated outputs are `skills/**`, `skills/README.md`, and, when a
   compatible selected provider needs them, `hooks/handlers/**`.
 - Provider outputs are `.claude-plugin/**`, `.codex-plugin/plugin.json`, root
@@ -581,6 +589,9 @@ flowchart LR
 - Init creates only missing authored paths and never replaces existing content.
 - Validate, check, and compile read and validate authored source before using
   generated state.
+- Skill-source discovery is recursive for both manifest schema versions.
+  Missing, undeclared, ambiguous, overlapping, and unowned sources are fatal
+  before check or compile constructs and applies a write plan.
 - Validate, check, and compile expose immutable effective providers and whether
   they came from the manifest or an override.
 - Validate, check, and compile expose immutable per-provider, per-hook

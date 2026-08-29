@@ -8,16 +8,21 @@ default for new plugins.
 
 ## Where it lives
 
-The manifest sits at the root of the `plugin/` directory, beside one source
-directory per declared skill:
+The manifest sits at the root of the `plugin/` directory. Skill source
+directories may appear at any depth below `plugin/skills/`:
 
 ```text
 plugin/
 ├── plugin.yml
 ├── skills/
-│   └── <skill-id>/
-│       ├── SKILL.md
-│       └── optional-supporting-files
+│   ├── <flat-skill-id>/
+│   │   └── SKILL.md
+│   └── projects/
+│       └── health-connector/
+│           └── read-health/
+│               ├── SKILL.md
+│               └── references/
+│                   └── api.md
 └── hooks/
     └── optional-grouping-directory/
         ├── request.mjs
@@ -25,9 +30,41 @@ plugin/
         └── optional-internal-resources
 ```
 
-Every skill `id` in the manifest needs a matching
-`plugin/skills/<skill-id>/SKILL.md`. Supporting files may sit beside that
-Markdown source. `plugin/skills/<skill-id>/skills/` is reserved for the
+### Skill source layout
+
+A directory is a skill root exactly when it directly contains a regular
+`SKILL.md`. Its final directory name must equal the `id` of one skill declared
+in the manifest. Directories without a direct `SKILL.md` are transparent
+grouping directories; empty groups are ignored, and non-empty groups may contain
+only directories that lead to skills.
+
+Everything below a discovered skill root belongs to that skill. Supporting
+files therefore keep paths relative to the root, such as
+`references/api.md` for `read-health` above. One skill root cannot sit inside
+another, and two roots in different groups cannot share a final directory name.
+Symbolic links remain unsupported.
+
+Grouping is authoring-only. The complete discovered root is retained as the
+skill's source path, but identity, dependencies, catalogs, provider manifests,
+and generated output continue to use only the manifest ID. The example above
+therefore generates `skills/read-health/**`, not
+`skills/projects/health-connector/read-health/**`.
+
+Source discovery reports complete repository-relative paths. Recover from its
+fatal errors as follows, then rerun `validate`, `check`, or `compile`:
+
+- **Missing source:** add a regular `SKILL.md` below `plugin/skills/` in a
+  directory whose final name matches the declared skill ID.
+- **Undeclared source:** declare the ID matching the discovered directory name,
+  rename the directory to a declared ID, or remove the unintended `SKILL.md`.
+- **Ambiguous source:** rename or remove one of the roots that share a final
+  directory name so exactly one root maps to the manifest ID.
+- **Overlapping sources:** remove or relocate the nested skill root so no
+  directory with `SKILL.md` sits below another skill root.
+- **Unowned source:** move the file into a discovered skill root, or replace it
+  with a directory leading to one; grouping directories cannot own files.
+
+The `skills/` directory inside every discovered skill root is reserved for the
 compiler, and an authored one is rejected. See
 [Generated output](/guide/generated-output) for what compiling produces from
 these files.
@@ -152,7 +189,7 @@ cannot contain authored resources.
 
 | Field                      | Contract                                       |
 | -------------------------- | ---------------------------------------------- |
-| `id`                       | Identifier; needs a matching `SKILL.md` source |
+| `id`                       | Identifier; needs one matching `SKILL.md` root  |
 | `description`              | Non-empty public description                   |
 | `disable_model_invocation` | Optional v2 boolean; defaults to `false`       |
 | `category_id`              | ID of a declared category                      |
