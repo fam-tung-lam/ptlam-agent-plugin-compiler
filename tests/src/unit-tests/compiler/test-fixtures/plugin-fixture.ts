@@ -158,6 +158,7 @@ export function makeManifest(
 export function makePluginSource({
   manifest = makeManifest(),
   manifestSource,
+  skillSourcePaths = {},
   skillSources = {},
   resources = {},
   hookResources = {},
@@ -166,6 +167,7 @@ export function makePluginSource({
 }: {
   readonly manifest?: PluginManifest;
   readonly manifestSource?: string;
+  readonly skillSourcePaths?: Readonly<Record<string, string | null>>;
   readonly skillSources?: Readonly<Record<string, string>>;
   readonly resources?: Readonly<Record<string, string | Uint8Array>>;
   readonly hookResources?: Readonly<Record<string, string | Uint8Array>>;
@@ -175,6 +177,7 @@ export function makePluginSource({
   const hookEntries: SourceEntryInput[] = [];
   const skillEntries: SourceEntryInput[] = [];
   const hookDirectories = new Set<string>();
+  const skillDirectories = new Set<string>();
   for (const [relativePath, content] of Object.entries(hookResources)) {
     const segments = relativePath.split("/");
     for (let index = 1; index < segments.length; index += 1) {
@@ -194,21 +197,28 @@ export function makePluginSource({
   }
   hookEntries.push(...hookExtraEntries);
   for (const skill of manifest.skills) {
-    const skillRoot = `plugin/skills/${skill.id}`;
-    skillEntries.push(
-      {
-        kind: SourceEntryKind.Directory,
-        path: createProjectPath(skillRoot),
-      },
-      {
-        kind: SourceEntryKind.File,
-        path: createProjectPath(`${skillRoot}/SKILL.md`),
-        content: Buffer.from(
-          skillSources[skill.id] ??
-            `# ${skill.id}\n\n${REQUIRED_SKILLS_MARKER}\n`,
-        ),
-      },
-    );
+    const configuredRoot = skillSourcePaths[skill.id];
+    const relativeRoot =
+      configuredRoot === undefined ? skill.id : configuredRoot;
+    if (relativeRoot === null) continue;
+    const segments = relativeRoot.split("/");
+    for (let index = 1; index <= segments.length; index += 1) {
+      skillDirectories.add(segments.slice(0, index).join("/"));
+    }
+    skillEntries.push({
+      kind: SourceEntryKind.File,
+      path: createProjectPath(`plugin/skills/${relativeRoot}/SKILL.md`),
+      content: Buffer.from(
+        skillSources[skill.id] ??
+          `# ${skill.id}\n\n${REQUIRED_SKILLS_MARKER}\n`,
+      ),
+    });
+  }
+  for (const directory of skillDirectories) {
+    skillEntries.push({
+      kind: SourceEntryKind.Directory,
+      path: createProjectPath(`plugin/skills/${directory}`),
+    });
   }
   for (const [relativePath, content] of Object.entries(resources)) {
     skillEntries.push({

@@ -227,6 +227,159 @@ describe("validateAuthoredPlugin", () => {
     }
   });
 
+  it("maps mixed flat and grouped skill roots without publishing grouping paths", () => {
+    // GIVEN: One manifest skill is flat and another has nested grouping directories and a resource.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({ id: "alpha-skill" }),
+        makeSkill({ id: "beta-skill" }),
+        makeSkill({ id: "gamma-skill" }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSourcePaths: {
+        "alpha-skill": "projects/health-connector/alpha-skill",
+        "gamma-skill": "shared/gamma-skill",
+      },
+      skillSources: {
+        "alpha-skill": "# Alpha\n\nRead [rules](references/rules.md).\n",
+      },
+      resources: {
+        "projects/health-connector/alpha-skill/references/rules.md":
+          "# Rules\n",
+      },
+      extraEntries: [
+        {
+          kind: SourceEntryKind.Directory,
+          path: createProjectPath("plugin/skills/empty-group"),
+        },
+      ],
+    });
+
+    // WHEN: Pure authored-source validation discovers roots from their direct markers.
+    const result = validateAuthoredPlugin(source);
+
+    // THEN: Full source roots are retained while resource and identity paths stay skill-relative.
+    assert.deepEqual(
+      result.plugin.skills.map(({ id, source_path, resources }) => ({
+        id,
+        source_path,
+        resources: resources.map(({ path }) => path),
+      })),
+      [
+        {
+          id: "alpha-skill",
+          source_path: "plugin/skills/projects/health-connector/alpha-skill",
+          resources: ["references/rules.md"],
+        },
+        {
+          id: "beta-skill",
+          source_path: "plugin/skills/beta-skill",
+          resources: [],
+        },
+        {
+          id: "gamma-skill",
+          source_path: "plugin/skills/shared/gamma-skill",
+          resources: [],
+        },
+      ],
+    );
+  });
+
+  it("reports ambiguous, undeclared, and missing discovered-root mappings", () => {
+    // GIVEN: One declared ID has two grouped roots, one root is undeclared, and one declaration has no marker.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({ id: "alpha-skill" }),
+        makeSkill({ id: "beta-skill" }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSourcePaths: {
+        "alpha-skill": "groups/a/alpha-skill",
+        "beta-skill": null,
+      },
+      extraEntries: [
+        {
+          kind: SourceEntryKind.Directory,
+          path: createProjectPath("plugin/skills/groups/beta-skill"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/b/alpha-skill/SKILL.md",
+          ),
+          content: Buffer.from("# Duplicate alpha\n"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath(
+            "plugin/skills/groups/c/orphan-skill/SKILL.md",
+          ),
+          content: Buffer.from("# Orphan\n"),
+        },
+      ],
+    });
+
+    // WHEN: Source roots are matched by their final directory segment.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: Every independent mapping failure names its manifest location or complete roots.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.deepEqual(error.errors, [
+        "plugin/plugin.yml#/skills/1: expected one plugin/skills/**/beta-skill/SKILL.md source",
+        'plugin/skills/groups/a/alpha-skill: skill source basename "alpha-skill" is ambiguous; discovered roots: plugin/skills/groups/a/alpha-skill, plugin/skills/groups/b/alpha-skill',
+        "plugin/skills/groups/c/orphan-skill: source skill is not listed in plugin/plugin.yml",
+      ]);
+      return true;
+    });
+  });
+
+  it("rejects overlapping roots and files owned only by grouping directories", () => {
+    // GIVEN: One discovered root contains another while root and grouping-level files have no skill owner.
+    const manifest = makeManifest({
+      skills: [
+        makeSkill({ id: "alpha-skill" }),
+        makeSkill({ id: "beta-skill" }),
+      ],
+    });
+    const source = makePluginSource({
+      manifest,
+      skillSourcePaths: {
+        "beta-skill": "alpha-skill/beta-skill",
+      },
+      extraEntries: [
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath("plugin/skills/README.md"),
+          content: Buffer.from("# Root notes\n"),
+        },
+        {
+          kind: SourceEntryKind.File,
+          path: createProjectPath("plugin/skills/groups/README.md"),
+          content: Buffer.from("# Group notes\n"),
+        },
+      ],
+    });
+
+    // WHEN: Validation assigns every file to its nearest discovered root.
+    const validation = () => validateAuthoredPlugin(source);
+
+    // THEN: The overlap and both unowned files fail with complete source paths.
+    assert.throws(validation, (error: unknown) => {
+      assert.ok(error instanceof PluginValidationError);
+      assert.deepEqual(error.errors, [
+        "plugin/skills/README.md: unowned authored skill input; grouping directories may contain only directories leading to skills, and files belong inside a directory with SKILL.md",
+        "plugin/skills/alpha-skill/beta-skill: skill root overlaps plugin/skills/alpha-skill; each SKILL.md must define a non-overlapping source root",
+        "plugin/skills/groups/README.md: unowned authored skill input; grouping directories may contain only directories leading to skills, and files belong inside a directory with SKILL.md",
+      ]);
+      return true;
+    });
+  });
+
   it("rejects unsupported manifest interpolation", () => {
     // GIVEN: Manifest text contains a non-portable interpolation placeholder.
     const source = makePluginSource({
@@ -753,6 +906,11 @@ Read \`beta-skill\` before continuing.
         },
         {
           kind: SourceEntryKind.File,
+          path: createProjectPath("plugin/skills/orphan-skill/SKILL.md"),
+          content: Buffer.from("# Orphan\n"),
+        },
+        {
+          kind: SourceEntryKind.File,
           path: createProjectPath("plugin/skills/alpha-skill/skills/owned.md"),
           content: Buffer.from("owned"),
         },
@@ -1055,7 +1213,7 @@ ${REQUIRED_SKILLS_MARKER}
       for (const expected of [
         "duplicate logical source entry",
         "is outside plugin/skills/",
-        "only skill directories are allowed directly",
+        "unowned authored skill input",
         "unsupported service file",
         "must not contain YAML frontmatter",
         "expected at most one",
