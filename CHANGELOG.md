@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.4.0-alpha.1] - 2026-08-29
+
 ### Added
 
 - Added optional schema-v2 `config.skill_dependency_depth_limit` validation.
@@ -243,7 +245,9 @@ and this project adheres to
   file writes, and post-write verification for generated output.
 
 [Unreleased]:
-  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.3.0...HEAD
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.4.0-alpha.1...HEAD
+[0.4.0-alpha.1]:
+  https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.3.0...v0.4.0-alpha.1
 [0.3.0]:
   https://github.com/fam-tung-lam/ptlam-agent-plugin-compiler/compare/v0.2.3...v0.3.0
 [0.2.3]:
