@@ -72,11 +72,11 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.8",
+    "@biomejs/biome": "2.5.14",
     "@types/mdast": "4.0.4",
     "@types/node": "22.20.1",
     "@vitest/coverage-v8": "4.1.10",
-    "markdownlint-cli2": "0.23.2",
+    "markdownlint-cli2": "0.23.3",
     "typescript": "7.0.2",
     "vite": "6.4.3",
     "vitepress": "1.6.4",
